@@ -128,3 +128,4 @@ Ouvre **http://localhost:3000** dans ton navigateur.
 - **Recharts** (graphiques)
 - **TypeScript** strict
 # journal-trading
+# journal-trading
