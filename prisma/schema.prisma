@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Trade {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Core fields
+  datetime  DateTime
+  asset     String
+  direction String   // LONG | SHORT
+  orderType String   // LIMITE | STOP
+
+  // Prices
+  entryPrice Float
+  stopLoss   Float
+  takeProfit Float
+  units      Float
+
+  // Risk management
+  riskAmount  Float // montant risqué ($)
+  riskPercent Float // % du capital (ex: 1.0)
+
+  // R-Ratio calculé à l'entrée
+  plannedRR Float // (TP - Entry) / (Entry - SL) pour LONG
+
+  // Status
+  status String @default("PENDING") // PENDING | OPEN | CLOSED | CANCELLED
+
+  // Résultat (rempli à la clôture)
+  exitPrice  Float?
+  pnl        Float?   // P&L en $
+  pnlPercent Float?   // P&L en %
+  rMultiple  Float?   // P&L / riskAmount (ex: 2.3R)
+  mae        Float?   // Max Adverse Excursion ($) - combien la position est allée contre toi
+  mfe        Float?   // Max Favorable Excursion ($) - combien la position est allée en ta faveur
+
+  // Checklist confluence (obligatoires)
+  checkEMA     Boolean @default(false)
+  checkRSI     Boolean @default(false)
+  checkVolume  Boolean @default(false)
+  checkLiquid  Boolean @default(false)
+  checkUnlocks Boolean @default(false)
+  checkTVL     Boolean @default(false)
+
+  // Contexte & tags
+  setup           String? // type de setup (EMA Bounce, FVG, etc.)
+  marketCondition String? // Trending Up/Down, Ranging, Volatile
+  emotionScore    Int?    // 1-10 état émotionnel avant le trade
+  sessionTime     String? // ASIA | LONDON | NY | OVERLAP
+
+  // Notes & media
+  notes      String?
+  screenshot String? // chemin fichier upload
+
+  // Timestamps opérationnels
+  openedAt  DateTime?
+  closedAt  DateTime?
+
+  @@index([asset])
+  @@index([status])
+  @@index([datetime])
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  date    DateTime @unique
+  content String
+  mood    Int?     // 1-10
+
+  @@index([date])
+}
+
+model Settings {
+  id             String @id @default("singleton")
+  initialCapital Float  @default(100000)
+  currentCapital Float  @default(100000)
+  riskPercent    Float  @default(1.0)
+  currency       String @default("USD")
+}
