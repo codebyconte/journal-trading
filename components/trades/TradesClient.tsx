@@ -3,14 +3,17 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, RefreshCw, Target, TrendingUp, Shield, BookOpen } from 'lucide-react'
-import Link from 'next/link'
 import { TradeForm } from '@/components/trades/TradeForm'
+import { PageShell } from '@/components/ui/PageShell'
 import { TradeTable } from '@/components/trades/TradeTable'
 import { CloseTradeModal } from '@/components/trades/CloseTradeModal'
 import { Modal } from '@/components/ui/Modal'
 import { Card } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { KpiGrid, CalloutBanner } from '@/components/ui/SystemState'
+import { Button } from '@/components/catalyst/button'
 import { getConfluenceScore } from '@/lib/analytics'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { cancelTrade, deleteTrade, openTrade } from '@/app/actions/trades'
 import type { Trade, Settings } from '@/lib/types'
 
@@ -61,93 +64,76 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in max-w-7xl">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-            <Target size={26} className="text-accent" />
-            Trades — Protocole Swing 4H
-          </h1>
-          <p className="text-base text-text-secondary mt-1">
-            Ordre Limite · 1% risque · 6 confluences · R/R minimum 1:3
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={isPending}
-            aria-label="Actualiser la liste des trades"
-            className="flex items-center gap-2 rounded-xl border border-border bg-bg-card px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-hover disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-accent/40"
-          >
-            <RefreshCw size={14} className={isPending ? 'animate-spin' : ''} aria-hidden="true" />
-            Actualiser
-          </button>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white hover:bg-accent/90 transition-all shadow-lg shadow-accent/20"
-          >
-            <Plus size={18} />
-            Nouveau Trade
-          </button>
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Trades — Protocole Swing 4H"
+        description="Ordre Limite · 1% risque · 6 confluences · R/R minimum 1:3"
+        icon={<Target data-slot="icon" className="size-7 text-indigo-400" aria-hidden="true" />}
+        actions={
+          <>
+            <Button outline onClick={refresh} disabled={isPending} aria-label="Actualiser la liste des trades">
+              <RefreshCw data-slot="icon" className={isPending ? 'animate-spin' : ''} aria-hidden="true" />
+              Actualiser
+            </Button>
+            <Button color="indigo" onClick={() => setShowForm(true)}>
+              <Plus data-slot="icon" className="size-4" aria-hidden="true" />
+              Nouveau Trade
+            </Button>
+          </>
+        }
+      />
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
-        {[
-          { label: 'En attente', value: String(stats.pending), color: 'text-neutral' },
-          { label: 'Ouverts', value: String(stats.open), color: 'text-accent' },
-          { label: 'Clôturés', value: String(stats.closed), color: 'text-text-primary' },
-          { label: 'Win Rate', value: stats.closed > 0 ? `${stats.winRate.toFixed(0)}%` : '—', color: stats.winRate >= 45 ? 'text-profit' : 'text-loss' },
-          { label: 'P&L clôturé', value: formatCurrency(stats.totalPnl), color: stats.totalPnl >= 0 ? 'text-profit' : 'text-loss' },
-          { label: 'Protocole 6/6', value: stats.closed > 0 ? `${stats.protocolRate.toFixed(0)}%` : '—', color: stats.protocolRate >= 70 ? 'text-profit' : 'text-neutral' },
-          { label: 'Risque actif', value: formatCurrency(stats.atRisk), color: 'text-loss' },
-          { label: 'Capital', value: formatCurrency(settings.currentCapital), color: 'text-text-primary' },
-        ].map(({ label, value, color }) => (
-          <Card key={label} className="p-3 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{label}</p>
-            <p className={cn('font-mono text-lg font-bold mt-1', color)}>{value}</p>
-          </Card>
-        ))}
-      </div>
+      <KpiGrid
+        items={[
+          { label: 'En attente', value: String(stats.pending), tone: 'neutral' },
+          { label: 'Ouverts', value: String(stats.open), tone: 'accent' },
+          { label: 'Clôturés', value: String(stats.closed), tone: 'default' },
+          {
+            label: 'Win Rate',
+            value: stats.closed > 0 ? `${stats.winRate.toFixed(0)}%` : '—',
+            tone: stats.closed > 0 ? (stats.winRate >= 45 ? 'profit' : 'loss') : 'default',
+          },
+          {
+            label: 'P&L clôturé',
+            value: formatCurrency(stats.totalPnl),
+            tone: stats.totalPnl >= 0 ? 'profit' : 'loss',
+          },
+          {
+            label: 'Protocole 6/6',
+            value: stats.closed > 0 ? `${stats.protocolRate.toFixed(0)}%` : '—',
+            tone: stats.closed > 0 ? (stats.protocolRate >= 70 ? 'profit' : 'neutral') : 'default',
+          },
+          { label: 'Risque actif', value: formatCurrency(stats.atRisk), tone: 'loss' },
+          { label: 'Capital', value: formatCurrency(settings.currentCapital), tone: 'default' },
+        ]}
+      />
 
-      {/* Protocol reminder */}
-      <div className="flex flex-col gap-3 rounded-xl border border-accent/25 bg-accent/5 px-5 py-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-3">
-          <Shield size={20} className="text-accent flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-bold text-text-primary">Avant chaque trade — Checklist obligatoire</p>
-            <p className="text-sm text-text-secondary mt-0.5">
-              Règle Zéro ≥ 3/5 · MTF aligné (W→D→4H) · 6/6 confluences · Ordre Limite · SL+TP simultanés · 3 invalidations
-            </p>
-          </div>
+      <CalloutBanner
+        tone="indigo"
+        icon={<Shield data-slot="icon" className="size-5 text-indigo-400" aria-hidden="true" />}
+        title="Avant chaque trade — Checklist obligatoire"
+      >
+        Règle Zéro ≥ 3/5 · MTF aligné (W→D→4H) · 6/6 confluences · Ordre Limite · SL+TP simultanés · 3 invalidations
+        <div className="mt-3">
+          <Button href="/protocol" outline>
+            <BookOpen data-slot="icon" className="size-4" aria-hidden="true" />
+            Voir le protocole
+          </Button>
         </div>
-        <Link
-          href="/protocol"
-          className="flex items-center gap-2 rounded-lg border border-accent/30 bg-bg-card px-4 py-2 text-sm font-semibold text-accent hover:bg-bg-hover transition-colors whitespace-nowrap"
-        >
-          <BookOpen size={14} />
-          Voir le protocole
-        </Link>
-      </div>
+      </CalloutBanner>
 
       {/* Table */}
       {trades.length === 0 ? (
         <Card className="py-16 text-center">
-          <TrendingUp size={40} className="mx-auto text-text-muted mb-4" />
-          <p className="text-lg font-bold text-text-primary">Aucun trade enregistré</p>
-          <p className="text-sm text-text-secondary mt-2 max-w-md mx-auto">
+          <TrendingUp size={40} className="mx-auto mb-4 text-zinc-500" />
+          <p className="text-lg font-bold text-white">Aucun trade enregistré</p>
+          <p className="mt-2 max-w-md mx-auto text-sm text-zinc-400">
             Commence par enregistrer un setup avec le protocole complet. Chaque trade alimente tes analytics et ton journal.
           </p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-bold text-white hover:bg-accent/90"
-          >
-            <Plus size={16} />
+          <Button color="indigo" onClick={() => setShowForm(true)} className="mt-6">
+            <Plus data-slot="icon" className="size-4" aria-hidden="true" />
             Premier Trade
-          </button>
+          </Button>
         </Card>
       ) : (
         <TradeTable
@@ -164,6 +150,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
         onClose={() => setShowForm(false)}
         title="Nouveau Trade — Protocole Swing 4H"
         size="full"
+        showClose={false}
       >
         <TradeForm
           currentCapital={settings.currentCapital}
@@ -178,6 +165,6 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
         onClose={() => setTradeToClose(null)}
         onSuccess={refresh}
       />
-    </div>
+    </PageShell>
   )
 }

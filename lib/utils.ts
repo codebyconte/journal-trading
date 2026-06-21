@@ -186,23 +186,23 @@ export function calculateExpectancy(
 
 export function getStatusColor(status: string): string {
   switch (status) {
-    case 'OPEN':      return 'text-accent'
-    case 'CLOSED':    return 'text-text-secondary'
-    case 'PENDING':   return 'text-neutral'
-    case 'CANCELLED': return 'text-text-muted'
-    default:          return 'text-text-secondary'
+    case 'OPEN':      return 'text-indigo-400'
+    case 'CLOSED':    return 'text-zinc-400'
+    case 'PENDING':   return 'text-amber-400'
+    case 'CANCELLED': return 'text-zinc-500'
+    default:          return 'text-zinc-400'
   }
 }
 
 export function getPnlColor(value: number | null | undefined): string {
-  if (value == null) return 'text-text-secondary'
-  if (value > 0) return 'text-profit'
-  if (value < 0) return 'text-loss'
-  return 'text-text-secondary'
+  if (value == null) return 'text-zinc-400'
+  if (value > 0) return 'text-emerald-400'
+  if (value < 0) return 'text-red-400'
+  return 'text-zinc-400'
 }
 
 export function getDirectionColor(direction: string): string {
-  return direction === 'LONG' ? 'text-profit' : 'text-loss'
+  return direction === 'LONG' ? 'text-emerald-400' : 'text-red-400'
 }
 
 export function getEmotionLabel(score: number): string {

@@ -10,7 +10,11 @@ import {
   ArrowUpRight, ArrowDownRight, Plus, BarChart3, BookOpen,
 } from 'lucide-react'
 import { EquityCurve } from '@/components/dashboard/EquityCurve'
+import { PageShell } from '@/components/ui/PageShell'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/catalyst/button'
+import { Badge } from '@/components/catalyst/badge'
 import type { DashboardStats, Trade } from '@/lib/types'
 import { formatCurrency, formatPercent, formatR, safeNum, cn } from '@/lib/utils'
 import { DirectionIcon, HealthStatusIcon } from '@/components/ui/TradingIcons'
@@ -21,11 +25,11 @@ import { getConfluenceScore } from '@/lib/analytics'
 
 function getSession() {
   const h = new Date().getUTCHours()
-  if (h >= 13 && h < 16) return { label: 'Overlap LDN/NY', color: 'text-profit', dot: 'bg-profit' }
-  if (h >= 13 && h < 22) return { label: 'New York', color: 'text-accent', dot: 'bg-accent' }
-  if (h >= 7 && h < 16) return { label: 'Londres', color: 'text-profit', dot: 'bg-profit' }
-  if (h >= 0 && h < 9) return { label: 'Asie', color: 'text-neutral', dot: 'bg-neutral' }
-  return { label: 'Hors session', color: 'text-text-muted', dot: 'bg-border' }
+  if (h >= 13 && h < 16) return { label: 'Overlap LDN/NY', color: 'text-emerald-400', dot: 'bg-profit' }
+  if (h >= 13 && h < 22) return { label: 'New York', color: 'text-indigo-400', dot: 'bg-indigo-500' }
+  if (h >= 7 && h < 16) return { label: 'Londres', color: 'text-emerald-400', dot: 'bg-profit' }
+  if (h >= 0 && h < 9) return { label: 'Asie', color: 'text-amber-400', dot: 'bg-neutral' }
+  return { label: 'Hors session', color: 'text-zinc-500', dot: 'bg-border' }
 }
 
 function getDayFr() {
@@ -54,18 +58,17 @@ function KpiCard({
 }) {
   return (
     <div className={cn(
-      'group relative overflow-hidden rounded-xl border bg-bg-card p-4 transition-all duration-200 hover:border-border-strong',
-      trend === 'up' && 'border-profit/20',
-      trend === 'down' && 'border-loss/20',
-      trend === 'neutral' && 'border-neutral/20',
-      !trend && 'border-border',
+      'group relative overflow-hidden rounded-xl bg-white p-4 shadow-xs ring-1 ring-zinc-950/5 transition-all dark:bg-zinc-900 dark:ring-white/10',
+      trend === 'up' && 'ring-emerald-500/20',
+      trend === 'down' && 'ring-red-500/20',
+      trend === 'neutral' && 'ring-amber-500/20',
     )}>
-      <div className="flex items-start justify-between mb-2">
-        <p className="text-sm font-semibold uppercase tracking-wide text-text-secondary">{label}</p>
+      <div className="mb-2 flex items-start justify-between">
+        <p className="text-xs/5 font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</p>
         {icon && (
           <span className={cn(
             'opacity-70',
-            trend === 'up' ? 'text-profit' : trend === 'down' ? 'text-loss' : trend === 'neutral' ? 'text-neutral' : 'text-text-muted',
+            trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-red-400' : trend === 'neutral' ? 'text-amber-400' : 'text-zinc-500',
           )}>
             {icon}
           </span>
@@ -73,17 +76,17 @@ function KpiCard({
       </div>
       <p className={cn(
         'font-mono text-2xl font-bold tabular-nums',
-        trend === 'up' && 'text-profit',
-        trend === 'down' && 'text-loss',
-        trend === 'neutral' && 'text-neutral',
-        !trend && 'text-text-primary',
+        trend === 'up' && 'text-emerald-400',
+        trend === 'down' && 'text-red-400',
+        trend === 'neutral' && 'text-amber-400',
+        !trend && 'text-white',
       )}>
         {value}
       </p>
-      {sub && <p className="mt-0.5 text-sm text-text-secondary">{sub}</p>}
-      {target && <p className="mt-1 text-xs text-text-muted">Cible : {target}</p>}
+      {sub && <p className="mt-0.5 text-sm text-zinc-400">{sub}</p>}
+      {target && <p className="mt-1 text-xs text-zinc-500">Cible : {target}</p>}
       {progress !== undefined && (
-        <div className="mt-3 h-1 w-full rounded-full bg-bg-elevated overflow-hidden">
+        <div className="mt-3 h-1 w-full rounded-full bg-zinc-800 overflow-hidden">
           <div
             className={cn('h-full rounded-full', trend === 'up' ? 'bg-profit' : trend === 'down' ? 'bg-loss' : 'bg-neutral')}
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
@@ -101,23 +104,23 @@ function CircuitBreakerCard({ cb }: { cb: CircuitBreakerState }) {
     <Card className="overflow-hidden">
       <div className={cn(
         'flex items-center gap-3 border-b px-5 py-4',
-        status === 'red' && 'border-loss/20 bg-loss-dim',
-        status === 'yellow' && 'border-neutral/20 bg-neutral-dim',
-        status === 'green' && 'border-profit/20 bg-profit-dim',
+        status === 'red' && 'border-red-500/20 bg-red-500/10',
+        status === 'yellow' && 'border-amber-500/20 bg-amber-500/10',
+        status === 'green' && 'border-emerald-500/20 bg-emerald-500/10',
       )}>
-        {status === 'green' && <ShieldCheck size={20} className="text-profit" />}
-        {status === 'yellow' && <ShieldAlert size={20} className="text-neutral" />}
-        {status === 'red' && <ShieldOff size={20} className="text-loss" />}
+        {status === 'green' && <ShieldCheck size={20} className="text-emerald-400" />}
+        {status === 'yellow' && <ShieldAlert size={20} className="text-amber-400" />}
+        {status === 'red' && <ShieldOff size={20} className="text-red-400" />}
         <div>
           <p className={cn(
             'text-sm font-bold',
-            status === 'green' && 'text-profit',
-            status === 'yellow' && 'text-neutral',
-            status === 'red' && 'text-loss',
+            status === 'green' && 'text-emerald-400',
+            status === 'yellow' && 'text-amber-400',
+            status === 'red' && 'text-red-400',
           )}>
             {status === 'green' ? 'Prêt à trader' : status === 'yellow' ? 'Vigilance renforcée' : 'Circuit-Breaker Actif'}
           </p>
-          <p className="text-sm text-text-muted">
+          <p className="text-sm text-zinc-500">
             {status === 'green' ? 'Aucun seuil déclenché' : status === 'yellow' ? 'Seuils d\'alerte approchant' : 'Trading interdit — règles protocole'}
           </p>
         </div>
@@ -125,21 +128,21 @@ function CircuitBreakerCard({ cb }: { cb: CircuitBreakerState }) {
 
       <div className="p-5 space-y-4">
         {cb.breaches.map((b, i) => (
-          <div key={i} className="flex items-start gap-2.5 rounded-lg border border-loss/30 bg-loss-dim px-3 py-2.5">
-            <XCircle size={15} className="text-loss flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-loss font-medium">{b}</p>
+          <div key={i} className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5">
+            <XCircle size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-400 font-medium">{b}</p>
           </div>
         ))}
         {cb.warnings.map((w, i) => (
-          <div key={i} className="flex items-start gap-2.5 rounded-lg border border-neutral/30 bg-neutral-dim px-3 py-2.5">
-            <AlertTriangle size={15} className="text-neutral flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-neutral">{w}</p>
+          <div key={i} className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+            <AlertTriangle size={15} className="text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-400">{w}</p>
           </div>
         ))}
         {status === 'green' && (
-          <div className="flex items-center gap-2 rounded-lg border border-profit/20 bg-profit-dim px-3 py-2.5">
-            <CheckCircle2 size={15} className="text-profit" />
-            <p className="text-sm text-profit">Conditions normales — protocole Swing 4H actif.</p>
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5">
+            <CheckCircle2 size={15} className="text-emerald-400" />
+            <p className="text-sm text-emerald-400">Conditions normales — protocole Swing 4H actif.</p>
           </div>
         )}
 
@@ -154,12 +157,12 @@ function CircuitBreakerCard({ cb }: { cb: CircuitBreakerState }) {
             return (
               <div key={gauge.label}>
                 <div className="flex justify-between text-sm mb-1.5">
-                  <span className="text-text-muted">{gauge.label}</span>
-                  <span className={cn('font-mono font-semibold text-xs', pct >= 100 ? 'text-loss' : pct >= 60 ? 'text-neutral' : 'text-profit')}>
+                  <span className="text-zinc-500">{gauge.label}</span>
+                  <span className={cn('font-mono font-semibold text-xs', pct >= 100 ? 'text-red-400' : pct >= 60 ? 'text-amber-400' : 'text-emerald-400')}>
                     {gauge.suffix}
                   </span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-bg-elevated overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
                   <div className={cn('h-full rounded-full transition-all', barColor)} style={{ width: `${Math.min(100, pct)}%` }} />
                 </div>
               </div>
@@ -235,61 +238,47 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
   const activePositions = s.openTrades + s.pendingTrades
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in max-w-7xl">
+    <PageShell>
 
-      {/* Status Bar */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-            <BarChart3 size={26} className="text-accent" />
-            Dashboard
-          </h1>
-          <p className="text-base text-text-secondary capitalize mt-0.5">{getDayFr()}</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-bg-card px-3 py-2 text-sm font-mono text-text-muted">
-            <Clock size={14} />
-            {utcTime}
-          </div>
-          <div className={cn('flex items-center gap-2 rounded-xl border border-border bg-bg-card px-3 py-2 text-sm font-medium', session.color)}>
-            <span className={cn('h-2 w-2 rounded-full animate-pulse', session.dot)} />
-            {session.label}
-          </div>
-          {cb && (
-            <div className={cn(
-              'flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold',
-              cbStatus === 'green' && 'border-profit/30 bg-profit-dim text-profit',
-              cbStatus === 'yellow' && 'border-neutral/30 bg-neutral-dim text-neutral',
-              cbStatus === 'red' && 'border-loss/30 bg-loss-dim text-loss',
-            )}>
-              {cbStatus === 'green' && <><ShieldCheck size={14} /> Prêt</>}
-              {cbStatus === 'yellow' && <><ShieldAlert size={14} /> Vigilance</>}
-              {cbStatus === 'red' && <><ShieldOff size={14} /> Suspendu</>}
+      <PageHeader
+        title="Dashboard"
+        description={getDayFr()}
+        icon={<BarChart3 data-slot="icon" className="size-7 text-indigo-400" aria-hidden="true" />}
+        actions={
+          <>
+            <div className="flex items-center gap-2 rounded-lg bg-zinc-950/5 px-3 py-2 text-sm font-mono text-zinc-500 ring-1 ring-zinc-950/10 dark:bg-white/5 dark:text-zinc-400 dark:ring-white/10">
+              <Clock data-slot="icon" className="size-3.5" aria-hidden="true" />
+              {utcTime}
             </div>
-          )}
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={isPending}
-            aria-label="Actualiser le dashboard"
-            className="flex items-center gap-2 rounded-xl border border-border bg-bg-card px-3 py-2 text-sm text-text-secondary hover:bg-bg-hover disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-accent/40"
-          >
-            <RefreshCw size={14} className={isPending ? 'animate-spin' : ''} aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+            <div className={cn('flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-zinc-950/10 dark:ring-white/10', session.color)}>
+              <span className={cn('size-2 rounded-full animate-pulse', session.dot)} />
+              {session.label}
+            </div>
+            {cb && (
+              <Badge color={cbStatus === 'green' ? 'lime' : cbStatus === 'yellow' ? 'amber' : 'red'}>
+                {cbStatus === 'green' && 'Prêt'}
+                {cbStatus === 'yellow' && 'Vigilance'}
+                {cbStatus === 'red' && 'Suspendu'}
+              </Badge>
+            )}
+            <Button outline onClick={refresh} disabled={isPending} aria-label="Actualiser le dashboard">
+              <RefreshCw data-slot="icon" className={isPending ? 'animate-spin' : ''} aria-hidden="true" />
+            </Button>
+          </>
+        }
+      />
 
       {/* Positions actives */}
       {activePositions > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/25 bg-accent/5 px-5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/5 px-5 py-3">
           <div className="flex items-center gap-3">
-            <Activity size={18} className="text-accent" />
-            <p className="text-sm text-text-primary">
+            <Activity size={18} className="text-indigo-400" />
+            <p className="text-sm text-white">
               <span className="font-bold">{activePositions}</span> position(s) active(s) · Risque engagé :{' '}
-              <span className="font-mono font-bold text-loss">{formatCurrency(s.openRiskUsd)}</span>
+              <span className="font-mono font-bold text-red-400">{formatCurrency(s.openRiskUsd)}</span>
             </p>
           </div>
-          <Link href="/trades" className="text-sm font-semibold text-accent hover:underline flex items-center gap-1">
+          <Link href="/trades" className="text-sm font-semibold text-indigo-400 hover:underline flex items-center gap-1">
             Gérer <ChevronRight size={14} />
           </Link>
         </div>
@@ -298,12 +287,12 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
       {/* Capital Banner */}
       <div className={cn(
         'rounded-2xl border p-6 bg-gradient-to-br from-bg-elevated via-bg-card to-bg-card',
-        isProfit ? 'border-profit/20' : s.closedTrades === 0 ? 'border-border' : 'border-loss/20',
+        isProfit ? 'border-emerald-500/20' : s.closedTrades === 0 ? 'border-white/10' : 'border-red-500/20',
       )}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <p className="text-sm font-semibold uppercase tracking-widest text-text-muted mb-1">Capital Total</p>
-            <p className="font-mono text-5xl font-bold text-text-primary tabular-nums">
+            <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500 mb-1">Capital Total</p>
+            <p className="font-mono text-5xl font-bold text-white tabular-nums">
               {formatCurrency(s.currentCapital)}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -311,29 +300,29 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
                 <>
                   <div className={cn(
                     'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-mono font-bold',
-                    isProfit ? 'bg-profit-dim text-profit' : 'bg-loss-dim text-loss',
+                    isProfit ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400',
                   )}>
                     {isProfit ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                     {isProfit ? '+' : ''}{formatCurrency(s.totalPnl)}
                   </div>
-                  <span className={cn('font-mono text-sm font-semibold', isProfit ? 'text-profit' : 'text-loss')}>
+                  <span className={cn('font-mono text-sm font-semibold', isProfit ? 'text-emerald-400' : 'text-red-400')}>
                     ({formatPercent(s.totalPnlPercent)})
                   </span>
-                  <span className="text-sm text-text-muted">depuis {formatCurrency(s.initialCapital)}</span>
+                  <span className="text-sm text-zinc-500">depuis {formatCurrency(s.initialCapital)}</span>
                 </>
               ) : (
-                <span className="text-sm text-text-muted">Aucun trade clôturé — capital initial intact</span>
+                <span className="text-sm text-zinc-500">Aucun trade clôturé — capital initial intact</span>
               )}
             </div>
             {hasTrades && (
               <div className="mt-4">
                 <div className="flex justify-between text-sm mb-1.5">
-                  <span className="text-text-muted">Max Drawdown : {s.maxDrawdownPercent.toFixed(1)}%</span>
-                  <span className={cn('font-mono text-xs', s.maxDrawdownPercent > 10 ? 'text-loss' : 'text-profit')}>
+                  <span className="text-zinc-500">Max Drawdown : {s.maxDrawdownPercent.toFixed(1)}%</span>
+                  <span className={cn('font-mono text-xs', s.maxDrawdownPercent > 10 ? 'text-red-400' : 'text-emerald-400')}>
                     Seuil protocole : 10%
                   </span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-bg-elevated overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
                   <div
                     className={cn('h-full rounded-full', s.maxDrawdownPercent > 10 ? 'bg-loss' : s.maxDrawdownPercent > 5 ? 'bg-neutral' : 'bg-profit')}
                     style={{ width: `${Math.min(100, (s.maxDrawdownPercent / 10) * 100)}%` }}
@@ -349,22 +338,22 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
               {
                 label: 'Streak actuel',
                 value: s.currentStreak === 0 ? '—' : streakPos ? `+${s.currentStreak}W` : `${Math.abs(s.currentStreak)}L`,
-                color: streakPos ? 'text-profit' : s.currentStreak < 0 ? 'text-loss' : 'text-text-muted',
+                color: streakPos ? 'text-emerald-400' : s.currentStreak < 0 ? 'text-red-400' : 'text-zinc-500',
               },
               {
                 label: 'Ratio Gain/Perte',
                 value: s.avgLoss > 0 ? (s.avgWin / s.avgLoss).toFixed(2) : '—',
-                color: s.avgLoss > 0 && s.avgWin > s.avgLoss ? 'text-profit' : 'text-text-secondary',
+                color: s.avgLoss > 0 && s.avgWin > s.avgLoss ? 'text-emerald-400' : 'text-zinc-400',
               },
               {
                 label: 'Protocole 6/6',
                 value: hasTrades ? `${s.protocolRate.toFixed(0)}%` : '—',
-                color: s.protocolRate >= 70 ? 'text-profit' : 'text-neutral',
+                color: s.protocolRate >= 70 ? 'text-emerald-400' : 'text-amber-400',
               },
             ].map((item) => (
-              <div key={item.label} className="rounded-xl border border-border bg-bg-surface px-4 py-3">
-                <p className="text-xs text-text-muted">{item.label}</p>
-                <p className={cn('font-mono text-sm font-bold mt-0.5', item.color ?? 'text-text-secondary')}>{item.value}</p>
+              <div key={item.label} className="rounded-xl border border-white/10 bg-zinc-900/80 px-4 py-3">
+                <p className="text-xs text-zinc-500">{item.label}</p>
+                <p className={cn('font-mono text-sm font-bold mt-0.5', item.color ?? 'text-zinc-400')}>{item.value}</p>
               </div>
             ))}
           </div>
@@ -374,18 +363,18 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
       {/* Empty state CTA */}
       {!hasTrades && (
         <Card className="py-10 text-center">
-          <Target size={40} className="mx-auto text-accent mb-4 opacity-80" />
-          <p className="text-lg font-bold text-text-primary">Commence ton journal</p>
-          <p className="text-sm text-text-secondary mt-2 max-w-md mx-auto">
+          <Target size={40} className="mx-auto text-indigo-400 mb-4 opacity-80" />
+          <p className="text-lg font-bold text-white">Commence ton journal</p>
+          <p className="text-sm text-zinc-300 mt-2 max-w-md mx-auto">
             Enregistre ton premier trade avec le protocole complet. Toutes les métriques se calculeront automatiquement.
           </p>
           <div className="flex justify-center gap-3 mt-6">
-            <Link href="/trades" className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-white hover:bg-accent/90">
-              <Plus size={16} /> Nouveau Trade
-            </Link>
-            <Link href="/protocol" className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-text-secondary hover:bg-bg-hover">
-              <BookOpen size={16} /> Protocole
-            </Link>
+            <Button href="/trades" color="indigo">
+              <Plus data-slot="icon" className="size-4" aria-hidden="true" /> Nouveau Trade
+            </Button>
+            <Button href="/protocol" outline>
+              <BookOpen data-slot="icon" className="size-4" aria-hidden="true" /> Protocole
+            </Button>
           </div>
         </Card>
       )}
@@ -405,14 +394,14 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
       {/* Equity Curve */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base normal-case tracking-normal text-text-primary">Equity Curve</CardTitle>
-          <span className="text-xs text-text-muted font-mono">{s.closedTrades} trades · Ref {formatCurrency(s.initialCapital)}</span>
+          <CardTitle className="text-base normal-case tracking-normal text-white">Equity Curve</CardTitle>
+          <span className="text-xs text-zinc-500 font-mono">{s.closedTrades} trades · Ref {formatCurrency(s.initialCapital)}</span>
         </CardHeader>
         <div className="h-64">
           {hasTrades ? (
             <EquityCurve data={stats.equityCurve ?? []} initialCapital={s.initialCapital} />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-text-muted">
+            <div className="flex h-full items-center justify-center text-sm text-zinc-500">
               La courbe apparaîtra après tes premiers trades clôturés
             </div>
           )}
@@ -425,37 +414,37 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base normal-case tracking-normal text-text-primary">Derniers Trades</CardTitle>
-            <Link href="/trades" className="flex items-center gap-1 text-sm text-accent hover:underline">
+            <CardTitle className="text-base normal-case tracking-normal text-white">Derniers Trades</CardTitle>
+            <Link href="/trades" className="flex items-center gap-1 text-sm text-indigo-400 hover:underline">
               Tous <ChevronRight size={12} />
             </Link>
           </CardHeader>
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-white/10">
             {recentTrades.length === 0 && (
-              <p className="py-8 text-center text-sm text-text-muted">Aucun trade clôturé</p>
+              <p className="py-8 text-center text-sm text-zinc-500">Aucun trade clôturé</p>
             )}
             {recentTrades.map((trade) => {
               const won = (trade.pnl ?? 0) >= 0
               const score = getConfluenceScore(trade)
               return (
-                <div key={trade.id} className="flex items-center justify-between px-4 py-3 hover:bg-bg-hover transition-colors">
+                <div key={trade.id} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', won ? 'bg-profit-dim' : 'bg-loss-dim')}>
+                    <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', won ? 'bg-emerald-500/10' : 'bg-red-500/10')}>
                       <DirectionIcon direction={trade.direction} size={20} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-text-primary">{trade.asset}</p>
-                      <p className="text-xs text-text-muted">
+                      <p className="text-sm font-bold text-white">{trade.asset}</p>
+                      <p className="text-xs text-zinc-500">
                         {new Date(trade.closedAt ?? trade.datetime).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                         {' · '}{score}/6 conf.
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={cn('font-mono text-sm font-bold', won ? 'text-profit' : 'text-loss')}>
+                    <p className={cn('font-mono text-sm font-bold', won ? 'text-emerald-400' : 'text-red-400')}>
                       {trade.pnl != null ? formatCurrency(trade.pnl) : '—'}
                     </p>
-                    <p className={cn('font-mono text-xs', won ? 'text-profit' : 'text-loss')}>
+                    <p className={cn('font-mono text-xs', won ? 'text-emerald-400' : 'text-red-400')}>
                       {trade.rMultiple != null ? formatR(trade.rMultiple) : '—'}
                     </p>
                   </div>
@@ -470,7 +459,7 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
       {hasTrades && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base normal-case tracking-normal text-text-primary">Health Check — Protocole Swing 4H</CardTitle>
+            <CardTitle className="text-base normal-case tracking-normal text-white">Health Check — Protocole Swing 4H</CardTitle>
           </CardHeader>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
@@ -485,20 +474,20 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
               return (
                 <div key={c.label} className={cn(
                   'rounded-xl border p-4',
-                  status === 'ok' && 'border-profit/20 bg-profit-dim/30',
-                  status === 'warn' && 'border-neutral/20 bg-neutral-dim/30',
-                  status === 'bad' && 'border-loss/20 bg-loss-dim/30',
+                  status === 'ok' && 'border-emerald-500/20 bg-emerald-500/10/30',
+                  status === 'warn' && 'border-amber-500/20 bg-amber-500/10/30',
+                  status === 'bad' && 'border-red-500/20 bg-red-500/10/30',
                 )}>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold text-text-muted">{c.label}</p>
+                    <p className="text-xs font-semibold text-zinc-500">{c.label}</p>
                     <HealthStatusIcon status={status} size={16} />
                   </div>
-                  <p className="font-mono text-xl font-bold text-text-primary">{c.value}</p>
-                  <p className="text-xs text-text-muted mt-0.5">Cible : {c.target}</p>
-                  <div className="mt-3 h-1 w-full rounded-full bg-bg-elevated overflow-hidden">
+                  <p className="font-mono text-xl font-bold text-white">{c.value}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">Cible : {c.target}</p>
+                  <div className="mt-3 h-1 w-full rounded-full bg-zinc-800 overflow-hidden">
                     <div className={cn('h-full rounded-full', status === 'ok' ? 'bg-profit' : status === 'warn' ? 'bg-neutral' : 'bg-loss')} style={{ width: `${c.pct}%` }} />
                   </div>
-                  <p className="text-xs text-text-muted mt-1.5">{c.note}</p>
+                  <p className="text-xs text-zinc-400 mt-1.5">{c.note}</p>
                 </div>
               )
             })}
@@ -514,14 +503,14 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
             { label: 'Meilleur trade', value: formatCurrency(s.bestTrade), note: 'P&L maximal sur un trade', trend: 'up' },
             { label: 'Pire trade', value: formatCurrency(s.worstTrade), note: 'Vérifier protocole & émotion', trend: 'down' },
           ].map((m) => (
-            <div key={m.label} className="rounded-xl border border-border bg-bg-card p-4">
-              <p className="text-sm text-text-muted mb-1">{m.label}</p>
-              <p className={cn('font-mono text-xl font-bold', m.trend === 'up' ? 'text-profit' : 'text-loss')}>{m.value}</p>
-              <p className="text-xs text-text-muted mt-1.5">{m.note}</p>
+            <div key={m.label} className="rounded-xl border border-white/10 bg-zinc-900 p-4">
+              <p className="text-sm text-zinc-500 mb-1">{m.label}</p>
+              <p className={cn('font-mono text-xl font-bold', m.trend === 'up' ? 'text-emerald-400' : 'text-red-400')}>{m.value}</p>
+              <p className="text-xs text-zinc-400 mt-1.5">{m.note}</p>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

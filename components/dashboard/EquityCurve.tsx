@@ -24,20 +24,20 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   const drawdown = payload.find((p: any) => p.dataKey === 'drawdown')
 
   return (
-    <div className="rounded-lg border border-border bg-bg-elevated p-3 text-xs shadow-xl">
-      <p className="mb-2 font-medium text-text-secondary">{label}</p>
+    <div className="rounded-lg border border-white/10 bg-zinc-800 p-3 text-xs shadow-xl">
+      <p className="mb-2 font-medium text-zinc-400">{label}</p>
       {equity && (
-        <p className="font-mono font-semibold text-text-primary">
+        <p className="font-mono font-semibold text-white">
           Capital: {formatCurrency(equity.value)}
         </p>
       )}
       {drawdown && drawdown.value < 0 && (
-        <p className="font-mono text-loss">
+        <p className="font-mono text-red-400">
           Drawdown: {drawdown.value.toFixed(2)}%
         </p>
       )}
       {payload[0]?.payload?.trade && (
-        <p className="mt-1 text-text-muted">{payload[0].payload.trade}</p>
+        <p className="mt-1 text-zinc-500">{payload[0].payload.trade}</p>
       )}
     </div>
   )

@@ -9,6 +9,9 @@ import {
   BookOpen, Calendar, PenLine, RotateCcw, CheckCircle2,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { PageShell } from '@/components/ui/PageShell'
+import { Button } from '@/components/catalyst/button'
 import { MoodIcon } from '@/components/ui/TradingIcons'
 import { DayTradeReview } from '@/components/journal/DayTradeReview'
 import { ReflectionPrompts } from '@/components/journal/ReflectionPrompts'
@@ -167,34 +170,26 @@ export function JournalClient({
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in max-w-7xl">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-            <BookOpen size={26} className="text-accent" />
-            Journal de Trading
-          </h1>
-          <p className="text-base text-text-secondary mt-1">
-            Identifie tes défauts et bonnes conduites · Analyse automatique des trades · Réflexion structurée
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <div className="rounded-xl border border-border bg-bg-card px-4 py-2.5 text-center">
-            <p className="text-xs text-text-muted">Entrées ce mois</p>
-            <p className="text-lg font-bold text-text-primary">{monthEntries.length}</p>
-          </div>
-          {avgMoodMonth && (
-            <div className="rounded-xl border border-border bg-bg-card px-4 py-2.5 text-center">
-              <p className="text-xs text-text-muted">Humeur moyenne</p>
-              <p className="text-lg font-bold text-accent">{avgMoodMonth}/5</p>
+    <PageShell>
+      <PageHeader
+        title="Journal de Trading"
+        description="Identifie tes défauts et bonnes conduites · Analyse automatique des trades · Réflexion structurée"
+        icon={<BookOpen data-slot="icon" className="size-7 text-indigo-400" aria-hidden="true" />}
+        actions={
+          <>
+            <div className="rounded-lg bg-zinc-950/5 px-4 py-2.5 text-center ring-1 ring-zinc-950/10 dark:bg-white/5 dark:ring-white/10">
+              <p className="text-xs text-zinc-500">Entrées ce mois</p>
+              <p className="text-lg font-bold text-zinc-950 dark:text-white">{monthEntries.length}</p>
             </div>
-          )}
-          <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-2.5 text-sm text-text-secondary max-w-xs">
-            <span className="font-semibold text-accent">Steenbarger (2007)</span> : journal + analyse = progression 3× plus rapide
-          </div>
-        </div>
-      </div>
+            {avgMoodMonth && (
+              <div className="rounded-lg bg-zinc-950/5 px-4 py-2.5 text-center ring-1 ring-zinc-950/10 dark:bg-white/5 dark:ring-white/10">
+                <p className="text-xs text-zinc-500">Humeur moyenne</p>
+                <p className="text-lg font-bold text-indigo-400">{avgMoodMonth}/5</p>
+              </div>
+            )}
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         {/* Calendrier */}
@@ -203,17 +198,17 @@ export function JournalClient({
             <div className="flex items-center justify-between w-full">
               <button
                 onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-                className="rounded-lg p-1.5 text-text-muted hover:bg-bg-hover hover:text-text-primary"
+                className="rounded-lg p-1.5 text-zinc-500 hover:bg-white/5 hover:text-white"
               >
                 <ChevronLeft size={18} />
               </button>
-              <span className="text-sm font-bold text-text-primary capitalize flex items-center gap-1.5">
-                <Calendar size={15} className="text-accent" />
+              <span className="text-sm font-bold text-white capitalize flex items-center gap-1.5">
+                <Calendar size={15} className="text-indigo-400" />
                 {format(currentMonth, 'MMMM yyyy', { locale: fr })}
               </span>
               <button
                 onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-                className="rounded-lg p-1.5 text-text-muted hover:bg-bg-hover hover:text-text-primary"
+                className="rounded-lg p-1.5 text-zinc-500 hover:bg-white/5 hover:text-white"
               >
                 <ChevronRight size={18} />
               </button>
@@ -222,7 +217,7 @@ export function JournalClient({
 
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
-              <div key={i} className="text-center text-xs font-semibold text-text-muted py-1">{d}</div>
+              <div key={i} className="text-center text-xs font-semibold text-zinc-500 py-1">{d}</div>
             ))}
           </div>
 
@@ -243,9 +238,9 @@ export function JournalClient({
                   onClick={() => setSelectedDate(day)}
                   className={cn(
                     'relative flex h-10 w-full flex-col items-center justify-center rounded-lg text-sm transition-all',
-                    selected && 'bg-accent text-white font-bold shadow-md',
-                    today && !selected && 'ring-2 ring-accent/50 text-accent font-semibold',
-                    !selected && !today && 'text-text-secondary hover:bg-bg-hover',
+                    selected && 'bg-indigo-600 text-white font-bold shadow-md',
+                    today && !selected && 'ring-2 ring-accent/50 text-indigo-400 font-semibold',
+                    !selected && !today && 'text-zinc-400 hover:bg-white/5',
                   )}
                 >
                   {day.getDate()}
@@ -262,9 +257,9 @@ export function JournalClient({
             })}
           </div>
 
-          <div className="mt-4 border-t border-border pt-3 space-y-2">
-            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Légende</p>
-            <div className="flex flex-wrap gap-3 text-xs text-text-muted">
+          <div className="mt-4 border-t border-white/10 pt-3 space-y-2">
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Légende</p>
+            <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-profit" /> Humeur bonne</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-loss" /> Humeur dégradée</span>
               <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-profit" /> Jour gagnant</span>
@@ -278,11 +273,11 @@ export function JournalClient({
           <Card glow>
             <CardHeader>
               <div>
-                <CardTitle className="text-lg normal-case tracking-normal text-text-primary capitalize">
+                <CardTitle className="text-lg normal-case tracking-normal text-white capitalize">
                   {format(selectedDate, 'EEEE d MMMM yyyy', { locale: fr })}
                 </CardTitle>
                 {isToday(selectedDate) && (
-                  <span className="text-sm text-accent font-medium">Aujourd&apos;hui</span>
+                  <span className="text-sm text-indigo-400 font-medium">Aujourd&apos;hui</span>
                 )}
               </div>
               <button
@@ -290,7 +285,7 @@ export function JournalClient({
                 onClick={refresh}
                 disabled={isPending}
                 aria-label="Actualiser le journal"
-                className="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-accent/40"
+                className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-accent/40"
               >
                 <RefreshCw size={16} className={isPending ? 'animate-spin' : ''} aria-hidden="true" />
               </button>
@@ -298,7 +293,7 @@ export function JournalClient({
 
             {/* Humeur */}
             <div className="mb-6">
-              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-text-secondary">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-zinc-400">
                 État émotionnel (Règle Zéro)
               </p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -310,23 +305,23 @@ export function JournalClient({
                     className={cn(
                       'rounded-xl border p-3 text-center transition-all',
                       mood === score
-                        ? score <= 2 ? 'border-loss bg-loss-dim ring-2 ring-loss/30'
-                          : score === 3 ? 'border-neutral bg-neutral-dim ring-2 ring-neutral/30'
-                          : 'border-profit bg-profit-dim ring-2 ring-profit/30'
-                        : 'border-border hover:border-border-strong hover:bg-bg-hover',
+                        ? score <= 2 ? 'border-red-500 bg-red-500/10 ring-2 ring-loss/30'
+                          : score === 3 ? 'border-amber-500 bg-amber-500/10 ring-2 ring-neutral/30'
+                          : 'border-emerald-500 bg-emerald-500/10 ring-2 ring-profit/30'
+                        : 'border-white/10 hover:border-white/20 hover:bg-white/5',
                     )}
                   >
                     <div className="flex justify-center mb-1.5">
                       <MoodIcon score={score} size={22} />
                     </div>
-                    <p className="text-sm font-bold text-text-primary">{score}/5</p>
-                    <p className="text-xs text-text-secondary mt-0.5">{label}</p>
-                    <p className="text-xs text-text-muted mt-0.5">{sub}</p>
+                    <p className="text-sm font-bold text-white">{score}/5</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">{label}</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">{sub}</p>
                   </button>
                 ))}
               </div>
               {mood <= 2 && (
-                <p className="mt-3 flex items-start gap-2 text-sm text-loss rounded-xl border border-loss/30 bg-loss-dim px-4 py-3">
+                <p className="mt-3 flex items-start gap-2 text-sm text-red-400 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
                   <AlertTriangle size={18} className="flex-shrink-0" />
                   Protocole : état ≤ 2/5 → pas de trade. Documente pourquoi tu te sens ainsi — c&apos;est une donnée précieuse pour tes patterns.
                 </p>
@@ -347,8 +342,8 @@ export function JournalClient({
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <PenLine size={18} className="text-accent" />
-                <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+                <PenLine size={18} className="text-indigo-400" />
+                <CardTitle className="text-base normal-case tracking-normal text-white">
                   Notes libres & observations
                 </CardTitle>
               </div>
@@ -358,26 +353,21 @@ export function JournalClient({
               value={journal.notes}
               onChange={(e) => setJournal((prev) => ({ ...prev, notes: e.target.value }))}
               rows={5}
-              className="w-full rounded-xl border border-border bg-bg-surface px-4 py-3 text-sm text-text-primary placeholder-text-muted resize-none focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30"
+              className="w-full rounded-xl border border-white/10 bg-zinc-900/80 px-4 py-3 text-sm text-white placeholder-text-muted resize-none focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-accent/30"
             />
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-text-muted">
+              <p className="text-sm text-zinc-500">
                 {Object.values(journal.prompts).filter((v) => v?.trim()).length}/7 prompts ·{' '}
                 {Object.values(journal.audit).filter(Boolean).length} alertes audit
               </p>
-              <button
+              <Button
                 onClick={save}
                 disabled={saving || (!hasContent && mood === 4)}
-                className={cn(
-                  'flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all',
-                  savedFlash
-                    ? 'bg-profit text-white'
-                    : 'bg-accent text-white hover:bg-accent/90 disabled:opacity-50',
-                )}
+                color={savedFlash ? 'green' : 'indigo'}
               >
-                <Save size={16} />
+                <Save data-slot="icon" className="size-4" aria-hidden="true" />
                 {saving ? 'Sauvegarde…' : savedFlash ? 'Enregistré ✓' : 'Sauvegarder la session'}
-              </button>
+              </Button>
             </div>
           </Card>
         </div>
@@ -391,22 +381,22 @@ export function JournalClient({
         <Card variant="accent">
           <CardHeader>
             <div>
-              <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+              <CardTitle className="text-base normal-case tracking-normal text-white">
                 Revue hebdomadaire
               </CardTitle>
-              <span className="text-xs text-text-muted">Dimanche · 20-30 min</span>
+              <span className="text-xs text-zinc-500">Dimanche · 20-30 min</span>
             </div>
             <span className={cn(
               'rounded-full px-2.5 py-1 text-xs font-bold',
-              weeklyAnsweredCount >= 6 ? 'bg-profit-dim text-profit' :
-              weeklyAnsweredCount >= 3 ? 'bg-neutral-dim text-neutral' :
-              'bg-bg-hover text-text-muted',
+              weeklyAnsweredCount >= 6 ? 'bg-emerald-500/10 text-emerald-400' :
+              weeklyAnsweredCount >= 3 ? 'bg-amber-500/10 text-amber-400' :
+              'bg-white/5 text-zinc-500',
             )}>
               {weeklyAnsweredCount}/{WEEKLY_PROMPTS.length}
             </span>
           </CardHeader>
-          <p className="text-sm text-text-secondary mb-4">
-            78% des traders profitables font une revue structurée. Réponds honnêtement — une seule amélioration concrète pour la semaine suivante. <span className="text-text-muted">(Tout optionnel — sauvegardé avec le reste du journal)</span>
+          <p className="text-sm text-zinc-400 mb-4">
+            78% des traders profitables font une revue structurée. Réponds honnêtement — une seule amélioration concrète pour la semaine suivante. <span className="text-zinc-500">(Tout optionnel — sauvegardé avec le reste du journal)</span>
           </p>
           <div className="space-y-3">
             {WEEKLY_PROMPTS.map(({ q, hint }, i) => {
@@ -414,19 +404,19 @@ export function JournalClient({
               const answered = !!answer.trim()
               return (
                 <div key={i} className={cn(
-                  'rounded-xl border bg-bg-surface transition-colors',
-                  answered ? 'border-accent/25' : 'border-border',
+                  'rounded-xl border bg-zinc-900/80 transition-colors',
+                  answered ? 'border-indigo-500/25' : 'border-white/10',
                 )}>
                   <div className="flex items-start gap-3 px-4 pt-3 pb-2">
                     <span className={cn(
                       'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                      answered ? 'bg-profit/20 text-profit' : 'bg-accent/15 text-accent',
+                      answered ? 'bg-profit/20 text-emerald-400' : 'bg-indigo-500/15 text-indigo-400',
                     )}>
                       {answered ? <CheckCircle2 size={13} /> : i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-text-primary">{q}</p>
-                      <p className="text-xs text-text-muted mt-0.5 italic">{hint}</p>
+                      <p className="text-sm font-semibold text-white">{q}</p>
+                      <p className="text-xs text-zinc-400 mt-0.5 italic">{hint}</p>
                     </div>
                   </div>
                   <div className="px-4 pb-3 pl-13">
@@ -436,7 +426,7 @@ export function JournalClient({
                       placeholder="Ta réponse…"
                       rows={2}
                       aria-label={q}
-                      className="w-full resize-none rounded-lg border border-border bg-bg-card px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30"
+                      className="w-full resize-none rounded-lg border border-white/10 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder-text-muted focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-accent/30"
                     />
                   </div>
                 </div>
@@ -449,7 +439,7 @@ export function JournalClient({
         {entries.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+              <CardTitle className="text-base normal-case tracking-normal text-white">
                 Entrées récentes
               </CardTitle>
             </CardHeader>
@@ -464,23 +454,23 @@ export function JournalClient({
                   <button
                     key={entry.id}
                     onClick={() => setSelectedDate(new Date(entry.date))}
-                    className="rounded-xl border border-border bg-bg-surface px-4 py-3 text-left hover:border-accent/40 hover:bg-bg-hover transition-all"
+                    className="rounded-xl border border-white/10 bg-zinc-900/80 px-4 py-3 text-left hover:border-indigo-500/40 hover:bg-white/5 transition-all"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-bold text-text-primary capitalize">
+                      <span className="text-sm font-bold text-white capitalize">
                         {format(new Date(entry.date), 'EEE d MMM', { locale: fr })}
                       </span>
                       <div className="flex items-center gap-2">
                         <MoodIcon score={moodScore} size={16} />
-                        <span className="text-xs text-text-muted">{moodScore}/5</span>
+                        <span className="text-xs text-zinc-500">{moodScore}/5</span>
                       </div>
                     </div>
                     {summary.total > 0 && (
-                      <p className={cn('text-xs font-semibold mb-1', summary.pnl >= 0 ? 'text-profit' : 'text-loss')}>
+                      <p className={cn('text-xs font-semibold mb-1', summary.pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                         {summary.total} trade(s) · {summary.pnl >= 0 ? '+' : ''}{summary.pnl.toFixed(0)}$
                       </p>
                     )}
-                    <p className="text-sm text-text-muted line-clamp-2">{preview || 'Pas de notes'}</p>
+                    <p className="text-sm text-zinc-500 line-clamp-2">{preview || 'Pas de notes'}</p>
                   </button>
                 )
               })}
@@ -488,6 +478,6 @@ export function JournalClient({
           </Card>
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }

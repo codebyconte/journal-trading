@@ -117,9 +117,9 @@ export function TradeStatusIcon({
     case 'CLOSED':
       return <CheckCircle2 size={size} className={cn('text-profit', className)} />
     case 'CANCELLED':
-      return <XCircle size={size} className={cn('text-text-muted', className)} />
+      return <XCircle size={size} className={cn('text-zinc-500', className)} />
     default:
-      return <Loader size={size} className={cn('text-text-muted', className)} />
+      return <Loader size={size} className={cn('text-zinc-500', className)} />
   }
 }
 

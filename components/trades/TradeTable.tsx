@@ -9,6 +9,7 @@ import {
 import { ChecklistIcon, MoodIcon } from '@/components/ui/TradingIcons'
 import { cn, formatCurrency, formatDateTime, formatR } from '@/lib/utils'
 import { DirectionBadge, StatusBadge } from '@/components/ui/Badge'
+import { Button } from '@/components/catalyst/button'
 import { getConfluenceScore } from '@/lib/analytics'
 import { reviewTrade } from '@/lib/journal'
 import { MARKET_CONDITIONS, PRESET_ASSETS, type Trade, type TradeStatus } from '@/lib/types'
@@ -86,80 +87,73 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
     return sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
   }
 
-  const thClass = 'cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-muted hover:text-text-secondary transition-colors'
+  const thClass = 'cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left text-xs/5 font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-300 dark:text-zinc-400'
 
   return (
-    <div>
+    <div className="overflow-hidden rounded-xl ring-1 ring-zinc-950/10 dark:ring-white/10">
       {/* Filtres statut */}
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 border-b border-zinc-950/10 bg-zinc-950/2.5 p-4 dark:border-white/10 dark:bg-white/2.5">
         {STATUS_FILTERS.map((f) => (
-          <button
+          <Button
             key={f.value}
+            {...(statusFilter === f.value ? { color: 'indigo' as const } : { outline: true as const })}
             onClick={() => setStatusFilter(f.value)}
-            className={cn(
-              'rounded-lg px-3 py-1.5 text-sm font-semibold transition-all',
-              statusFilter === f.value
-                ? 'bg-accent text-white'
-                : 'border border-border text-text-secondary hover:border-border-strong hover:text-text-primary',
-            )}
+            className="text-sm"
           >
             {f.label}
-            <span className="ml-1.5 opacity-70">
+            <span className="opacity-70">
               ({f.value === 'ALL' ? trades.length : trades.filter((t) => t.status === f.value).length})
             </span>
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Filtres actif + direction */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 border-b border-zinc-950/10 px-4 py-3 dark:border-white/10">
         <div className="flex flex-wrap gap-1.5">
-          <button
+          <Button
+            plain
             onClick={() => setAssetFilter('ALL')}
-            className={cn(
-              'rounded-md px-2.5 py-1 text-xs font-semibold transition-all',
-              assetFilter === 'ALL' ? 'bg-bg-elevated text-text-primary' : 'text-text-muted hover:text-text-secondary',
-            )}
+            className={cn('text-xs', assetFilter === 'ALL' && 'bg-white/10')}
           >
             Tous actifs
-          </button>
+          </Button>
           {assetsInUse.map((a) => (
-            <button
+            <Button
               key={a}
+              {...(assetFilter === a ? { color: 'indigo' as const } : { plain: true as const })}
               onClick={() => setAssetFilter(a)}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-mono font-semibold transition-all',
-                assetFilter === a ? 'bg-accent text-white' : 'border border-border text-text-muted hover:border-accent/40',
-              )}
+              className="font-mono text-xs"
             >
               {a}
-            </button>
+            </Button>
           ))}
         </div>
-        <div className="h-4 w-px bg-border hidden sm:block" />
+        <div className="hidden h-4 w-px bg-zinc-700 sm:block" />
         <div className="flex gap-1.5">
           {(['ALL', 'LONG', 'SHORT'] as const).map((d) => (
-            <button
+            <Button
               key={d}
+              plain
               onClick={() => setDirectionFilter(d)}
               className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-semibold transition-all',
-                directionFilter === d
-                  ? d === 'LONG' ? 'bg-profit-dim text-profit' : d === 'SHORT' ? 'bg-loss-dim text-loss' : 'bg-accent text-white'
-                  : 'border border-border text-text-muted hover:text-text-secondary',
+                'text-xs',
+                directionFilter === d && (
+                  d === 'LONG' ? 'text-emerald-400' : d === 'SHORT' ? 'text-red-400' : 'text-indigo-400'
+                ),
               )}
             >
               {d === 'ALL' ? 'Toutes dirs' : d}
-            </button>
+            </Button>
           ))}
         </div>
-        <span className="text-xs text-text-muted ml-auto">{filtered.length} résultat(s)</span>
+        <span className="ml-auto text-xs text-zinc-500">{filtered.length} résultat(s)</span>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="border-b border-border bg-bg-surface">
+          <thead className="border-b border-zinc-950/10 bg-zinc-950/2.5 dark:border-white/10 dark:bg-white/2.5">
             <tr>
               <th className={thClass} onClick={() => handleSort('datetime')}>
                 <span className="flex items-center gap-1">Date <SortIcon field="datetime" /></span>
@@ -183,13 +177,13 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                 <span className="flex items-center gap-1">R <SortIcon field="rMultiple" /></span>
               </th>
               <th className={thClass}>Statut</th>
-              <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-muted">Actions</th>
+              <th className="px-3 py-3 text-left text-xs/5 font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-zinc-950/10 dark:divide-white/10">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={11} className="py-12 text-center text-sm text-text-muted">
+                <td colSpan={11} className="py-12 text-center text-sm text-zinc-500">
                   Aucun trade ne correspond aux filtres
                 </td>
               </tr>
@@ -205,17 +199,17 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                   <tr
                     onClick={() => setExpandedId(isExpanded ? null : trade.id)}
                     className={cn(
-                      'cursor-pointer transition-colors hover:bg-bg-hover',
-                      isExpanded && 'bg-bg-elevated',
+                      'cursor-pointer transition-colors hover:bg-white/5',
+                      isExpanded && 'bg-zinc-800',
                     )}
                   >
-                    <td className="px-3 py-3 font-mono text-xs text-text-secondary whitespace-nowrap">
+                    <td className="px-3 py-3 font-mono text-xs text-zinc-400 whitespace-nowrap">
                       {formatDateTime(trade.datetime)}
                     </td>
                     <td className="px-3 py-3">
-                      <span className="font-mono font-bold text-text-primary">{trade.asset}</span>
+                      <span className="font-mono font-bold text-white">{trade.asset}</span>
                       {trade.setup && (
-                        <p className="text-xs text-text-muted mt-0.5 truncate max-w-[120px]">{trade.setup.split('(')[0].trim()}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 truncate max-w-[120px]">{trade.setup.split('(')[0].trim()}</p>
                       )}
                     </td>
                     <td className="px-3 py-3">
@@ -224,43 +218,43 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                     <td className="px-3 py-3">
                       <span className={cn(
                         'inline-flex rounded-md px-2 py-0.5 text-xs font-bold font-mono',
-                        confScore === 6 ? 'bg-profit-dim text-profit' : confScore >= 4 ? 'bg-neutral-dim text-neutral' : 'bg-loss-dim text-loss',
+                        confScore === 6 ? 'bg-emerald-500/10 text-emerald-400' : confScore >= 4 ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400',
                       )}>
                         {confScore}/6
                       </span>
                     </td>
-                    <td className="px-3 py-3 font-mono text-text-primary">
+                    <td className="px-3 py-3 font-mono text-white">
                       ${trade.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
                     </td>
                     <td className="px-3 py-3 font-mono text-xs whitespace-nowrap">
-                      <span className="text-loss">${trade.stopLoss.toFixed(2)}</span>
-                      <span className="mx-1 text-text-muted">/</span>
-                      <span className="text-profit">${trade.takeProfit.toFixed(2)}</span>
+                      <span className="text-red-400">${trade.stopLoss.toFixed(2)}</span>
+                      <span className="mx-1 text-zinc-500">/</span>
+                      <span className="text-emerald-400">${trade.takeProfit.toFixed(2)}</span>
                     </td>
                     <td className="px-3 py-3">
                       <span className={cn(
                         'font-mono font-semibold',
-                        trade.plannedRR >= 3 ? 'text-profit' : trade.plannedRR >= 2 ? 'text-neutral' : 'text-loss',
+                        trade.plannedRR >= 3 ? 'text-emerald-400' : trade.plannedRR >= 2 ? 'text-amber-400' : 'text-red-400',
                       )}>
                         1:{trade.plannedRR.toFixed(1)}
                       </span>
                     </td>
                     <td className="px-3 py-3">
                       {trade.pnl != null ? (
-                        <span className={cn('font-mono font-semibold', trade.pnl >= 0 ? 'text-profit' : 'text-loss')}>
+                        <span className={cn('font-mono font-semibold', trade.pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                           {formatCurrency(trade.pnl)}
                         </span>
                       ) : (
-                        <span className="text-text-muted text-xs">{formatCurrency(-trade.riskAmount)} max</span>
+                        <span className="text-zinc-500 text-xs">{formatCurrency(-trade.riskAmount)} max</span>
                       )}
                     </td>
                     <td className="px-3 py-3">
                       {trade.rMultiple != null ? (
-                        <span className={cn('font-mono font-semibold', trade.rMultiple >= 0 ? 'text-profit' : 'text-loss')}>
+                        <span className={cn('font-mono font-semibold', trade.rMultiple >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                           {formatR(trade.rMultiple)}
                         </span>
                       ) : (
-                        <span className="text-text-muted">—</span>
+                        <span className="text-zinc-500">—</span>
                       )}
                     </td>
                     <td className="px-3 py-3">
@@ -273,14 +267,14 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                             <button
                               onClick={() => onOpen(trade)}
                               title="Marquer comme ouvert (ordre déclenché)"
-                              className="rounded-lg p-1.5 text-text-muted hover:bg-accent/10 hover:text-accent"
+                              className="rounded-lg p-1.5 text-zinc-500 hover:bg-indigo-500/10 hover:text-indigo-400"
                             >
                               <DoorOpen size={15} />
                             </button>
                             <button
                               onClick={() => onCancel(trade)}
                               title="Annuler l'ordre limite"
-                              className="rounded-lg p-1.5 text-text-muted hover:bg-neutral-dim hover:text-neutral"
+                              className="rounded-lg p-1.5 text-zinc-500 hover:bg-amber-500/10 hover:text-amber-400"
                             >
                               <XCircle size={15} />
                             </button>
@@ -290,7 +284,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                           <button
                             onClick={() => onClose(trade)}
                             title="Clôturer le trade"
-                            className="rounded-lg p-1.5 text-text-muted hover:bg-profit-dim hover:text-profit"
+                            className="rounded-lg p-1.5 text-zinc-500 hover:bg-emerald-500/10 hover:text-emerald-400"
                           >
                             <ExternalLink size={15} />
                           </button>
@@ -298,7 +292,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                         <button
                           onClick={() => onDelete(trade.id)}
                           title="Supprimer"
-                          className="rounded-lg p-1.5 text-text-muted hover:bg-loss-dim hover:text-loss"
+                          className="rounded-lg p-1.5 text-zinc-500 hover:bg-red-500/10 hover:text-red-400"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -307,32 +301,32 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                   </tr>
 
                   {isExpanded && (
-                    <tr className="bg-bg-elevated/80">
+                    <tr className="bg-zinc-800/80">
                       <td colSpan={11} className="px-5 py-5">
                         <div className="space-y-5">
                           {/* Analyse protocole */}
                           {(review.strengths.length > 0 || review.issues.length > 0) && (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                               {review.strengths.length > 0 && (
-                                <div className="rounded-xl border border-profit/20 bg-profit-dim/20 p-4">
-                                  <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-profit mb-2">
+                                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10/20 p-4">
+                                  <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-400 mb-2">
                                     <CheckCircle2 size={13} /> Bonnes conduites
                                   </p>
                                   <ul className="space-y-1">
                                     {review.strengths.map((s) => (
-                                      <li key={s} className="text-sm text-text-secondary">{s}</li>
+                                      <li key={s} className="text-sm text-zinc-400">{s}</li>
                                     ))}
                                   </ul>
                                 </div>
                               )}
                               {review.issues.length > 0 && (
-                                <div className="rounded-xl border border-loss/20 bg-loss-dim/20 p-4">
-                                  <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-loss mb-2">
+                                <div className="rounded-xl border border-red-500/20 bg-red-500/10/20 p-4">
+                                  <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-red-400 mb-2">
                                     <AlertTriangle size={13} /> Écarts protocole
                                   </p>
                                   <ul className="space-y-1">
                                     {review.issues.map((s) => (
-                                      <li key={s} className="text-sm text-text-secondary">{s}</li>
+                                      <li key={s} className="text-sm text-zinc-400">{s}</li>
                                     ))}
                                   </ul>
                                 </div>
@@ -342,72 +336,72 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
 
                           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
                             <div>
-                              <p className="text-xs font-semibold uppercase text-text-muted mb-1">Setup</p>
-                              <p className="text-sm text-text-primary">{trade.setup || '—'}</p>
+                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Setup</p>
+                              <p className="text-sm text-white">{trade.setup || '—'}</p>
                             </div>
                             <div>
-                              <p className="text-xs font-semibold uppercase text-text-muted mb-1">Marché</p>
-                              <p className="text-sm text-text-primary">{marketLabel(trade.marketCondition)}</p>
+                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Marché</p>
+                              <p className="text-sm text-white">{marketLabel(trade.marketCondition)}</p>
                             </div>
                             <div>
-                              <p className="text-xs font-semibold uppercase text-text-muted mb-1">Émotion</p>
+                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Émotion</p>
                               {emotion > 0 ? (
                                 <div className="flex items-center gap-1.5">
                                   <MoodIcon score={emotion} size={18} />
                                   <span className="text-sm font-semibold">{emotion}/5</span>
                                 </div>
                               ) : (
-                                <p className="text-sm text-text-muted">—</p>
+                                <p className="text-sm text-zinc-500">—</p>
                               )}
                             </div>
                             <div>
-                              <p className="text-xs font-semibold uppercase text-text-muted mb-1">Session</p>
-                              <p className="text-sm text-text-primary">{trade.sessionTime || '—'}</p>
+                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Session</p>
+                              <p className="text-sm text-white">{trade.sessionTime || '—'}</p>
                             </div>
                             <div>
-                              <p className="text-xs font-semibold uppercase text-text-muted mb-1">Risque</p>
-                              <p className="text-sm font-mono text-loss">{formatCurrency(trade.riskAmount)} ({trade.riskPercent}%)</p>
+                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Risque</p>
+                              <p className="text-sm font-mono text-red-400">{formatCurrency(trade.riskAmount)} ({trade.riskPercent}%)</p>
                             </div>
                             <div>
-                              <p className="text-xs font-semibold uppercase text-text-muted mb-1">Ordre</p>
-                              <p className="text-sm text-text-primary">{trade.orderType}</p>
+                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Ordre</p>
+                              <p className="text-sm text-white">{trade.orderType}</p>
                             </div>
                             {trade.mae != null && (
                               <div>
-                                <p className="text-xs font-semibold uppercase text-text-muted mb-1">MAE</p>
-                                <p className="font-mono text-sm text-loss">{formatCurrency(trade.mae)}</p>
+                                <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">MAE</p>
+                                <p className="font-mono text-sm text-red-400">{formatCurrency(trade.mae)}</p>
                               </div>
                             )}
                             {trade.mfe != null && (
                               <div>
-                                <p className="text-xs font-semibold uppercase text-text-muted mb-1">MFE</p>
-                                <p className="font-mono text-sm text-profit">{formatCurrency(trade.mfe)}</p>
+                                <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">MFE</p>
+                                <p className="font-mono text-sm text-emerald-400">{formatCurrency(trade.mfe)}</p>
                               </div>
                             )}
                           </div>
 
                           {trade.notes && (
                             <div>
-                              <p className="text-xs font-semibold uppercase text-text-muted mb-1">Notes & Invalidations</p>
-                              <p className="text-sm text-text-secondary whitespace-pre-wrap rounded-lg border border-border bg-bg-surface px-4 py-3">{trade.notes}</p>
+                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Notes & Invalidations</p>
+                              <p className="text-sm text-zinc-400 whitespace-pre-wrap rounded-lg border border-white/10 bg-zinc-900/80 px-4 py-3">{trade.notes}</p>
                             </div>
                           )}
 
                           {trade.screenshot && (
                             <div>
-                              <p className="text-xs font-semibold uppercase text-text-muted mb-2">Capture TradingView</p>
+                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-2">Capture TradingView</p>
                               <Image
                                 src={trade.screenshot}
                                 alt="Trade chart"
                                 width={800}
                                 height={400}
-                                className="max-h-72 rounded-xl border border-border object-contain"
+                                className="max-h-72 rounded-xl border border-white/10 object-contain"
                               />
                             </div>
                           )}
 
                           <div>
-                            <p className="text-xs font-semibold uppercase text-text-muted mb-2">
+                            <p className="text-xs font-semibold uppercase text-zinc-500 mb-2">
                               Checklist confluence — Protocole 6/6
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -419,8 +413,8 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                                     className={cn(
                                       'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium border',
                                       checked
-                                        ? 'bg-profit-dim text-profit border-profit/30'
-                                        : 'bg-loss-dim text-loss border-loss/30',
+                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                        : 'bg-red-500/10 text-red-400 border-red-500/30',
                                     )}
                                   >
                                     <ChecklistIcon checked={checked} size={14} />

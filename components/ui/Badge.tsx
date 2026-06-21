@@ -1,5 +1,8 @@
 import { cn } from '@/lib/utils'
 import { DirectionIcon, TradeStatusIcon } from '@/components/ui/TradingIcons'
+import { Badge as CatalystBadge } from '@/components/catalyst/badge'
+
+type TradingBadgeColor = 'lime' | 'pink' | 'amber' | 'zinc' | 'indigo' | 'sky'
 
 interface BadgeProps {
   children: React.ReactNode
@@ -8,25 +11,30 @@ interface BadgeProps {
   className?: string
 }
 
+const variantToColor: Record<NonNullable<BadgeProps['variant']>, TradingBadgeColor> = {
+  profit: 'lime',
+  loss: 'pink',
+  neutral: 'amber',
+  accent: 'indigo',
+  muted: 'zinc',
+  pending: 'amber',
+  open: 'sky',
+  closed: 'zinc',
+  cancelled: 'zinc',
+}
+
 export function Badge({ children, variant = 'muted', size = 'md', className }: BadgeProps) {
   return (
-    <span
+    <CatalystBadge
+      color={variantToColor[variant]}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md font-mono font-semibold',
-        size === 'sm' ? 'px-2 py-0.5 text-sm' : 'px-2.5 py-1 text-sm',
-        {
-          'bg-profit-dim text-profit':      variant === 'profit',
-          'bg-loss-dim text-loss':          variant === 'loss',
-          'bg-neutral-dim text-neutral':    variant === 'neutral' || variant === 'pending',
-          'bg-accent-dim text-accent':      variant === 'accent' || variant === 'open',
-          'bg-border text-text-secondary':  variant === 'muted' || variant === 'closed',
-          'bg-text-muted/10 text-text-muted': variant === 'cancelled',
-        },
+        'font-mono tabular-nums',
+        size === 'sm' ? 'text-xs/5' : 'text-sm/5',
         className,
       )}
     >
       {children}
-    </span>
+    </CatalystBadge>
   )
 }
 
@@ -41,19 +49,19 @@ export function DirectionBadge({ direction }: { direction: string }) {
 
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, BadgeProps['variant']> = {
-    PENDING:   'pending',
-    OPEN:      'open',
-    CLOSED:    'closed',
+    PENDING: 'pending',
+    OPEN: 'open',
+    CLOSED: 'closed',
     CANCELLED: 'cancelled',
   }
   const labels: Record<string, string> = {
-    PENDING:   'En attente',
-    OPEN:      'Ouvert',
-    CLOSED:    'Clôturé',
+    PENDING: 'En attente',
+    OPEN: 'Ouvert',
+    CLOSED: 'Clôturé',
     CANCELLED: 'Annulé',
   }
   return (
-    <Badge variant={map[status]}>
+    <Badge variant={map[status] ?? 'muted'}>
       <TradeStatusIcon status={status} size={13} />
       {labels[status] ?? status}
     </Badge>

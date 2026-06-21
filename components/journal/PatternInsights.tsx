@@ -2,6 +2,7 @@
 
 import { TrendingUp, TrendingDown, Minus, Brain } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Badge } from '@/components/catalyst/badge'
 import { cn } from '@/lib/utils'
 import type { BehaviorPattern } from '@/lib/journal'
 
@@ -11,42 +12,42 @@ interface Props {
 
 export function PatternInsights({ patterns }: Props) {
   const icon = (type: BehaviorPattern['type']) => {
-    if (type === 'good') return <TrendingUp size={16} className="text-profit" />
-    if (type === 'bad') return <TrendingDown size={16} className="text-loss" />
-    return <Minus size={16} className="text-neutral" />
+    if (type === 'good') return <TrendingUp size={16} className="text-emerald-400" />
+    if (type === 'bad') return <TrendingDown size={16} className="text-red-400" />
+    return <Minus size={16} className="text-amber-400" />
   }
 
-  const border = (type: BehaviorPattern['type']) => {
-    if (type === 'good') return 'border-profit/25 bg-profit-dim/20'
-    if (type === 'bad') return 'border-loss/25 bg-loss-dim/20'
-    return 'border-border bg-bg-surface'
+  const ringStyle = (type: BehaviorPattern['type']) => {
+    if (type === 'good') return 'ring-emerald-500/25 bg-emerald-500/10/20'
+    if (type === 'bad') return 'ring-red-500/25 bg-red-500/10/20'
+    return 'ring-white/10 bg-zinc-900/80'
   }
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Brain size={18} className="text-accent" />
-          <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+          <Brain size={18} className="text-indigo-400" />
+          <CardTitle className="text-base normal-case tracking-normal text-white">
             Patterns détectés (30 derniers jours)
           </CardTitle>
         </div>
-        <span className="text-xs text-text-muted">Basé sur tes trades + journal</span>
+        <span className="text-xs text-zinc-500">Basé sur tes trades + journal</span>
       </CardHeader>
       <div className="space-y-2">
         {patterns.map((p) => (
-          <div key={p.id} className={cn('flex items-start gap-3 rounded-xl border p-3.5', border(p.type))}>
+          <div key={p.id} className={cn('flex items-start gap-3 rounded-xl p-3.5 ring-1', ringStyle(p.type))}>
             <span className="mt-0.5 flex-shrink-0">{icon(p.type)}</span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-text-primary">{p.title}</p>
+                <p className="text-sm font-bold text-white">{p.title}</p>
                 {p.count != null && (
-                  <span className="rounded-md bg-bg-card border border-border px-1.5 py-0.5 text-xs font-mono text-text-muted">
+                  <Badge color="zinc" className="font-mono tabular-nums">
                     ×{p.count}
-                  </span>
+                  </Badge>
                 )}
               </div>
-              <p className="text-sm text-text-secondary mt-1 leading-relaxed">{p.detail}</p>
+              <p className="text-sm text-zinc-400 mt-1 leading-relaxed">{p.detail}</p>
             </div>
           </div>
         ))}

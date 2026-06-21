@@ -1,6 +1,8 @@
 'use client'
 
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { inter } from '@/lib/fonts'
+import { Button } from '@/components/catalyst/button'
 
 export default function GlobalError({
   error,
@@ -10,17 +12,21 @@ export default function GlobalError({
   reset: () => void
 }) {
   return (
-    <html lang="fr">
-      <body className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0a0b0f] p-6 text-[#F8FAFC]">
-        <AlertTriangle size={36} className="text-[#F87171]" />
-        <h2 className="text-xl font-bold">Erreur critique</h2>
-        <p className="max-w-md text-center text-sm text-[#94A3B8]">
-          {error.message || 'Une erreur inattendue s&apos;est produite.'}
-        </p>
-        <button type="button" onClick={reset} className="flex items-center gap-2 rounded-xl bg-[#6366f1] px-4 py-2 text-sm font-semibold text-white">
-          <RefreshCw size={14} />
+    <html lang="fr" className={`dark ${inter.variable}`}>
+      <body className="flex min-h-screen flex-col items-center justify-center gap-6 bg-zinc-950 p-6 font-sans text-white antialiased">
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-red-500/10 ring-1 ring-red-500/20">
+          <AlertTriangle className="size-8 text-red-400" aria-hidden="true" />
+        </div>
+        <div className="max-w-md space-y-2 text-center">
+          <h1 className="text-xl font-semibold">Erreur critique</h1>
+          <p className="text-sm text-zinc-400">
+            {error.message || "Une erreur inattendue s'est produite."}
+          </p>
+        </div>
+        <Button color="indigo" onClick={reset}>
+          <RefreshCw data-slot="icon" className="size-4" aria-hidden="true" />
           Réessayer
-        </button>
+        </Button>
       </body>
     </html>
   )

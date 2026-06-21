@@ -1,9 +1,14 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { PageShell } from '@/components/ui/PageShell'
 import { useRouter } from 'next/navigation'
 import { Save, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/catalyst/button'
+import { Field, FieldGroup, Label, Description } from '@/components/catalyst/fieldset'
+import { Input } from '@/components/catalyst/input'
 import type { Settings } from '@/lib/types'
 import { formatCurrency, cn } from '@/lib/utils'
 import { updateSettings } from '@/app/actions/settings'
@@ -42,27 +47,25 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
     }
   }
 
-  const inputClass = 'w-full rounded-md border border-border bg-bg-surface px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
-  const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-muted'
-
   const riskPercent = parseFloat(form.riskPercent) || 1
   const capital = parseFloat(form.currentCapital) || 100000
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in max-w-2xl">
-      <div>
-        <h1 className="text-xl font-bold text-text-primary">Paramètres</h1>
-        <p className="text-sm text-text-muted">Configuration du protocole de gestion du risque</p>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Paramètres"
+        description="Configuration du protocole de gestion du risque"
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>Capital & Risque</CardTitle>
         </CardHeader>
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="initial-capital" className={labelClass}>Capital Initial ($)</label>
-            <input
+        <FieldGroup>
+          <Field>
+            <Label htmlFor="initial-capital">Capital Initial ($)</Label>
+            <Description>Montant de départ. Ne change pas automatiquement.</Description>
+            <Input
               id="initial-capital"
               name="initialCapital"
               type="number"
@@ -72,14 +75,15 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
               step="any"
               value={form.initialCapital}
               onChange={(e) => setForm({ ...form, initialCapital: e.target.value })}
-              className={inputClass}
             />
-            <p className="mt-1 text-xs text-text-muted">Montant de départ. Ne change pas automatiquement.</p>
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="current-capital" className={labelClass}>Capital Actuel ($)</label>
-            <input
+          <Field>
+            <Label htmlFor="current-capital">Capital Actuel ($)</Label>
+            <Description>
+              Mis à jour automatiquement à chaque trade clôturé. Modifie manuellement si nécessaire.
+            </Description>
+            <Input
               id="current-capital"
               name="currentCapital"
               type="number"
@@ -89,16 +93,12 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
               step="any"
               value={form.currentCapital}
               onChange={(e) => setForm({ ...form, currentCapital: e.target.value })}
-              className={inputClass}
             />
-            <p className="mt-1 text-xs text-text-muted">
-              Mis à jour automatiquement à chaque trade clôturé. Modifie manuellement si nécessaire.
-            </p>
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="risk-percent" className={labelClass}>Risque par trade (%)</label>
-            <input
+          <Field>
+            <Label htmlFor="risk-percent">Risque par trade (%)</Label>
+            <Input
               id="risk-percent"
               name="riskPercent"
               type="number"
@@ -110,90 +110,90 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
               max="5"
               value={form.riskPercent}
               onChange={(e) => setForm({ ...form, riskPercent: e.target.value })}
-              className={inputClass}
             />
             {riskPercent > 2 && (
-              <div className="mt-1.5 flex items-center gap-2 text-xs text-loss">
-                <AlertTriangle size={12} />
+              <Description className="flex items-center gap-2 text-red-500 dark:text-red-400">
+                <AlertTriangle data-slot="icon" className="size-3.5 shrink-0" aria-hidden="true" />
                 Risque élevé. Les meilleurs traders risquent 0.5% à 1% par trade.
-              </div>
+              </Description>
             )}
-          </div>
+          </Field>
 
-          {/* Aperçu */}
-          <div className="rounded-lg border border-accent/20 bg-accent/5 p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent">Aperçu calcul</p>
+          <div className="rounded-lg bg-indigo-500/5 p-4 ring-1 ring-indigo-500/20">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-indigo-400">Aperçu calcul</p>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="text-xs text-text-muted">Risque par trade</p>
-                <p className="font-mono font-semibold text-loss">
+                <p className="text-xs text-zinc-500">Risque par trade</p>
+                <p className="font-mono font-semibold text-red-400">
                   {formatCurrency(capital * riskPercent / 100)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-text-muted">Après 5 pertes consécutives</p>
-                <p className="font-mono font-semibold text-loss">
+                <p className="text-xs text-zinc-500">Après 5 pertes consécutives</p>
+                <p className="font-mono font-semibold text-red-400">
                   -{formatCurrency(capital * riskPercent / 100 * 5)} ({(riskPercent * 5).toFixed(1)}%)
                 </p>
               </div>
               <div>
-                <p className="text-xs text-text-muted">Objectif +2R par trade</p>
-                <p className="font-mono font-semibold text-profit">
+                <p className="text-xs text-zinc-500">Objectif +2R par trade</p>
+                <p className="font-mono font-semibold text-emerald-400">
                   +{formatCurrency(capital * riskPercent / 100 * 2)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-text-muted">Objectif +3R par trade</p>
-                <p className="font-mono font-semibold text-profit">
+                <p className="text-xs text-zinc-500">Objectif +3R par trade</p>
+                <p className="font-mono font-semibold text-emerald-400">
                   +{formatCurrency(capital * riskPercent / 100 * 3)}
                 </p>
               </div>
             </div>
           </div>
 
-          <button
+          <Button
             type="button"
             onClick={save}
-            disabled={saving}
+            disabled={saving || isPending}
+            color={saved ? 'green' : 'indigo'}
             aria-live="polite"
-            className={cn(
-              'flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors',
-              saved ? 'bg-profit text-white' : 'bg-accent text-white hover:bg-accent/90',
-            )}
           >
             {saving ? (
-              <><RefreshCw size={14} className="animate-spin" aria-hidden="true" /> Sauvegarde…</>
+              <>
+                <RefreshCw data-slot="icon" className="animate-spin" aria-hidden="true" /> Sauvegarde…
+              </>
             ) : saved ? (
-              <><CheckCircle2 size={16} aria-hidden="true" /> Sauvegardé</>
+              <>
+                <CheckCircle2 data-slot="icon" aria-hidden="true" /> Sauvegardé
+              </>
             ) : (
-              <><Save size={14} aria-hidden="true" /> Sauvegarder</>
+              <>
+                <Save data-slot="icon" aria-hidden="true" /> Sauvegarder
+              </>
             )}
-          </button>
-        </div>
+          </Button>
+        </FieldGroup>
       </Card>
 
-      {/* Guide */}
       <Card>
         <CardHeader>
           <CardTitle>Rappel — Règles Protocole Swing 4H</CardTitle>
         </CardHeader>
         <div className="space-y-2 text-sm">
           {[
-            { rule: 'Risque max par trade',     value: '1% du capital',           color: 'text-profit' },
-            { rule: 'R/R minimum',              value: '1.5R (idéal ≥ 2R)',       color: 'text-neutral' },
-            { rule: 'Timeframe principal',      value: '4H + confirmation 1H',    color: 'text-accent' },
-            { rule: "Pas d'ordre Market",       value: 'Limite ou Stop uniquement', color: 'text-text-secondary' },
-            { rule: 'Checklist confluences',    value: '5/6 obligatoires',        color: 'text-text-secondary' },
-            { rule: 'Stop loss',                value: 'Jamais déplacer en perte', color: 'text-loss' },
-            { rule: '3 pertes consécutives',    value: 'Arrêter la session',      color: 'text-loss' },
+            { rule: 'Risque max par trade', value: '1% du capital', color: 'text-emerald-400' },
+            { rule: 'R/R minimum', value: '1.5R (idéal ≥ 2R)', color: 'text-amber-400' },
+            { rule: 'Timeframe principal', value: '4H + confirmation 1H', color: 'text-indigo-400' },
+            { rule: "Pas d'ordre Market", value: 'Limite ou Stop uniquement', color: 'text-zinc-400' },
+            { rule: 'Checklist confluences', value: '5/6 obligatoires', color: 'text-zinc-400' },
+            { rule: 'Stop loss', value: 'Jamais déplacer en perte', color: 'text-red-400' },
+            { rule: '3 pertes consécutives', value: 'Arrêter la session', color: 'text-red-400' },
           ].map((item) => (
-            <div key={item.rule} className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-bg-hover transition-colors">
-              <span className="text-text-secondary">{item.rule}</span>
+            <div key={item.rule} className="flex items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-white/5">
+              <span className="text-zinc-400">{item.rule}</span>
               <span className={cn('font-semibold', item.color)}>{item.value}</span>
             </div>
           ))}
         </div>
       </Card>
-    </div>
+    </PageShell>
   )
 }

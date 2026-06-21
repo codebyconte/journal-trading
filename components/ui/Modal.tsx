@@ -1,76 +1,74 @@
 'use client'
 
-import { ReactNode, useEffect, useId } from 'react'
+import { ReactNode } from 'react'
 import { X } from 'lucide-react'
+import {
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/catalyst/dialog'
+import { Button } from '@/components/catalyst/button'
 import { cn } from '@/lib/utils'
 
 interface ModalProps {
   open: boolean
   onClose: () => void
   title: string
+  description?: string
   children: ReactNode
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | 'full'
+  showClose?: boolean
 }
 
-export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
-  const titleId = useId()
+const sizeMap = {
+  sm: 'sm' as const,
+  md: 'md' as const,
+  lg: 'lg' as const,
+  xl: 'xl' as const,
+  '2xl': '2xl' as const,
+  '3xl': '3xl' as const,
+  '4xl': '4xl' as const,
+  '5xl': '5xl' as const,
+  full: '5xl' as const,
+}
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    if (open) {
-      document.addEventListener('keydown', handler)
-      document.body.style.overflow = 'hidden'
-    }
-    return () => {
-      document.removeEventListener('keydown', handler)
-      document.body.style.overflow = ''
-    }
-  }, [open, onClose])
-
-  if (!open) return null
-
+export function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  size = 'lg',
+  showClose = true,
+}: ModalProps) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="presentation"
+    <Dialog
+      open={open}
+      onClose={onClose}
+      size={sizeMap[size] ?? 'lg'}
+      className={cn(size === 'full' && 'sm:max-w-6xl')}
     >
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className={cn(
-          'modal-panel relative z-10 max-h-[90vh] overflow-y-auto rounded-xl border border-border bg-bg-elevated shadow-2xl motion-safe:animate-fade-in',
-          {
-            'w-full max-w-sm': size === 'sm',
-            'w-full max-w-lg': size === 'md',
-            'w-full max-w-2xl': size === 'lg',
-            'w-full max-w-4xl': size === 'xl',
-            'w-full max-w-6xl': size === 'full',
-          },
-        )}
-      >
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 id={titleId} className="text-balance text-base font-semibold text-text-primary">
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer la fenêtre"
-            className="rounded-md p-1 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary focus-visible:ring-2 focus-visible:ring-accent/60"
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
         </div>
-        <div className="px-6 py-5">{children}</div>
+        {showClose && (
+          <Button plain onClick={onClose} aria-label="Fermer la fenêtre">
+            <X data-slot="icon" className="size-4" aria-hidden="true" />
+          </Button>
+        )}
       </div>
-    </div>
+      <DialogBody className="modal-panel max-h-[75vh] overflow-y-auto">{children}</DialogBody>
+      {showClose && (
+        <DialogActions>
+          <Button plain onClick={onClose}>
+            Fermer
+          </Button>
+        </DialogActions>
+      )}
+    </Dialog>
   )
 }

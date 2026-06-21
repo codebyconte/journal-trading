@@ -2,9 +2,17 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
-import { Calculator, Upload, X, CheckCircle2, AlertCircle, Camera, AlertTriangle, TrendingUp, TrendingDown, Shield, Target } from 'lucide-react'
+import { Calculator, X, CheckCircle2, AlertCircle, Camera, AlertTriangle, TrendingUp, TrendingDown, Shield, Target } from 'lucide-react'
 import { cn, calculateUnits, calculatePlannedRR, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices } from '@/lib/utils'
 import { createTrade } from '@/app/actions/trades'
+import { CalloutBanner } from '@/components/ui/SystemState'
+import { Button } from '@/components/catalyst/button'
+import { Badge } from '@/components/catalyst/badge'
+import { Field, FieldGroup, Label, Description } from '@/components/catalyst/fieldset'
+import { Input } from '@/components/catalyst/input'
+import { Select } from '@/components/catalyst/select'
+import { Textarea } from '@/components/catalyst/textarea'
+import { Checkbox, CheckboxField, CheckboxGroup } from '@/components/catalyst/checkbox'
 import { TRADE_SETUPS, MARKET_CONDITIONS, SESSION_TIMES, PRESET_ASSETS, type TradeDirection } from '@/lib/types'
 
 interface Props {
@@ -275,10 +283,6 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
     }
   }
 
-  const inputClass =
-    'w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-sm text-text-primary placeholder-text-muted transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30'
-  const labelClass = 'mb-1.5 block text-sm font-semibold uppercase tracking-wide text-text-secondary'
-
   const applyTakeProfitR = (multiplier: number) => {
     const entry = parseFloat(form.entryPrice)
     const sl = parseFloat(form.stopLoss)
@@ -317,137 +321,121 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Bandeau protocole */}
-      <div className="flex items-start gap-3 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3">
-        <Shield size={18} className="text-accent flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-text-secondary leading-relaxed">
-          <span className="font-bold text-text-primary">Swing 4H — Ordre Limite uniquement.</span>{' '}
-          MTF aligné (Weekly→Daily→4H) · Bougie 4H fermée · SL+TP posés ensemble · Marge isolée · Levier 2-3x max.
-        </div>
-      </div>
+      <CalloutBanner
+        tone="indigo"
+        icon={<Shield data-slot="icon" className="size-5 text-indigo-400" aria-hidden="true" />}
+      >
+        <span className="font-semibold text-white">Swing 4H — Ordre Limite uniquement.</span>{' '}
+        MTF aligné (Weekly→Daily→4H) · Bougie 4H fermée · SL+TP posés ensemble · Marge isolée · Levier 2-3x max.
+      </CalloutBanner>
 
       {/* Row 1: Date, Actif, Direction, Ordre */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div>
-          <label className={labelClass}>Date / Heure</label>
-          <input
+        <Field>
+          <Label>Date / Heure</Label>
+          <Input
             type="datetime-local"
             value={form.datetime}
             onChange={(e) => setForm({ ...form, datetime: e.target.value })}
-            className={inputClass}
             required
           />
-        </div>
-        <div>
-          <label className={labelClass}>Actif</label>
-          <div className="flex gap-1.5 flex-wrap mb-1.5">
+        </Field>
+        <Field>
+          <Label>Actif</Label>
+          <div className="mb-1.5 flex flex-wrap gap-1.5">
             {PRESET_ASSETS.map((a) => (
-              <button
+              <Button
                 key={a}
                 type="button"
+                {...(form.asset === a ? { color: 'indigo' as const } : { plain: true as const })}
                 onClick={() => setForm({ ...form, asset: a })}
-                className={cn(
-                  'rounded px-2 py-0.5 text-sm font-mono font-semibold transition-all',
-                  form.asset === a
-                    ? 'bg-accent text-white'
-                    : 'border border-border text-text-muted hover:border-accent/50 hover:text-text-secondary',
-                )}
+                className="px-2 py-0.5 font-mono text-sm"
               >
                 {a}
-              </button>
+              </Button>
             ))}
           </div>
-          <input
+          <Input
             type="text"
             placeholder="ou saisir manuellement..."
             value={form.asset}
             onChange={(e) => setForm({ ...form, asset: e.target.value.toUpperCase() })}
-            className={inputClass}
             required
           />
-        </div>
-        <div>
-          <label className={labelClass}>Direction</label>
+        </Field>
+        <Field>
+          <Label>Direction</Label>
           <div className="flex gap-2">
             {(['LONG', 'SHORT'] as const).map((dir) => (
-              <button
+              <Button
                 key={dir}
                 type="button"
                 onClick={() => setForm({ ...form, direction: dir })}
-                className={cn(
-                  'flex-1 rounded-md border py-2 text-sm font-semibold transition-all',
-                  form.direction === dir
-                    ? dir === 'LONG'
-                      ? 'border-profit bg-profit-dim text-profit'
-                      : 'border-loss bg-loss-dim text-loss'
-                    : 'border-border text-text-muted hover:border-border-strong',
-                )}
+                {...(form.direction === dir
+                  ? dir === 'LONG'
+                    ? { color: 'emerald' as const }
+                    : { color: 'red' as const }
+                  : { outline: true as const })}
+                className="flex-1"
               >
                 <span className="inline-flex items-center gap-1.5">
-                  {dir === 'LONG' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                  {dir === 'LONG' ? <TrendingUp data-slot="icon" className="size-4" /> : <TrendingDown data-slot="icon" className="size-4" />}
                   {dir}
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
-        <div>
-          <label className={labelClass}>Type d'ordre</label>
+        </Field>
+        <Field>
+          <Label>Type d&apos;ordre</Label>
           <div className="flex gap-2">
             {(['LIMITE', 'STOP'] as const).map((type) => (
-              <button
+              <Button
                 key={type}
                 type="button"
                 onClick={() => setForm({ ...form, orderType: type })}
-                className={cn(
-                  'flex-1 rounded-md border py-2 text-sm font-semibold transition-all',
-                  form.orderType === type
-                    ? 'border-accent bg-accent-dim text-accent'
-                    : 'border-border text-text-muted hover:border-border-strong',
-                )}
+                {...(form.orderType === type ? { color: 'indigo' as const } : { outline: true as const })}
+                className="flex-1"
               >
                 {type}
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </Field>
       </div>
 
       {/* Row 2: Prix */}
       <div className="grid grid-cols-3 gap-4">
-        <div>
-          <label className={labelClass}>Prix d'entrée ($)</label>
-          <input
+        <Field>
+          <Label>Prix d&apos;entrée ($)</Label>
+          <Input
             type="number"
             step="any"
             placeholder="0.00"
             value={form.entryPrice}
             onChange={(e) => setForm({ ...form, entryPrice: e.target.value })}
-            className={inputClass}
             required
           />
-        </div>
-        <div>
-          <label className={labelClass}>Stop Loss ($)</label>
-          <input
+        </Field>
+        <Field>
+          <Label>Stop Loss ($)</Label>
+          <Input
             type="number"
             step="any"
             placeholder="0.00"
             value={form.stopLoss}
             onChange={(e) => setForm({ ...form, stopLoss: e.target.value })}
-            className={cn(inputClass, 'focus:border-loss focus:ring-loss/30')}
             required
           />
-        </div>
-        <div>
-          <label className={labelClass}>Take Profit ($)</label>
-          <input
+        </Field>
+        <Field>
+          <Label>Take Profit ($)</Label>
+          <Input
             type="number"
             step="any"
             placeholder="0.00"
             value={form.takeProfit}
             onChange={(e) => setForm({ ...form, takeProfit: e.target.value })}
-            className={cn(inputClass, 'focus:border-profit focus:ring-profit/30')}
             required
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -455,47 +443,44 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
               { r: 2, label: 'TP @ 2R' },
               { r: 3, label: 'TP @ 3R (protocole)' },
             ].map(({ r, label }) => (
-              <button
+              <Button
                 key={r}
                 type="button"
+                outline
                 onClick={() => applyTakeProfitR(r)}
                 disabled={!form.entryPrice || !form.stopLoss}
-                className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
+                className="text-xs"
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </Field>
       </div>
 
       {/* Levier — avant le calculateur pour que la marge soit à jour */}
-      <div>
-        <label className={labelClass}>Levier Hyperliquid — marge isolée (protocole : 2-3x, max 5x)</label>
-        <div className="flex gap-2 max-w-md">
+      <Field>
+        <Label>Levier Hyperliquid — marge isolée (protocole : 2-3x, max 5x)</Label>
+        <div className="flex max-w-md gap-2">
           {['1', '2', '3', '5'].map((lev) => (
-            <button
+            <Button
               key={lev}
               type="button"
               onClick={() => setForm({ ...form, levier: lev })}
-              className={cn(
-                'flex-1 rounded-md border py-2.5 text-sm font-mono font-semibold transition-all',
-                form.levier === lev
-                  ? 'border-accent bg-accent-dim text-accent'
-                  : 'border-border text-text-muted hover:border-border-strong',
-              )}
+              {...(form.levier === lev ? { color: 'indigo' as const } : { outline: true as const })}
+              className="flex-1 font-mono"
             >
               {lev}x
-            </button>
+            </Button>
           ))}
         </div>
-        <p className="mt-1.5 text-xs text-text-muted leading-relaxed">
+        <Description>
           La taille de position est fixée par le risque ({riskPercent}% du capital), pas par le levier. Le levier réduit uniquement la marge bloquée sur Hyperliquid.
-        </p>
-      </div>
+        </Description>
+      </Field>
 
       {priceValidationError && (
-        <div className="flex items-center gap-2 rounded-lg border border-loss/30 bg-loss-dim px-4 py-3 text-sm text-loss">
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           <AlertCircle size={16} />
           {priceValidationError}
         </div>
@@ -503,87 +488,87 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
 
       {/* Auto-calculateur */}
       {autoCalc.units > 0 && (
-        <div className="rounded-lg border border-accent/20 bg-accent/5 p-4 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-accent">
+        <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-indigo-400">
             <Calculator size={14} />
             Calculateur de position automatique
           </div>
-          <p className="text-xs text-text-muted font-mono leading-relaxed">
+          <p className="text-xs text-zinc-500 font-mono leading-relaxed">
             Formule : Risque {riskPercent}% = ${formatNumber(autoCalc.riskAmount, 2)} ÷ distance SL ({formatNumber(Math.abs(entryNum - slNum), 2)}$) = {formatNumber(autoCalc.units, 4)} unités × ${formatNumber(entryNum, 2)} = ${formatNumber(positionValue, 2)} notionnel
           </p>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             <div>
-              <p className="text-sm text-text-muted">Unités (taille coin)</p>
-              <p className="font-mono text-lg font-bold text-text-primary">
+              <p className="text-sm text-zinc-500">Unités (taille coin)</p>
+              <p className="font-mono text-lg font-bold text-white">
                 {formatNumber(autoCalc.units, 4)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-text-muted">Perte max au SL ({riskPercent}%)</p>
-              <p className="font-mono text-lg font-bold text-loss">
+              <p className="text-sm text-zinc-500">Perte max au SL ({riskPercent}%)</p>
+              <p className="font-mono text-lg font-bold text-red-400">
                 ${formatNumber(autoCalc.riskAmount, 2)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-text-muted">R/R Planifié</p>
+              <p className="text-sm text-zinc-500">R/R Planifié</p>
               <p
                 className={cn(
                   'font-mono text-lg font-bold',
-                  autoCalc.plannedRR >= 3 ? 'text-profit' : autoCalc.plannedRR >= 2 ? 'text-neutral' : 'text-loss',
+                  autoCalc.plannedRR >= 3 ? 'text-emerald-400' : autoCalc.plannedRR >= 2 ? 'text-amber-400' : 'text-red-400',
                 )}
               >
                 {autoCalc.plannedRR > 0 ? `1:${autoCalc.plannedRR.toFixed(1)}` : '—'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-text-muted">Distance SL</p>
-              <p className="font-mono text-lg font-bold text-text-secondary">
+              <p className="text-sm text-zinc-500">Distance SL</p>
+              <p className="font-mono text-lg font-bold text-zinc-400">
                 {entryNum > 0 && slNum > 0
                   ? `${Math.abs((entryNum - slNum) / entryNum * 100).toFixed(2)}%`
                   : '—'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-text-muted">Notionnel (exposition)</p>
-              <p className="font-mono text-lg font-bold text-text-primary">
+              <p className="text-sm text-zinc-500">Notionnel (exposition)</p>
+              <p className="font-mono text-lg font-bold text-white">
                 ${formatNumber(positionValue, 2)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-text-muted">Marge requise ({levierNum}x)</p>
-              <p className={cn('font-mono text-lg font-bold', marginPct > 25 ? 'text-loss' : 'text-accent')}>
+              <p className="text-sm text-zinc-500">Marge requise ({levierNum}x)</p>
+              <p className={cn('font-mono text-lg font-bold', marginPct > 25 ? 'text-red-400' : 'text-indigo-400')}>
                 ${formatNumber(marginRequired, 2)}
               </p>
-              <p className={cn('text-xs', marginPct > 25 ? 'text-loss' : 'text-text-muted')}>
+              <p className={cn('text-xs', marginPct > 25 ? 'text-red-400' : 'text-zinc-500')}>
                 {marginPct.toFixed(1)}% du capital
               </p>
             </div>
             {liquidationPrice != null && (
               <div>
-                <p className="text-sm text-text-muted">Liquidation estimée</p>
-                <p className={cn('font-mono text-lg font-bold', slSaferThanLiq ? 'text-text-secondary' : 'text-loss')}>
+                <p className="text-sm text-zinc-500">Liquidation estimée</p>
+                <p className={cn('font-mono text-lg font-bold', slSaferThanLiq ? 'text-zinc-400' : 'text-red-400')}>
                   ${formatNumber(liquidationPrice, 2)}
                 </p>
-                <p className={cn('text-xs', slSaferThanLiq ? 'text-profit' : 'text-loss')}>
+                <p className={cn('text-xs', slSaferThanLiq ? 'text-emerald-400' : 'text-red-400')}>
                   {slSaferThanLiq ? 'SL avant liquidation ✓' : 'Levier trop élevé ✗'}
                 </p>
               </div>
             )}
           </div>
           {!slSaferThanLiq && (
-            <div className="flex items-center gap-2 text-sm text-loss">
+            <div className="flex items-center gap-2 text-sm text-red-400">
               <AlertCircle size={12} />
               Réduis le levier : la liquidation serait touchée avant ton Stop Loss (règle Hyperliquid du protocole).
             </div>
           )}
           {marginPct > 25 && slSaferThanLiq && (
-            <div className="flex items-center gap-2 text-sm text-neutral">
+            <div className="flex items-center gap-2 text-sm text-amber-400">
               <AlertCircle size={12} />
               Marge {'>'} 25% du capital — augmente le levier ou réduis la distance SL si possible.
             </div>
           )}
           {autoCalc.plannedRR > 0 && autoCalc.plannedRR < 2 && (
-            <div className="flex items-center gap-2 text-sm text-loss">
+            <div className="flex items-center gap-2 text-sm text-red-400">
               <AlertCircle size={12} />
               R/R insuffisant — minimum 1:2, protocole exige 1:3. Utilise les boutons TP @ 2R / @ 3R.
             </div>
@@ -593,178 +578,169 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
 
       {/* Contexte */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-        <div>
-          <label className={labelClass}>Setup</label>
-          <select
+        <Field>
+          <Label>Setup</Label>
+          <Select
             value={form.setup}
             onChange={(e) => setForm({ ...form, setup: e.target.value })}
-            className={inputClass}
           >
             <option value="">— Sélectionner —</option>
             {TRADE_SETUPS.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className={labelClass}>Condition de marché</label>
-          <select
+          </Select>
+        </Field>
+        <Field>
+          <Label>Condition de marché</Label>
+          <Select
             value={form.marketCondition}
             onChange={(e) => setForm({ ...form, marketCondition: e.target.value })}
-            className={inputClass}
           >
             <option value="">— Sélectionner —</option>
             {MARKET_CONDITIONS.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className={labelClass}>Session</label>
-          <select
+          </Select>
+        </Field>
+        <Field>
+          <Label>Session</Label>
+          <Select
             value={form.sessionTime}
             onChange={(e) => setForm({ ...form, sessionTime: e.target.value })}
-            className={inputClass}
           >
             <option value="">— Sélectionner —</option>
             {SESSION_TIMES.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
       </div>
 
       {/* État émotionnel — échelle protocole 1-5 */}
-      <div>
-        <label className={labelClass}>
-          Règle Zéro — État émotionnel (protocole exige ≥ 3/5)
-        </label>
+      <Field>
+        <Label>Règle Zéro — État émotionnel (protocole exige ≥ 3/5)</Label>
         <div className="grid grid-cols-5 gap-2">
           {[
-            { score: '1', label: '1/5', desc: 'Anxieux / Stressé / En colère', color: 'border-loss bg-loss-dim text-loss' },
-            { score: '2', label: '2/5', desc: 'Fatigué / Biais émotionnel', color: 'border-loss/50 text-loss' },
-            { score: '3', label: '3/5', desc: 'Neutre / Calme', color: 'border-neutral bg-neutral-dim text-neutral' },
-            { score: '4', label: '4/5', desc: 'Concentré / Lucide', color: 'border-profit/50 text-profit' },
-            { score: '5', label: '5/5', desc: 'Optimal / Reposé', color: 'border-profit bg-profit-dim text-profit' },
+            { score: '1', label: '1/5', desc: 'Anxieux / Stressé / En colère', color: 'red' as const },
+            { score: '2', label: '2/5', desc: 'Fatigué / Biais émotionnel', color: 'red' as const },
+            { score: '3', label: '3/5', desc: 'Neutre / Calme', color: 'amber' as const },
+            { score: '4', label: '4/5', desc: 'Concentré / Lucide', color: 'emerald' as const },
+            { score: '5', label: '5/5', desc: 'Optimal / Reposé', color: 'emerald' as const },
           ].map((e) => (
-            <button
+            <Button
               key={e.score}
               type="button"
               onClick={() => setForm({ ...form, emotionScore: e.score })}
-              className={cn(
-                'rounded-md border p-2 text-center transition-all',
-                form.emotionScore === e.score ? e.color : 'border-border text-text-muted hover:border-border-strong',
-              )}
+              {...(form.emotionScore === e.score ? { color: e.color } : { outline: true as const })}
+              className="h-auto flex-col p-2 text-center"
             >
-              <p className="text-sm font-bold">{e.label}</p>
-              <p className="text-sm leading-tight mt-0.5">{e.desc}</p>
-            </button>
+              <span className="text-sm font-bold">{e.label}</span>
+              <span className="mt-0.5 text-sm leading-tight font-normal">{e.desc}</span>
+            </Button>
           ))}
         </div>
         {parseInt(form.emotionScore) <= 2 && (
-          <div className="mt-2 flex items-center gap-2 rounded-md border border-loss/30 bg-loss-dim px-3 py-2 text-sm text-loss">
+          <div className="mt-2 flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
             <AlertCircle size={14} />
-            Protocole : état émotionnel ≤ 2/5 → pas de trade aujourd'hui. Données Edgewonk (2024) : win rate 23% inférieur en état anxieux.
+            Protocole : état émotionnel ≤ 2/5 → pas de trade aujourd&apos;hui. Données Edgewonk (2024) : win rate 23% inférieur en état anxieux.
           </div>
         )}
-      </div>
+      </Field>
 
       {/* Checklist protocole 7 niveaux */}
-      <div>
+      <Field>
         <div className="mb-2 flex items-center justify-between">
-          <label className={labelClass}>
-            Checklist Protocole — 6 Confluences Obligatoires
-          </label>
-          <span className={cn('text-sm font-semibold', allRequiredChecked ? 'text-profit' : 'text-loss')}>
+          <Label>Checklist Protocole — 6 Confluences Obligatoires</Label>
+          <Badge color={allRequiredChecked ? 'emerald' : 'red'}>
             {activeChecklist.filter((c) => checklist[c.key]).length}/{activeChecklist.length} validés
-          </span>
+          </Badge>
         </div>
-        <div className="rounded-lg border border-border bg-bg-surface divide-y divide-border">
+        <CheckboxGroup className="divide-y divide-white/10 overflow-hidden rounded-xl bg-zinc-900/80 ring-1 ring-white/10">
           {activeChecklist.map((item, idx) => (
-            <label
+            <CheckboxField
               key={item.key}
               className={cn(
-                'flex cursor-pointer items-start gap-3 px-3 py-3 transition-colors hover:bg-bg-hover',
-                checklist[item.key] && 'bg-profit-dim/20',
+                'px-3 py-3 transition-colors hover:bg-white/5',
+                checklist[item.key] && 'bg-emerald-500/10',
               )}
             >
-              <input
-                type="checkbox"
+              <Checkbox
+                color="emerald"
                 checked={checklist[item.key]}
-                onChange={(e) =>
-                  setChecklist({ ...checklist, [item.key]: e.target.checked })
+                onChange={(checked) =>
+                  setChecklist({ ...checklist, [item.key]: checked })
                 }
-                className="mt-1 h-4 w-4 rounded accent-profit flex-shrink-0"
               />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono text-text-muted">0{idx + 1}</span>
-                  <span className={cn('text-sm font-medium', checklist[item.key] ? 'text-text-primary' : 'text-text-secondary')}>
+              <Label>
+                <span className="inline-flex w-full items-start gap-2">
+                  <span className="text-sm font-mono text-zinc-500">0{idx + 1}</span>
+                  <span className={cn('min-w-0 flex-1 text-sm font-medium', checklist[item.key] ? 'text-white' : 'text-zinc-400')}>
                     {item.label}
                   </span>
-                </div>
-                <p className="mt-0.5 text-sm text-text-muted leading-relaxed">{item.desc}</p>
-              </div>
-              {checklist[item.key] ? (
-                <CheckCircle2 size={16} className="mt-1 flex-shrink-0 text-profit" />
-              ) : (
-                <AlertCircle size={14} className="mt-1 flex-shrink-0 text-loss opacity-60" />
-              )}
-            </label>
+                  {checklist[item.key] ? (
+                    <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-400" />
+                  ) : (
+                    <AlertCircle size={14} className="mt-0.5 shrink-0 text-red-400 opacity-60" />
+                  )}
+                </span>
+              </Label>
+              <Description>{item.desc}</Description>
+            </CheckboxField>
           ))}
-        </div>
+        </CheckboxGroup>
         {!allRequiredChecked && (
-          <p className="mt-2 flex items-center gap-2 text-sm text-loss">
+          <p className="mt-2 flex items-center gap-2 text-sm text-red-400">
             <Target size={14} />
             Protocole non respecté — les 6 confluences sont obligatoires. Consulte /protocol si doute.
           </p>
         )}
-      </div>
+      </Field>
 
       {/* 3 raisons d'invalidation — fortement recommandé */}
-      <div>
-        <label className={labelClass}>
-          3 Raisons d'Invalidation{' '}
-          <span className="text-neutral normal-case font-normal tracking-normal">— recommandé (Van Tharp)</span>
-        </label>
-        <p className="mb-2 text-sm text-text-muted">
-          Avant d'entrer, identifie 3 scénarios qui prouvent que tu as tort.
-          Ex : "1. Si la bougie 4H clôture sous l'EMA 50. 2. Si le Whale Ratio passe {'>'} 0.90. 3. Si le volume est inférieur à la moyenne." Si vide, une confirmation sera demandée.
-        </p>
-        <textarea
-          placeholder="1. Si...\n2. Si...\n3. Si..."
+      <Field>
+        <Label>
+          3 Raisons d&apos;Invalidation{' '}
+          <span className="font-normal normal-case tracking-normal text-amber-400">— recommandé (Van Tharp)</span>
+        </Label>
+        <Description>
+          Avant d&apos;entrer, identifie 3 scénarios qui prouvent que tu as tort.
+          Ex : &quot;1. Si la bougie 4H clôture sous l&apos;EMA 50. 2. Si le Whale Ratio passe {'>'} 0.90. 3. Si le volume est inférieur à la moyenne.&quot; Si vide, une confirmation sera demandée.
+        </Description>
+        <Textarea
+          resizable={false}
+          placeholder={'1. Si...\n2. Si...\n3. Si...'}
           value={form.invalidations}
           onChange={(e) => setForm({ ...form, invalidations: e.target.value })}
           rows={3}
-          className={cn(inputClass, 'resize-none font-mono text-sm')}
+          className="font-mono text-sm"
         />
         {!form.invalidations.trim() && (
-          <p className="mt-1.5 text-xs text-neutral flex items-center gap-1.5">
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-amber-400">
             <AlertTriangle size={12} />
-            Recommandé : liste 3 raisons d'invalidation pour objectiver ton analyse.
+            Recommandé : liste 3 raisons d&apos;invalidation pour objectiver ton analyse.
           </p>
         )}
-      </div>
+      </Field>
 
       {/* Notes */}
-      <div>
-        <label className={labelClass}>Notes & Observations</label>
-        <textarea
+      <Field>
+        <Label>Notes & Observations</Label>
+        <Textarea
+          resizable={false}
           placeholder="Contexte, observations, état d'esprit..."
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
           rows={2}
-          className={cn(inputClass, 'resize-none')}
         />
-      </div>
+      </Field>
 
       {/* Screenshot */}
-      <div>
-        <label className={labelClass}>Capture d'écran TradingView</label>
+      <Field>
+        <Label>Capture d&apos;écran TradingView</Label>
         <div
           className={cn(
-            'relative rounded-lg border-2 border-dashed border-border transition-colors hover:border-accent/50',
-            screenshotPreview && 'border-accent/30',
+            'relative rounded-xl ring-1 ring-white/10 transition-[box-shadow] hover:ring-indigo-500/50',
+            screenshotPreview && 'ring-indigo-500/30',
           )}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
@@ -781,26 +757,28 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
                 width={800}
                 height={400}
                 unoptimized
-                className="max-h-64 w-full rounded-lg object-contain"
+                className="max-h-64 w-full rounded-xl object-contain"
               />
-              <button
+              <Button
                 type="button"
+                plain
                 onClick={() => { setScreenshot(null); setScreenshotPreview(null) }}
-                className="absolute right-2 top-2 rounded-full bg-bg-elevated p-1 text-text-muted hover:text-loss"
+                className="absolute right-2 top-2 rounded-full !p-1 text-zinc-500 hover:text-red-400"
+                aria-label="Supprimer la capture"
               >
-                <X size={14} />
-              </button>
+                <X data-slot="icon" className="size-3.5" />
+              </Button>
             </div>
           ) : (
             <div
-              className="flex flex-col items-center justify-center gap-2 py-8 cursor-pointer"
+              className="flex cursor-pointer flex-col items-center justify-center gap-2 py-8"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Camera size={24} className="text-text-muted" />
-              <p className="text-sm text-text-secondary">
+              <Camera size={24} className="text-zinc-500" />
+              <p className="text-sm text-zinc-400">
                 Glisse, colle (Ctrl+V) ou clique pour uploader
               </p>
-              <p className="text-sm text-text-muted">PNG, JPG, WEBP</p>
+              <p className="text-sm text-zinc-500">PNG, JPG, WEBP</p>
             </div>
           )}
           <input
@@ -814,35 +792,31 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
             }}
           />
         </div>
-      </div>
+      </Field>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-loss/30 bg-loss-dim px-4 py-3 text-sm text-loss">
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           <AlertCircle size={16} />
           {error}
         </div>
       )}
 
-      <button
+      <Button
         type="submit"
         disabled={loading || !canSubmit}
-        className={cn(
-          'flex w-full items-center justify-center gap-2 rounded-lg py-3.5 text-base font-semibold tracking-wide transition-all',
-          canSubmit
-            ? 'bg-accent text-white hover:bg-accent/90 active:scale-[0.99]'
-            : 'cursor-not-allowed bg-bg-elevated text-text-muted',
-        )}
+        color="indigo"
+        className="w-full"
       >
         {loading ? (
           'Enregistrement...'
         ) : canSubmit ? (
           <>
-            <CheckCircle2 size={18} />
+            <CheckCircle2 data-slot="icon" className="size-4" aria-hidden="true" />
             Enregistrer le Trade (Protocole validé)
           </>
         ) : (
           <>
-            <AlertTriangle size={18} />
+            <AlertTriangle data-slot="icon" className="size-4" aria-hidden="true" />
             {!allRequiredChecked
               ? 'Protocole incomplet — 6 confluences requises'
               : parseInt(form.emotionScore) <= 2
@@ -854,7 +828,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
                     : 'Remplis entrée + SL pour calculer la taille'}
           </>
         )}
-      </button>
+      </Button>
     </form>
   )
 }

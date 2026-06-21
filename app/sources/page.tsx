@@ -23,6 +23,9 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PageShell, PageSection, PAGE_GUTTER_X } from '@/components/ui/PageShell'
+import { Button } from '@/components/catalyst/button'
+import { Input, InputGroup } from '@/components/catalyst/input'
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -921,12 +924,12 @@ const CATEGORY_CONFIG: Record<
   academic: {
     color: '#6366f1',
     glow: 'rgba(99,102,241,0.12)',
-    badge: 'bg-accent/10 text-accent border border-accent/25',
-    indicator: 'bg-accent/8 text-accent border border-accent/15',
-    iconBg: 'bg-accent/15 border-accent/30 text-accent',
-    activeTab: 'border-accent/40 bg-accent/10 text-accent shadow-[0_0_20px_rgba(99,102,241,0.15)]',
+    badge: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/25',
+    indicator: 'bg-indigo-500/8 text-indigo-400 border border-indigo-500/15',
+    iconBg: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400',
+    activeTab: 'border-indigo-500/40 bg-indigo-500/10 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.15)]',
     metricBg: 'from-accent/5 to-transparent',
-    applyBg: 'bg-accent/5 border-accent/15',
+    applyBg: 'bg-indigo-500/5 border-indigo-500/15',
   },
   institutional: {
     color: '#f59e0b',
@@ -941,12 +944,12 @@ const CATEGORY_CONFIG: Record<
   onchain: {
     color: '#34D399',
     glow: 'rgba(52,211,153,0.12)',
-    badge: 'bg-profit/10 text-profit border border-profit/25',
-    indicator: 'bg-profit/8 text-profit border border-profit/15',
-    iconBg: 'bg-profit/15 border-profit/30 text-profit',
-    activeTab: 'border-profit/40 bg-profit/10 text-profit shadow-[0_0_20px_rgba(52,211,153,0.15)]',
+    badge: 'bg-profit/10 text-emerald-400 border border-emerald-500/25',
+    indicator: 'bg-profit/8 text-emerald-400 border border-emerald-500/15',
+    iconBg: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+    activeTab: 'border-emerald-500/40 bg-profit/10 text-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.15)]',
     metricBg: 'from-profit/5 to-transparent',
-    applyBg: 'bg-profit/5 border-profit/15',
+    applyBg: 'bg-profit/5 border-emerald-500/15',
   },
   data: {
     color: '#60a5fa',
@@ -1003,9 +1006,9 @@ export default function SourcesPage() {
   const hasActiveFilters = search.trim() !== '' || activeCategory !== 'all'
 
   return (
-    <div className="min-h-screen bg-bg-base">
+    <PageShell variant="document">
       {/* ── Hero ── */}
-      <header className="relative overflow-hidden border-b border-border">
+      <header className="relative overflow-hidden border-b border-white/10 bg-zinc-950">
         <div
           className="pointer-events-none absolute inset-0"
           aria-hidden="true"
@@ -1016,23 +1019,23 @@ export default function SourcesPage() {
         />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,rgba(10,11,15,0.4)_100%)]" aria-hidden="true" />
 
-        <div className="relative mx-auto max-w-6xl px-6 py-10">
+        <div className={cn('relative py-10', PAGE_GUTTER_X)}>
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex items-start gap-5">
-              <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 shadow-[0_0_32px_rgba(99,102,241,0.2)]">
-                <Library size={26} className="text-accent" aria-hidden="true" />
+              <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 shadow-[0_0_32px_rgba(99,102,241,0.2)]">
+                <Library size={26} className="text-indigo-400" aria-hidden="true" />
                 <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-amber-500/40 bg-amber-500/20">
                   <Sparkles size={10} className="text-amber-400" aria-hidden="true" />
                 </div>
               </div>
               <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">
                   Bibliothèque de recherche
                 </p>
-                <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
                   Sources Fiables
                 </h1>
-                <p className="mt-2 max-w-xl text-sm leading-relaxed text-text-secondary">
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-300">
                   Chaque carte contient l&apos;explication vulgarisée et les étapes concrètes pour appliquer la recherche dans ton trading — sans lire l&apos;article complet.
                 </p>
               </div>
@@ -1041,15 +1044,15 @@ export default function SourcesPage() {
             {/* Stats KPI */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[420px]">
               {[
-                { value: SOURCES.length, label: 'Sources', icon: FileText, color: 'text-text-primary', bg: 'bg-bg-card' },
-                { value: counts.academic ?? 0, label: 'Académique', icon: GraduationCap, color: 'text-accent', bg: 'bg-accent/5' },
+                { value: SOURCES.length, label: 'Sources', icon: FileText, color: 'text-white', bg: 'bg-zinc-900' },
+                { value: counts.academic ?? 0, label: 'Académique', icon: GraduationCap, color: 'text-indigo-400', bg: 'bg-indigo-500/5' },
                 { value: counts.institutional ?? 0, label: 'Institutionnel', icon: Landmark, color: 'text-amber-400', bg: 'bg-amber-500/5' },
-                { value: featured.length, label: 'Vedettes', icon: Star, color: 'text-profit', bg: 'bg-profit/5' },
+                { value: featured.length, label: 'Vedettes', icon: Star, color: 'text-emerald-400', bg: 'bg-profit/5' },
               ].map(({ value, label, icon: Icon, color, bg }) => (
                 <div
                   key={label}
                   className={cn(
-                    'rounded-xl border border-border px-4 py-3 transition-colors hover:border-border-strong',
+                    'rounded-xl border border-white/10 px-4 py-3 transition-colors hover:border-white/20',
                     bg,
                   )}
                 >
@@ -1057,7 +1060,7 @@ export default function SourcesPage() {
                     <Icon size={14} className={cn('opacity-70', color)} aria-hidden="true" />
                   </div>
                   <p className={cn('font-mono text-2xl font-bold tabular-nums', color)}>{value}</p>
-                  <p className="mt-0.5 text-xs text-text-muted">{label}</p>
+                  <p className="mt-0.5 text-xs text-zinc-400">{label}</p>
                 </div>
               ))}
             </div>
@@ -1066,97 +1069,98 @@ export default function SourcesPage() {
       </header>
 
       {/* ── Barre de filtres ── */}
-      <div className="sticky top-0 z-30 border-b border-border bg-bg-base/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="sticky top-0 z-30 border-b border-white/10 bg-zinc-950/80 backdrop-blur-md">
+        <div className={cn('flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between', PAGE_GUTTER_X)}>
           <div
-            className="flex flex-wrap gap-1 rounded-xl border border-border bg-bg-surface p-1"
+            className="flex flex-wrap gap-1 rounded-xl border border-white/10 bg-zinc-900/80 p-1"
             role="tablist"
             aria-label="Filtrer par catégorie"
           >
             {CATEGORY_META.map((cat) => {
               const active = activeCategory === cat.id
               const Icon = cat.icon
-              const activeCls =
-                cat.id !== 'all' && cat.id in CATEGORY_CONFIG
-                  ? CATEGORY_CONFIG[cat.id as Category].activeTab
-                  : 'border-accent/40 bg-accent/10 text-accent shadow-[0_0_20px_rgba(99,102,241,0.15)]'
 
               return (
-                <button
+                <Button
                   key={cat.id}
                   role="tab"
                   aria-selected={active}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={cn(
-                    'flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-200',
-                    active
-                      ? activeCls
-                      : 'border-transparent text-text-secondary hover:bg-bg-hover hover:text-text-primary',
-                  )}
+                  {...(active
+                    ? cat.id === 'all'
+                      ? { color: 'indigo' as const }
+                      : cat.id === 'academic'
+                        ? { color: 'indigo' as const }
+                        : cat.id === 'institutional'
+                          ? { color: 'amber' as const }
+                          : cat.id === 'onchain'
+                            ? { color: 'emerald' as const }
+                            : { color: 'blue' as const }
+                    : { outline: true as const })}
+                  className="gap-2 text-sm"
                 >
-                  <Icon size={14} aria-hidden="true" />
+                  <Icon size={14} data-slot="icon" aria-hidden="true" />
                   <span className="hidden sm:inline">{cat.label}</span>
                   <span className="sm:hidden">{cat.label.split(' ')[0]}</span>
                   <span
                     className={cn(
                       'rounded-md px-1.5 py-0.5 font-mono text-xs tabular-nums',
-                      active ? 'bg-black/20' : 'bg-bg-elevated text-text-muted',
+                      active ? 'bg-black/20' : 'bg-zinc-800 text-zinc-500',
                     )}
                   >
                     {counts[cat.id] ?? 0}
                   </span>
-                </button>
+                </Button>
               )
             })}
           </div>
 
           <div className="relative w-full lg:w-72">
-            <Search
-              size={15}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              placeholder="Indicateur, institution, concept…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label="Rechercher dans les sources"
-              className="w-full rounded-xl border border-border bg-bg-card py-2.5 pl-10 pr-9 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20"
-            />
+            <InputGroup>
+              <Search data-slot="icon" aria-hidden="true" />
+              <Input
+                type="search"
+                placeholder="Indicateur, institution, concept…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Rechercher dans les sources"
+              />
+            </InputGroup>
             {search && (
-              <button
+              <Button
+                plain
                 onClick={() => setSearch('')}
                 aria-label="Effacer la recherche"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
+                className="absolute right-1 top-1/2 -translate-y-1/2 !p-1"
               >
-                <X size={14} />
-              </button>
+                <X size={14} data-slot="icon" />
+              </Button>
             )}
           </div>
         </div>
       </div>
 
       {/* ── Contenu ── */}
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <PageSection className="py-8">
         {filtered.length === 0 ? (
           <EmptyState onReset={() => { setSearch(''); setActiveCategory('all') }} />
         ) : (
           <div className="space-y-10">
             {hasActiveFilters && (
               <div className="flex items-center justify-between">
-                <p className="text-sm text-text-muted">
-                  <span className="font-mono font-semibold tabular-nums text-text-secondary">
+                <p className="text-sm text-zinc-400">
+                  <span className="font-mono font-semibold tabular-nums text-zinc-400">
                     {filtered.length}
                   </span>{' '}
                   source{filtered.length > 1 ? 's' : ''} trouvée{filtered.length > 1 ? 's' : ''}
                 </p>
-                <button
+                <Button
+                  plain
                   onClick={() => { setSearch(''); setActiveCategory('all') }}
-                  className="text-xs font-medium text-accent transition-colors hover:text-accent/80"
+                  className="text-xs font-medium text-indigo-400"
                 >
                   Effacer les filtres
-                </button>
+                </Button>
               </div>
             )}
 
@@ -1167,10 +1171,10 @@ export default function SourcesPage() {
                     <Star size={15} className="fill-amber-400 text-amber-400" aria-hidden="true" />
                   </div>
                   <div>
-                    <h2 id="featured-heading" className="text-base font-bold text-text-primary">
+                    <h2 id="featured-heading" className="text-base font-bold text-white">
                       Études vedettes
                     </h2>
-                    <p className="text-xs text-text-muted">Clique sur « Voir l'analyse complète » pour l'explication et les étapes d'application</p>
+                    <p className="text-xs text-zinc-400">Clique sur « Voir l'analyse complète » pour l'explication et les étapes d'application</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -1185,14 +1189,14 @@ export default function SourcesPage() {
               <section aria-labelledby="all-sources-heading">
                 {showFeatured && (
                   <div className="mb-5 flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-bg-elevated">
-                      <BookOpen size={15} className="text-text-secondary" aria-hidden="true" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-zinc-800">
+                      <BookOpen size={15} className="text-zinc-400" aria-hidden="true" />
                     </div>
                     <div>
-                      <h2 id="all-sources-heading" className="text-base font-bold text-text-primary">
+                      <h2 id="all-sources-heading" className="text-base font-bold text-white">
                         Toutes les sources
                       </h2>
-                      <p className="text-xs text-text-muted">{regularFiltered.length} études et rapports</p>
+                      <p className="text-xs text-zinc-400">{regularFiltered.length} études et rapports</p>
                     </div>
                   </div>
                 )}
@@ -1206,14 +1210,14 @@ export default function SourcesPage() {
           </div>
         )}
 
-        <footer className="mt-14 rounded-xl border border-border bg-bg-surface px-6 py-5">
+        <footer className="mt-14 rounded-xl border border-white/10 bg-zinc-900/80 px-6 py-5">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-accent/10">
-              <Library size={15} className="text-accent" aria-hidden="true" />
+            <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-500/10">
+              <Library size={15} className="text-indigo-400" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-text-primary">À propos de cette bibliothèque</p>
-              <p className="mt-1 text-xs leading-relaxed text-text-muted">
+              <p className="text-sm font-semibold text-white">À propos de cette bibliothèque</p>
+              <p className="mt-1 text-xs leading-relaxed text-zinc-400">
                 Toutes les sources proviennent d&apos;institutions académiques reconnues, de gestionnaires d&apos;actifs
                 réglementés ou de fournisseurs de données institutionnels. Les explications et étapes d&apos;application
                 sont rédigées pour être utilisées directement dans la pratique du trading.
@@ -1221,8 +1225,8 @@ export default function SourcesPage() {
             </div>
           </div>
         </footer>
-      </div>
-    </div>
+      </PageSection>
+    </PageShell>
   )
 }
 
@@ -1232,20 +1236,17 @@ export default function SourcesPage() {
 
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-bg-surface/50 py-24 text-center">
-      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-bg-elevated">
-        <BookOpen size={28} className="text-text-disabled" aria-hidden="true" />
+    <div className="flex flex-col items-center justify-center rounded-2xl bg-zinc-900/80/50 py-24 text-center shadow-xs ring-1 ring-dashed ring-white/10">
+      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-800 shadow-xs ring-1 ring-white/10">
+        <BookOpen size={28} className="text-zinc-600" aria-hidden="true" />
       </div>
-      <p className="text-lg font-semibold text-text-secondary">Aucune source trouvée</p>
-      <p className="mt-2 max-w-sm text-sm text-text-muted">
+      <p className="text-lg font-semibold text-zinc-300">Aucune source trouvée</p>
+      <p className="mt-2 max-w-sm text-sm text-zinc-400">
         Essayez un autre terme de recherche ou sélectionnez une autre catégorie
       </p>
-      <button
-        onClick={onReset}
-        className="mt-6 rounded-xl border border-accent/30 bg-accent/10 px-5 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
-      >
+      <Button color="indigo" onClick={onReset} className="mt-6">
         Réinitialiser les filtres
-      </button>
+      </Button>
     </div>
   )
 }
@@ -1267,13 +1268,11 @@ function SourceCard({
   return (
     <article
       className={cn(
-        'group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-bg-card transition-all duration-300 motion-safe:animate-fade-in',
+        'group relative flex h-full flex-col overflow-hidden rounded-2xl bg-zinc-900 shadow-xs ring-1 transition-all duration-300 motion-safe:animate-fade-in',
         expanded
-          ? 'border-border-strong shadow-[0_12px_40px_rgba(0,0,0,0.4)]'
-          : 'hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_8px_32px_rgba(0,0,0,0.35)]',
-        featured
-          ? 'border-amber-500/25 shadow-[0_0_24px_rgba(245,158,11,0.08)]'
-          : 'border-border',
+          ? 'ring-white/20 shadow-[0_12px_40px_rgba(0,0,0,0.4)]'
+          : 'ring-white/10 hover:-translate-y-0.5 hover:ring-white/20 hover:shadow-[0_8px_32px_rgba(0,0,0,0.35)]',
+        featured && 'ring-amber-500/25 shadow-[0_0_24px_rgba(245,158,11,0.08)]',
       )}
       style={{
         animationDelay: `${Math.min(index * 40, 400)}ms`,
@@ -1304,7 +1303,7 @@ function SourceCard({
                 {CATEGORY_LABELS[source.category]}
               </span>
               {source.year && (
-                <span className="rounded-md border border-border bg-bg-elevated px-2 py-0.5 font-mono text-[11px] tabular-nums text-text-muted">
+                <span className="rounded-md bg-zinc-800 px-2 py-0.5 font-mono text-[11px] tabular-nums text-zinc-500 shadow-xs ring-1 ring-white/10">
                   {source.year}
                 </span>
               )}
@@ -1315,7 +1314,7 @@ function SourceCard({
                 </span>
               )}
             </div>
-            <p className="mt-2 truncate text-xs font-medium text-text-muted">
+            <p className="mt-2 truncate text-xs font-medium text-zinc-500">
               <span aria-hidden="true">{source.country} </span>
               {source.institution}
             </p>
@@ -1324,11 +1323,11 @@ function SourceCard({
 
         {/* Titre & auteurs */}
         <div>
-          <h3 className="text-[15px] font-bold leading-snug text-text-primary transition-colors group-hover:text-white">
+          <h3 className="text-[15px] font-bold leading-snug text-white transition-colors group-hover:text-white">
             {source.title}
           </h3>
           {source.authors && (
-            <p className="mt-1.5 text-xs italic text-text-muted">{source.authors}</p>
+            <p className="mt-1.5 text-xs italic text-zinc-500">{source.authors}</p>
           )}
         </div>
 
@@ -1343,33 +1342,33 @@ function SourceCard({
             </span>
           ))}
           {source.indicators.length > 4 && (
-            <span className="rounded-md border border-border bg-bg-elevated px-2 py-0.5 text-[11px] text-text-muted">
+            <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-[11px] text-zinc-500 shadow-xs ring-1 ring-white/10">
               +{source.indicators.length - 4}
             </span>
           )}
         </div>
 
         {/* Résumé court */}
-        <p className={cn('text-xs leading-relaxed text-text-secondary', !expanded && 'line-clamp-2')}>
+        <p className={cn('text-xs leading-relaxed text-zinc-400', !expanded && 'line-clamp-2')}>
           {source.summary}
         </p>
 
         {/* Section dépliable — explication + application */}
         {expanded && (
-          <div className="space-y-4 border-t border-border pt-4">
+          <div className="space-y-4 border-t border-white/10 pt-4">
             {/* Explication vulgarisée */}
             <div>
               <div className="mb-2 flex items-center gap-2">
-                <BookOpen size={13} className="text-text-muted" aria-hidden="true" />
-                <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">De quoi ça parle</p>
+                <BookOpen size={13} className="text-zinc-500" aria-hidden="true" />
+                <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">De quoi ça parle</p>
               </div>
-              <p className="text-xs leading-relaxed text-text-secondary">
+              <p className="text-xs leading-relaxed text-zinc-400">
                 {source.explanation}
               </p>
             </div>
 
             {/* Comment l'appliquer */}
-            <div className={cn('rounded-xl border p-4', config.applyBg)}>
+            <div className={cn('rounded-xl p-4 shadow-xs ring-1', config.applyBg.replace('border', 'ring'))}>
               <div className="mb-3 flex items-center gap-2">
                 <Zap size={13} style={{ color: config.color }} aria-hidden="true" />
                 <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: config.color }}>
@@ -1385,7 +1384,7 @@ function SourceCard({
                       style={{ color: config.color, opacity: 0.7 }}
                       aria-hidden="true"
                     />
-                    <span className="text-xs leading-relaxed text-text-secondary">{step}</span>
+                    <span className="text-xs leading-relaxed text-zinc-400">{step}</span>
                   </li>
                 ))}
               </ul>
@@ -1397,7 +1396,7 @@ function SourceCard({
         {source.metrics && source.metrics.length > 0 && (
           <div
             className={cn(
-              'grid gap-px overflow-hidden rounded-xl border border-border bg-border',
+              'grid gap-px overflow-hidden rounded-xl bg-zinc-800 shadow-xs ring-1 ring-white/10',
               source.metrics.length === 2 ? 'grid-cols-2' : 'grid-cols-3',
             )}
           >
@@ -1406,8 +1405,8 @@ function SourceCard({
                 key={m.label}
                 className={cn('bg-gradient-to-b px-3 py-2.5 text-center', config.metricBg, 'to-bg-card')}
               >
-                <p className="font-mono text-sm font-bold tabular-nums text-text-primary">{m.value}</p>
-                <p className="mt-0.5 text-[10px] leading-tight text-text-muted">{m.label}</p>
+                <p className="font-mono text-sm font-bold tabular-nums text-white">{m.value}</p>
+                <p className="mt-0.5 text-[10px] leading-tight text-zinc-500">{m.label}</p>
               </div>
             ))}
           </div>
@@ -1415,7 +1414,7 @@ function SourceCard({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 border-t border-border bg-bg-surface/50 p-4">
+      <div className="flex flex-col gap-2 border-t border-white/10 bg-zinc-900/80/50 p-4">
         {/* Toggle explication */}
         <button
           type="button"
@@ -1424,8 +1423,8 @@ function SourceCard({
           className={cn(
             'flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-xs font-semibold transition-all',
             expanded
-              ? 'border-border-strong bg-bg-elevated text-text-primary'
-              : 'border-border text-text-secondary hover:border-border-strong hover:bg-bg-hover hover:text-text-primary',
+              ? 'border-white/20 bg-zinc-800 text-white'
+              : 'border-white/10 text-zinc-400 hover:border-white/20 hover:bg-white/5 hover:text-white',
           )}
         >
           {expanded ? (
@@ -1447,7 +1446,7 @@ function SourceCard({
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition-all hover:bg-accent/20 hover:shadow-[0_0_16px_rgba(99,102,241,0.2)]"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-400 transition-all hover:bg-indigo-500/20 hover:shadow-[0_0_16px_rgba(99,102,241,0.2)]"
           >
             <ExternalLink size={12} aria-hidden="true" />
             Lire l&apos;étude
@@ -1457,7 +1456,7 @@ function SourceCard({
               href={source.institutionUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-bg-card px-3 py-2 text-xs font-medium text-text-secondary transition-all hover:border-border-strong hover:text-text-primary"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-400 transition-all hover:border-white/20 hover:text-white"
             >
               <ChevronRight size={12} aria-hidden="true" />
               Portail recherche

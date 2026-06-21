@@ -7,6 +7,9 @@ import {
   ScatterChart, Scatter, ReferenceLine, Cell, ComposedChart, Line,
 } from 'recharts'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { PageShell } from '@/components/ui/PageShell'
+import { Button } from '@/components/catalyst/button'
 import { DirectionIcon } from '@/components/ui/TradingIcons'
 import { formatCurrency, formatR, cn } from '@/lib/utils'
 import {
@@ -40,8 +43,8 @@ function ChartTooltip({ active, payload, label }: {
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-xl border border-border bg-bg-elevated p-3 text-sm shadow-xl">
-      {label && <p className="mb-2 font-semibold text-text-primary">{label}</p>}
+    <div className="rounded-xl bg-zinc-900 p-3 text-sm shadow-xl ring-1 ring-white/10">
+      {label && <p className="mb-2 font-semibold text-white">{label}</p>}
       {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.color }} className="font-mono text-xs">
           {p.name}:{' '}
@@ -68,44 +71,56 @@ function KpiCard({
   icon?: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-border bg-bg-card p-4">
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{label}</p>
-        {icon && <span className="text-accent">{icon}</span>}
+    <div className={cn(
+      'group relative overflow-hidden rounded-xl bg-white p-4 shadow-xs ring-1 ring-zinc-950/5 transition-all dark:bg-zinc-900 dark:ring-white/10',
+      trend === 'up' && 'ring-emerald-500/20',
+      trend === 'down' && 'ring-red-500/20',
+      trend === 'neutral' && 'ring-amber-500/20',
+    )}>
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <p className="text-xs/5 font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</p>
+        {icon && (
+          <span className={cn(
+            'opacity-70',
+            trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-red-400' : trend === 'neutral' ? 'text-amber-400' : 'text-zinc-500',
+          )}>
+            {icon}
+          </span>
+        )}
       </div>
       <p className={cn(
-        'font-mono text-xl font-bold',
-        trend === 'up' && 'text-profit',
-        trend === 'down' && 'text-loss',
-        trend === 'neutral' && 'text-text-primary',
-        !trend && 'text-text-primary',
+        'font-mono text-2xl font-bold tabular-nums',
+        trend === 'up' && 'text-emerald-400',
+        trend === 'down' && 'text-red-400',
+        trend === 'neutral' && 'text-amber-400',
+        !trend && 'text-white',
       )}>
         {value}
       </p>
-      {sub && <p className="text-xs text-text-muted mt-1">{sub}</p>}
+      {sub && <p className="mt-0.5 text-sm text-zinc-400">{sub}</p>}
     </div>
   )
 }
 
 function InsightCard({ insight }: { insight: AnalyticsInsight }) {
   const icon = insight.type === 'good'
-    ? <CheckCircle2 size={16} className="text-profit" />
+    ? <CheckCircle2 size={16} className="text-emerald-400" />
     : insight.type === 'bad'
-      ? <AlertTriangle size={16} className="text-loss" />
-      : <Info size={16} className="text-neutral" />
+      ? <AlertTriangle size={16} className="text-red-400" />
+      : <Info size={16} className="text-amber-400" />
 
-  const border = insight.type === 'good'
-    ? 'border-profit/25 bg-profit-dim/20'
+  const ringStyle = insight.type === 'good'
+    ? 'ring-emerald-500/25 bg-emerald-500/10/20'
     : insight.type === 'bad'
-      ? 'border-loss/25 bg-loss-dim/20'
-      : 'border-border bg-bg-surface'
+      ? 'ring-red-500/25 bg-red-500/10/20'
+      : 'ring-white/10 bg-zinc-900/80'
 
   return (
-    <div className={cn('flex items-start gap-3 rounded-xl border p-4', border)}>
+    <div className={cn('flex items-start gap-3 rounded-xl p-4 ring-1', ringStyle)}>
       <span className="mt-0.5 flex-shrink-0">{icon}</span>
       <div>
-        <p className="text-sm font-bold text-text-primary">{insight.title}</p>
-        <p className="text-sm text-text-secondary mt-1 leading-relaxed">{insight.detail}</p>
+        <p className="text-sm font-bold text-white">{insight.title}</p>
+        <p className="text-sm text-zinc-300 mt-1 leading-relaxed">{insight.detail}</p>
       </div>
     </div>
   )
@@ -182,36 +197,25 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
     : summary.profitFactor.toFixed(2)
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in max-w-7xl">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-            <BarChart3 size={26} className="text-accent" />
-            Analytics
-          </h1>
-          <p className="text-base text-text-secondary mt-1">
-            Ce qui fonctionne, ce qui ne fonctionne pas — et pourquoi
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={refresh}
-          disabled={isPending}
-          aria-label="Actualiser les analytics"
-          className="flex items-center gap-2 rounded-xl border border-border bg-bg-card px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-hover disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-accent/40"
-        >
-          <RefreshCw size={14} className={isPending ? 'animate-spin' : ''} aria-hidden="true" />
-          Actualiser
-        </button>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Analytics"
+        description="Ce qui fonctionne, ce qui ne fonctionne pas — et pourquoi"
+        icon={<BarChart3 data-slot="icon" className="size-7 text-indigo-400" aria-hidden="true" />}
+        actions={
+          <Button outline onClick={refresh} disabled={isPending} aria-label="Actualiser les analytics">
+            <RefreshCw data-slot="icon" className={isPending ? 'animate-spin' : ''} aria-hidden="true" />
+            Actualiser
+          </Button>
+        }
+      />
 
       {noData ? (
-        <div className="flex items-start gap-4 rounded-xl border border-border bg-bg-card p-8">
-          <Info size={24} className="text-accent flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-4 rounded-xl border border-white/10 bg-zinc-900 p-8">
+          <Info size={24} className="text-indigo-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-text-primary text-lg">Aucun trade clôturé</p>
-            <p className="text-sm text-text-secondary mt-2 leading-relaxed">
+            <p className="font-bold text-white text-lg">Aucun trade clôturé</p>
+            <p className="text-sm text-zinc-300 mt-2 leading-relaxed">
               Les analytics apparaîtront dès que tu auras fermé tes premiers trades.
               Chaque trade clôturé alimente : performance par actif, setup, confluence, émotion et session.
             </p>
@@ -234,8 +238,8 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
           {/* Insights auto */}
           {insights.length > 0 && (
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary mb-3 flex items-center gap-2">
-                <Brain size={16} className="text-accent" />
+              <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-400 mb-3 flex items-center gap-2">
+                <Brain size={16} className="text-indigo-400" />
                 Insights automatiques
               </h2>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -255,9 +259,9 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
             const d = normalized.directionStats[dir]
             const wr = d.trades > 0 ? (d.wins / d.trades) * 100 : 0
             return (
-              <Card key={dir} className={cn(dir === 'long' ? 'border-profit/25' : 'border-loss/25')}>
+              <Card key={dir} className={cn(dir === 'long' ? 'border-emerald-500/25' : 'border-red-500/25')}>
                 <CardHeader>
-                  <CardTitle className={cn('text-base normal-case tracking-normal', dir === 'long' ? 'text-profit' : 'text-loss')}>
+                  <CardTitle className={cn('text-base normal-case tracking-normal', dir === 'long' ? 'text-emerald-400' : 'text-red-400')}>
                     <span className="inline-flex items-center gap-2">
                       <DirectionIcon direction={dir === 'long' ? 'LONG' : 'SHORT'} size={20} />
                       {dir === 'long' ? 'LONG' : 'SHORT'}
@@ -266,13 +270,13 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                 </CardHeader>
                 <div className="grid grid-cols-4 gap-2 text-center">
                   {[
-                    { label: 'Trades', value: String(d.trades), color: 'text-text-primary' },
-                    { label: 'Win Rate', value: `${wr.toFixed(1)}%`, color: wr >= 50 ? 'text-profit' : 'text-loss' },
-                    { label: 'P&L', value: formatCurrency(d.pnl), color: d.pnl >= 0 ? 'text-profit' : 'text-loss' },
-                    { label: 'Avg R', value: formatR(d.avgR), color: d.avgR >= 0 ? 'text-profit' : 'text-loss' },
+                    { label: 'Trades', value: String(d.trades), color: 'text-white' },
+                    { label: 'Win Rate', value: `${wr.toFixed(1)}%`, color: wr >= 50 ? 'text-emerald-400' : 'text-red-400' },
+                    { label: 'P&L', value: formatCurrency(d.pnl), color: d.pnl >= 0 ? 'text-emerald-400' : 'text-red-400' },
+                    { label: 'Avg R', value: formatR(d.avgR), color: d.avgR >= 0 ? 'text-emerald-400' : 'text-red-400' },
                   ].map((s) => (
-                    <div key={s.label} className="rounded-xl bg-bg-surface py-3 px-2">
-                      <p className="text-xs text-text-muted">{s.label}</p>
+                    <div key={s.label} className="rounded-xl bg-zinc-900/80 py-3 px-2">
+                      <p className="text-xs text-zinc-500">{s.label}</p>
                       <p className={cn('font-mono text-base font-bold mt-1', s.color)}>{s.value}</p>
                     </div>
                   ))}
@@ -288,12 +292,12 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
         <Card variant="accent">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Layers size={18} className="text-accent" />
-              <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+              <Layers size={18} className="text-indigo-400" />
+              <CardTitle className="text-base normal-case tracking-normal text-white">
                 Performance par Confluence (protocole)
               </CardTitle>
             </div>
-            <p className="text-xs text-text-muted">6/6 = protocole complet · Minimum requis : 4/6</p>
+            <p className="text-xs text-zinc-500">6/6 = protocole complet · Minimum requis : 4/6</p>
           </CardHeader>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="h-56">
@@ -337,28 +341,28 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border">
+                  <tr className="border-b border-white/10">
                     {['Confluence', 'Trades', 'Win Rate', 'P&L'].map((h) => (
-                      <th key={h} className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-text-muted">{h}</th>
+                      <th key={h} className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-zinc-500">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-white/10">
                   {normalized.confluencePerformance.map((c) => (
-                    <tr key={c.score} className={cn(c.score === 6 && 'bg-profit-dim/20')}>
+                    <tr key={c.score} className={cn(c.score === 6 && 'bg-emerald-500/10/20')}>
                       <td className="px-3 py-2.5">
                         <span className={cn(
                           'rounded-md px-2 py-0.5 font-mono text-xs font-bold',
-                          c.score === 6 ? 'bg-profit/20 text-profit' : c.score >= 4 ? 'bg-neutral-dim text-neutral' : 'bg-loss-dim text-loss',
+                          c.score === 6 ? 'bg-profit/20 text-emerald-400' : c.score >= 4 ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400',
                         )}>
                           {c.score}/6
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-text-secondary">{c.trades}</td>
-                      <td className={cn('px-3 py-2.5 font-mono font-semibold', c.winRate >= 50 ? 'text-profit' : 'text-loss')}>
+                      <td className="px-3 py-2.5 text-zinc-400">{c.trades}</td>
+                      <td className={cn('px-3 py-2.5 font-mono font-semibold', c.winRate >= 50 ? 'text-emerald-400' : 'text-red-400')}>
                         {c.winRate.toFixed(1)}%
                       </td>
-                      <td className={cn('px-3 py-2.5 font-mono font-semibold', c.pnl >= 0 ? 'text-profit' : 'text-loss')}>
+                      <td className={cn('px-3 py-2.5 font-mono font-semibold', c.pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                         {formatCurrency(c.pnl)}
                       </td>
                     </tr>
@@ -374,34 +378,34 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
       {!noData && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+            <CardTitle className="text-base normal-case tracking-normal text-white">
               Performance par Actif
             </CardTitle>
-            <p className="text-xs text-text-muted">BTC, ETH, SOL, SPX, QQQ</p>
+            <p className="text-xs text-zinc-500">BTC, ETH, SOL, SPX, QQQ</p>
           </CardHeader>
           {normalized.assetPerformance.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border">
+                  <tr className="border-b border-white/10">
                     {['Actif', 'Trades', 'Win Rate', 'P&L', 'Avg R'].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-text-muted">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-zinc-500">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-white/10">
                   {normalized.assetPerformance.map((a) => (
-                    <tr key={a.asset} className="hover:bg-bg-hover transition-colors">
+                    <tr key={a.asset} className="hover:bg-white/5 transition-colors">
                       <td className="px-4 py-3">
-                        <span className="rounded-lg bg-bg-elevated px-2.5 py-1 font-mono text-sm font-bold text-text-primary">{a.asset}</span>
+                        <span className="rounded-lg bg-zinc-800 px-2.5 py-1 font-mono text-sm font-bold text-white">{a.asset}</span>
                       </td>
-                      <td className="px-4 py-3 text-text-secondary">{a.trades}</td>
+                      <td className="px-4 py-3 text-zinc-400">{a.trades}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <span className={cn('font-mono font-semibold min-w-[3rem]', a.winRate >= 50 ? 'text-profit' : 'text-loss')}>
+                          <span className={cn('font-mono font-semibold min-w-[3rem]', a.winRate >= 50 ? 'text-emerald-400' : 'text-red-400')}>
                             {a.winRate.toFixed(1)}%
                           </span>
-                          <div className="h-1.5 w-20 rounded-full bg-bg-elevated overflow-hidden">
+                          <div className="h-1.5 w-20 rounded-full bg-zinc-800 overflow-hidden">
                             <div
                               className={cn('h-full rounded-full', a.winRate >= 50 ? 'bg-profit' : 'bg-loss')}
                               style={{ width: `${Math.min(100, a.winRate)}%` }}
@@ -409,10 +413,10 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                           </div>
                         </div>
                       </td>
-                      <td className={cn('px-4 py-3 font-mono font-semibold', a.pnl >= 0 ? 'text-profit' : 'text-loss')}>
+                      <td className={cn('px-4 py-3 font-mono font-semibold', a.pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                         {formatCurrency(a.pnl)}
                       </td>
-                      <td className={cn('px-4 py-3 font-mono', a.avgR >= 0 ? 'text-profit' : 'text-loss')}>
+                      <td className={cn('px-4 py-3 font-mono', a.avgR >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                         {formatR(a.avgR)}
                       </td>
                     </tr>
@@ -421,7 +425,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
               </table>
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-text-muted">Aucune donnée</p>
+            <p className="py-8 text-center text-sm text-zinc-500">Aucune donnée</p>
           )}
         </Card>
       )}
@@ -431,7 +435,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
           {/* Setup */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+              <CardTitle className="text-base normal-case tracking-normal text-white">
                 Performance par Setup
               </CardTitle>
             </CardHeader>
@@ -447,10 +451,10 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                         if (!active || !payload?.length) return null
                         const d = payload[0]?.payload as typeof setupChartData[0]
                         return (
-                          <div className="rounded-xl border border-border bg-bg-elevated p-3 text-xs shadow-xl max-w-xs">
-                            <p className="font-semibold text-text-primary mb-1">{d.setup}</p>
-                            <p className="text-text-muted">{d.trades} trades · WR {d.winRate.toFixed(1)}%</p>
-                            <p className={cn('font-mono font-bold mt-1', d.pnl >= 0 ? 'text-profit' : 'text-loss')}>
+                          <div className="rounded-xl bg-zinc-900 p-3 text-xs shadow-xl ring-1 ring-white/10 max-w-xs">
+                            <p className="font-semibold text-white mb-1">{d.setup}</p>
+                            <p className="text-zinc-500">{d.trades} trades · WR {d.winRate.toFixed(1)}%</p>
+                            <p className={cn('font-mono font-bold mt-1', d.pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                               {formatCurrency(d.pnl)}
                             </p>
                           </div>
@@ -467,14 +471,14 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-text-muted">Aucune donnée</p>
+              <p className="py-8 text-center text-sm text-zinc-500">Aucune donnée</p>
             )}
           </Card>
 
           {/* Jour de la semaine */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+              <CardTitle className="text-base normal-case tracking-normal text-white">
                 Performance par Jour
               </CardTitle>
             </CardHeader>
@@ -496,7 +500,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-text-muted">Pas assez de données par jour</p>
+              <p className="py-8 text-center text-sm text-zinc-500">Pas assez de données par jour</p>
             )}
           </Card>
         </div>
@@ -508,12 +512,12 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Brain size={16} className="text-accent" />
-                <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+                <Brain size={16} className="text-indigo-400" />
+                <CardTitle className="text-base normal-case tracking-normal text-white">
                   État Émotionnel vs Performance
                 </CardTitle>
               </div>
-              <p className="text-xs text-text-muted">Échelle 1-5 · Edgewonk : état ≤ 2 = −23% WR</p>
+              <p className="text-xs text-zinc-500">Échelle 1-5 · Edgewonk : état ≤ 2 = −23% WR</p>
             </CardHeader>
             {normalized.emotionPerformance.length > 0 ? (
               <div className="h-56">
@@ -535,7 +539,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-text-muted">Renseigne l&apos;état émotionnel dans le TradeForm</p>
+              <p className="py-8 text-center text-sm text-zinc-500">Renseigne l&apos;état émotionnel dans le TradeForm</p>
             )}
           </Card>
 
@@ -543,8 +547,8 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Clock size={16} className="text-accent" />
-                <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+                <Clock size={16} className="text-indigo-400" />
+                <CardTitle className="text-base normal-case tracking-normal text-white">
                   Performance par Session
                 </CardTitle>
               </div>
@@ -552,19 +556,19 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
             {normalized.sessionPerformance.length > 0 ? (
               <div className="space-y-2">
                 {normalized.sessionPerformance.map((s) => (
-                  <div key={s.session} className="flex items-center justify-between rounded-xl border border-border bg-bg-surface px-4 py-3">
+                  <div key={s.session} className="flex items-center justify-between rounded-xl border border-white/10 bg-zinc-900/80 px-4 py-3">
                     <div>
-                      <p className="text-sm font-bold text-text-primary">{s.session}</p>
-                      <p className="text-xs text-text-muted">{s.trades} trades · WR {s.winRate.toFixed(0)}%</p>
+                      <p className="text-sm font-bold text-white">{s.session}</p>
+                      <p className="text-xs text-zinc-500">{s.trades} trades · WR {s.winRate.toFixed(0)}%</p>
                     </div>
-                    <p className={cn('font-mono text-base font-bold', s.pnl >= 0 ? 'text-profit' : 'text-loss')}>
+                    <p className={cn('font-mono text-base font-bold', s.pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                       {formatCurrency(s.pnl)}
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-text-muted">Renseigne la session dans le TradeForm</p>
+              <p className="py-8 text-center text-sm text-zinc-500">Renseigne la session dans le TradeForm</p>
             )}
           </Card>
         </div>
@@ -576,7 +580,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
           {normalized.monthlyPerformance.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+                <CardTitle className="text-base normal-case tracking-normal text-white">
                   Performance Mensuelle
                 </CardTitle>
               </CardHeader>
@@ -601,10 +605,10 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+              <CardTitle className="text-base normal-case tracking-normal text-white">
                 Distribution R-Multiple
               </CardTitle>
-              <p className="text-xs text-text-muted">Idéal : majorité à droite de 0, pic entre +1R et +3R</p>
+              <p className="text-xs text-zinc-500">Idéal : majorité à droite de 0, pic entre +1R et +3R</p>
             </CardHeader>
             {rHistogram.length > 0 ? (
               <div className="h-52">
@@ -623,7 +627,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-text-muted">Aucune donnée</p>
+              <p className="py-8 text-center text-sm text-zinc-500">Aucune donnée</p>
             )}
           </Card>
         </div>
@@ -633,10 +637,10 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
       {!noData && normalized.maeAnalysis.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+            <CardTitle className="text-base normal-case tracking-normal text-white">
               Analyse MAE vs MFE
             </CardTitle>
-            <p className="text-xs text-text-muted">
+            <p className="text-xs text-zinc-500">
               MAE = excursion adverse max · MFE = excursion favorable max · Vert = gagnant · Rouge = perdant
             </p>
           </CardHeader>
@@ -667,11 +671,11 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                     if (!active || !payload?.length) return null
                     const d = payload[0]?.payload as typeof normalized.maeAnalysis[0]
                     return (
-                      <div className="rounded-xl border border-border bg-bg-elevated p-3 text-xs shadow-xl">
-                        <p className="text-text-muted">MAE: {formatCurrency(d.mae)}</p>
-                        <p className="text-text-muted">MFE: {formatCurrency(d.mfe)}</p>
-                        <p className={d.pnl >= 0 ? 'text-profit' : 'text-loss'}>P&L: {formatCurrency(d.pnl)}</p>
-                        <p className={d.r >= 0 ? 'text-profit' : 'text-loss'}>R: {formatR(d.r)}</p>
+                      <div className="rounded-xl bg-zinc-900 p-3 text-xs shadow-xl ring-1 ring-white/10">
+                        <p className="text-zinc-500">MAE: {formatCurrency(d.mae)}</p>
+                        <p className="text-zinc-500">MFE: {formatCurrency(d.mfe)}</p>
+                        <p className={d.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>P&L: {formatCurrency(d.pnl)}</p>
+                        <p className={d.r >= 0 ? 'text-emerald-400' : 'text-red-400'}>R: {formatR(d.r)}</p>
                       </div>
                     )
                   }}
@@ -689,18 +693,18 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
 
       {/* Protocole compliance footer */}
       {!noData && normalized.riskViolations > 0 && (
-        <div className="flex items-start gap-3 rounded-xl border border-loss/30 bg-loss-dim px-5 py-4">
-          <AlertTriangle size={20} className="text-loss flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4">
+          <AlertTriangle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-loss">
+            <p className="font-bold text-red-400">
               {normalized.riskViolations} trade(s) avec risque {'>'} 1%
             </p>
-            <p className="text-sm text-text-secondary mt-1">
+            <p className="text-sm text-zinc-300 mt-1">
               Ces trades faussent tes statistiques et augmentent le risque de ruine. Reviens strictement à 1% par trade.
             </p>
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }
