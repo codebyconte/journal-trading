@@ -232,7 +232,9 @@ function TabRoutine() {
           <p>Événement rouge dans 24h → pas de nouveau trade. NFP dans 24h → taille réduite 50%.</p>
         </Step>
         <Step num="3" title="Arkham — 2 minutes sur les alertes des 4 dernières heures">
-          <p>Alerte gouvernement ≥ $50M vers exchange → pas de long ce jour. Sinon → continue.</p>
+          <p><strong className="text-loss">Alerte gouvernement ≥ $50M vers exchange</strong> → pas de long ce jour. Si structure 4H baissière (LH/LL formés) <strong>ET</strong> Whale Ratio {'>'} 0.85 → <strong className="text-loss">setup short potentiel actif</strong>. Sinon → attends 2-4 jours et reviens.</p>
+          <p><strong className="text-neutral">CEX Deposit baleine ≥ $20M</strong> → filtre baissier. Croiser avec Whale Ratio CryptoQuant. Si Whale Ratio {'≥'} 0.85 ET structure 4H baissière → signal short actionnable. Si Whale Ratio {'<'} 0.85 → doute, pas de trade.</p>
+          <p><strong className="text-profit">Aucune alerte adverse</strong> → continue le protocole normalement.</p>
         </Step>
         <Step num="4" title="BTC Dominance (BTC.D) — Contexte rapide">
           <p>BTC.D {'>'} 55% et montant → privilégie BTC uniquement, altcoins sous pression.</p>
@@ -904,14 +906,14 @@ function TabArkham() {
             type: 'Gouvernements ≥ $50M vers exchange',
             severity: 'danger' as const,
             meaning: 'Un gouvernement (US DOJ, Allemagne, etc.) vend des BTC saisis. Historique documenté : -2 à -5% sur BTC dans les 2-4 jours suivants. Le marché anticipe l\'offre supplémentaire.',
-            action: 'Pas de long ce jour. Attends l\'absorption complète (2-4 jours). Si le prix tient une zone EMA malgré la vente → signal de force.',
+            action: 'Pas de long ce jour. Si structure 4H baissière (LH/LL formés) ET Whale Ratio ≥ 0.85 → setup short valide : entrée sur retest résistance EMA. Sans confluence technique → attends absorption (2-4 jours). Si le prix tient malgré la vente → signal de force pour le long suivant.',
             actionColor: 'text-loss',
           },
           {
             type: 'CEX Deposits ≥ $20M (whale individuelle)',
             severity: 'warning' as const,
             meaning: 'Une grosse baleine dépose sur un exchange, potentiellement pour vendre. Attention : 30-40% de ces transferts sont des rééquilibrages internes entre wallets du même acteur.',
-            action: 'Filtre baissier. Croiser obligatoirement avec le Whale Ratio CryptoQuant avant de conclure. Ne pas décider sur cette alerte seule.',
+            action: 'Filtre baissier. Si Whale Ratio ≥ 0.85 ET structure 4H baissière (LH/LL) → signal short actionnable : traite-le comme le setup short #1 ou #2. Si Whale Ratio < 0.85 → doute, pas de trade dans les deux sens. Ne jamais décider sur cette alerte seule (30-40% de rééquilibrages internes).',
             actionColor: 'text-neutral',
           },
           {
@@ -999,6 +1001,46 @@ function TabExecution() {
           <div key={s.rank} className={cn('rounded-xl border p-5', s.color)}>
             <div className="flex items-center gap-2 mb-4">
               <span className={cn('flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-white', s.tc === 'text-profit' ? 'bg-profit' : s.tc === 'text-accent' ? 'bg-accent' : 'bg-border text-text-secondary')}>{s.rank}</span>
+              <p className={cn('font-bold text-base', s.tc)}>{s.label}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3 mb-3">
+              {[['Entrée (Limite)', s.entry], ['Stop Loss (Stop Market)', s.sl], ['Take Profit (Limite)', s.tp]].map(([lbl, val]) => (
+                <div key={lbl} className="rounded-lg bg-bg-card border border-border p-3">
+                  <p className="text-xs font-bold text-text-secondary uppercase mb-2">{lbl}</p>
+                  <p className="text-sm text-text-primary font-mono">{val}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-text-secondary"><span className="font-semibold">Validité :</span> {s.time} maximum. Annule l'ordre si non déclenché. <span className="italic">{s.note}</span></p>
+          </div>
+        ))}
+      </div>
+
+      <SubHeading icon={<TrendingDown size={18} />}>Les 3 Setups SHORT — Par Priorité</SubHeading>
+      <Callout type="info" title="Symétrie long/short — même rigueur, même sélectivité">
+        Un short se trade exactement comme un long : un niveau de référence devenu résistance, une structure confirmée (LH/LL formés), une entrée Limite, un R/R ≥ 1:2. La seule différence : le timeframe supérieur doit être baissier (EMA 20 {'<'} 50 {'<'} 200, ou ChoCH baissier validé).
+      </Callout>
+      <div className="space-y-4">
+        {[
+          {
+            rank: '1', label: 'Retest EMA 200 par dessous (breakdown confirmé)', color: 'border-loss/40 bg-loss-dim', tc: 'text-loss',
+            entry: 'EMA 200 × 0.997 à 0.995 (juste sous la EMA)', sl: 'Prix entrée + (ATR × 1.5) — ou mèche haute × 1.005', tp: 'Prochain support majeur (POC, VAL, ATL local) — R/R ≥ 1:3', time: '72h',
+            note: 'Le setup short le plus puissant. EMA 200 devient résistance institutionnelle après breakdown. Valide uniquement si prix était au-dessus et a cassé de façon décisive (bougie de clôture, pas une mèche).',
+          },
+          {
+            rank: '2', label: 'Retest EMA 50 comme résistance (LH formé)', color: 'border-neutral/30 bg-neutral-dim', tc: 'text-neutral',
+            entry: 'EMA 50 × 0.998 à 0.997', sl: 'Prix entrée + (ATR × 1.5) ou 1-1.5% au-dessus de la mèche haute', tp: 'Prochain support identifiable — R/R ≥ 1:2', time: '48h',
+            note: 'Setup fréquent en tendance baissière confirmée. Valide uniquement si weekly est baissier (EMA 20 < 50 daily) ET un LH est formé sur le graphe 4H.',
+          },
+          {
+            rank: '3', label: 'Retest POC par dessous + rejection (confluence)', color: 'border-border bg-bg-card', tc: 'text-text-secondary',
+            entry: 'POC exact − 0.2% sur rejection (si coïncide avec EMA)', sl: 'Au-dessus du VAH + 0.5%', tp: 'VAL comme 1er objectif', time: '72h',
+            note: 'Valide SEULEMENT si POC = zone EMA. Le POC seul sans EMA est insuffisant. Nécessite une bougie de rejection (mèche haute longue) sur le POC.',
+          },
+        ].map((s) => (
+          <div key={s.rank} className={cn('rounded-xl border p-5', s.color)}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className={cn('flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-white', s.tc === 'text-loss' ? 'bg-loss' : s.tc === 'text-neutral' ? 'bg-neutral' : 'bg-border text-text-secondary')}>{s.rank}</span>
               <p className={cn('font-bold text-base', s.tc)}>{s.label}</p>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3 mb-3">
