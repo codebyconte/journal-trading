@@ -129,3 +129,4 @@ Ouvre **http://localhost:3000** dans ton navigateur.
 - **TypeScript** strict
 # journal-trading
 # journal-trading
+# journal-trading
