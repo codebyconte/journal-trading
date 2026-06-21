@@ -6,6 +6,7 @@ import { AlertTriangle, TrendingUp, TrendingDown, CheckCircle2, XCircle, BookOpe
 import { Modal } from '@/components/ui/Modal'
 import { cn, calculatePnL, calculateRMultiple, formatCurrency, formatR } from '@/lib/utils'
 import { getConfluenceScore } from '@/lib/analytics'
+import { closeTrade } from '@/app/actions/trades'
 import type { Trade } from '@/lib/types'
 
 interface Props {
@@ -54,15 +55,13 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/trades/${trade.id}/close`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exitPrice: exit, mae: mae || null, mfe: mfe || null }),
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error ?? 'Erreur clôture')
-      }
+      const result = await closeTrade(
+        trade.id,
+        exit,
+        mae ? parseFloat(mae) : null,
+        mfe ? parseFloat(mfe) : null,
+      )
+      if (!result.success) throw new Error(result.error)
       onSuccess()
       onClose()
     } catch (err) {
@@ -137,9 +136,14 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className={labelClass}>Prix de sortie ($) *</label>
+          <label htmlFor="exit-price" className={labelClass}>Prix de sortie ($) *</label>
           <input
+            id="exit-price"
+            name="exitPrice"
             type="number"
+            inputMode="decimal"
+            autoComplete="off"
+            spellCheck={false}
             step="any"
             placeholder="0.00"
             value={exitPrice}
@@ -148,11 +152,11 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
               inputClass,
               previewPnl != null && (isWin ? 'border-profit/50' : 'border-loss/50'),
             )}
-            autoFocus
             required
+            aria-describedby={isSL || isTP || isBE ? 'exit-hint' : undefined}
           />
           {(isSL || isTP || isBE) && (
-            <p className={cn('mt-1.5 text-xs font-semibold', isTP ? 'text-profit' : isSL ? 'text-loss' : 'text-neutral')}>
+            <p id="exit-hint" className={cn('mt-1.5 text-xs font-semibold', isTP ? 'text-profit' : isSL ? 'text-loss' : 'text-neutral')}>
               {isSL && 'Sortie au Stop Loss — perte maîtrisée si ≤ 1R'}
               {isTP && 'Sortie au Take Profit — objectif protocole atteint'}
               {isBE && 'Sortie au Breakeven — trade "free" selon plan de gestion'}
@@ -270,7 +274,7 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
           disabled={loading || !exitPrice}
           className="w-full rounded-xl bg-accent py-3 text-sm font-bold text-white transition-all hover:bg-accent/90 disabled:opacity-50"
         >
-          {loading ? 'Clôture en cours...' : 'Confirmer la clôture'}
+          {loading ? 'Clôture en cours…' : 'Confirmer la clôture'}
         </button>
       </form>
     </Modal>

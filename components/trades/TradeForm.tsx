@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import Image from 'next/image'
 import { Calculator, Upload, X, CheckCircle2, AlertCircle, Camera, AlertTriangle, TrendingUp, TrendingDown, Shield, Target } from 'lucide-react'
 import { cn, calculateUnits, calculatePlannedRR, formatNumber } from '@/lib/utils'
+import { createTrade } from '@/app/actions/trades'
 import { TRADE_SETUPS, MARKET_CONDITIONS, SESSION_TIMES, PRESET_ASSETS, type TradeDirection } from '@/lib/types'
 
 interface Props {
@@ -192,21 +194,19 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
 
       const notesWithInvalidations = `${form.notes ? form.notes + '\n\n' : ''}[Invalidation]\n${form.invalidations}`
 
-      const res = await fetch('/api/trades', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          notes: notesWithInvalidations,
-          ...checklist,
-          units: autoCalc.units || parseFloat(form.units),
-          riskAmount: autoCalc.riskAmount,
-          riskPercent,
-          screenshot: screenshotUrl,
-        }),
+      const result = await createTrade({
+        ...form,
+        notes: notesWithInvalidations,
+        ...checklist,
+        units: autoCalc.units || parseFloat(form.units),
+        riskAmount: autoCalc.riskAmount,
+        riskPercent,
+        screenshot: screenshotUrl,
+        direction: form.direction as 'LONG' | 'SHORT',
+        orderType: form.orderType as 'LIMITE' | 'STOP',
       })
 
-      if (!res.ok) throw new Error((await res.json()).error)
+      if (!result.success) throw new Error(result.error)
       onSuccess()
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la création du trade')
@@ -653,9 +653,12 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         >
           {screenshotPreview ? (
             <div className="relative">
-              <img
+              <Image
                 src={screenshotPreview}
                 alt="Screenshot"
+                width={800}
+                height={400}
+                unoptimized
                 className="max-h-64 w-full rounded-lg object-contain"
               />
               <button

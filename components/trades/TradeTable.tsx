@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useMemo, useState } from 'react'
+import Image from 'next/image'
 import {
   ChevronDown, ChevronUp, ExternalLink, Trash2, DoorOpen, XCircle,
   CheckCircle2, AlertTriangle,
@@ -395,9 +396,11 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                           {trade.screenshot && (
                             <div>
                               <p className="text-xs font-semibold uppercase text-text-muted mb-2">Capture TradingView</p>
-                              <img
+                              <Image
                                 src={trade.screenshot}
                                 alt="Trade chart"
+                                width={800}
+                                height={400}
                                 className="max-h-72 rounded-xl border border-border object-contain"
                               />
                             </div>

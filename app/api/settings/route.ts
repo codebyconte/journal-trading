@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { getSettings } from '@/lib/data/settings'
+import { updateSettings } from '@/app/actions/settings'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    let settings = await prisma.settings.findUnique({ where: { id: 'singleton' } })
-    if (!settings) {
-      settings = await prisma.settings.create({
-        data: { id: 'singleton', initialCapital: 100000, currentCapital: 100000, riskPercent: 1.0 },
-      })
-    }
+    const settings = await getSettings()
     return NextResponse.json(settings)
   } catch (e) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
@@ -18,13 +16,15 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     const body = await req.json()
-    const { initialCapital, currentCapital, riskPercent } = body
-
-    const settings = await prisma.settings.upsert({
-      where: { id: 'singleton' },
-      update: { initialCapital, currentCapital, riskPercent },
-      create: { id: 'singleton', initialCapital, currentCapital, riskPercent },
+    const result = await updateSettings({
+      initialCapital: body.initialCapital,
+      currentCapital: body.currentCapital,
+      riskPercent: body.riskPercent,
     })
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 500 })
+    }
+    const settings = await getSettings()
     return NextResponse.json(settings)
   } catch (e) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
