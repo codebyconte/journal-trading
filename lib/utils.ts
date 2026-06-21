@@ -118,6 +118,59 @@ export function calculateRMultiple(pnl: number, riskAmount: number): number {
   return pnl / riskAmount
 }
 
+/** Marge de maintenance approximative Hyperliquid (BTC/ETH perp isolé) */
+const DEFAULT_MAINTENANCE_MARGIN_RATE = 0.005
+
+/**
+ * Estime le prix de liquidation (marge isolée, perp).
+ * Formule standard : initial margin = 1/leverage, maintenance ~0.5%.
+ */
+export function estimateLiquidationPrice(
+  entryPrice: number,
+  direction: 'LONG' | 'SHORT',
+  leverage: number,
+  maintenanceMarginRate = DEFAULT_MAINTENANCE_MARGIN_RATE,
+): number | null {
+  if (entryPrice <= 0 || leverage <= 0) return null
+  const imr = 1 / leverage
+  if (direction === 'LONG') {
+    return entryPrice * (1 - imr + maintenanceMarginRate)
+  }
+  return entryPrice * (1 + imr - maintenanceMarginRate)
+}
+
+/**
+ * Protocole : le SL doit être plus proche de l'entrée que la liquidation.
+ * Sinon le levier est trop élevé — liquidation avant le SL.
+ */
+export function isStopLossSaferThanLiquidation(
+  entryPrice: number,
+  stopLoss: number,
+  liquidationPrice: number,
+  direction: 'LONG' | 'SHORT',
+): boolean {
+  const slDistance = Math.abs(entryPrice - stopLoss)
+  const liqDistance = Math.abs(entryPrice - liquidationPrice)
+  if (slDistance <= 0) return false
+  return liqDistance > slDistance
+}
+
+export function validateTradePrices(
+  entryPrice: number,
+  stopLoss: number,
+  takeProfit: number,
+  direction: 'LONG' | 'SHORT',
+): string | null {
+  if (direction === 'LONG') {
+    if (stopLoss >= entryPrice) return 'LONG : le Stop Loss doit être sous le prix d\'entrée.'
+    if (takeProfit > 0 && takeProfit <= entryPrice) return 'LONG : le Take Profit doit être au-dessus du prix d\'entrée.'
+  } else {
+    if (stopLoss <= entryPrice) return 'SHORT : le Stop Loss doit être au-dessus du prix d\'entrée.'
+    if (takeProfit > 0 && takeProfit >= entryPrice) return 'SHORT : le Take Profit doit être sous le prix d\'entrée.'
+  }
+  return null
+}
+
 /**
  * Expectancy = (WinRate * AvgWin) - (LossRate * AvgLoss)
  * Exprimée en R

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { Calculator, Upload, X, CheckCircle2, AlertCircle, Camera, AlertTriangle, TrendingUp, TrendingDown, Shield, Target } from 'lucide-react'
-import { cn, calculateUnits, calculatePlannedRR, formatNumber } from '@/lib/utils'
+import { cn, calculateUnits, calculatePlannedRR, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices } from '@/lib/utils'
 import { createTrade } from '@/app/actions/trades'
 import { TRADE_SETUPS, MARKET_CONDITIONS, SESSION_TIMES, PRESET_ASSETS, type TradeDirection } from '@/lib/types'
 
@@ -214,6 +214,25 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
       setError('État émotionnel ≤ 2/5 — pas de trade selon le protocole. Reviens demain.')
       return
     }
+
+    const entry = parseFloat(form.entryPrice)
+    const sl = parseFloat(form.stopLoss)
+    const tp = parseFloat(form.takeProfit)
+    const priceError = validateTradePrices(entry, sl, tp, form.direction)
+    if (priceError) {
+      setError(priceError)
+      return
+    }
+
+    const levierSubmit = parseInt(form.levier) || 1
+    const liqPrice = estimateLiquidationPrice(entry, form.direction, levierSubmit)
+    if (liqPrice != null && !isStopLossSaferThanLiquidation(entry, sl, liqPrice, form.direction)) {
+      setError(
+        `Levier ${levierSubmit}x trop élevé : liquidation estimée à $${formatNumber(liqPrice, 2)} — plus proche de l'entrée que ton SL. Réduis le levier (protocole : liquidation ≥ 2× l'écart SL).`,
+      )
+      return
+    }
+
     if (autoCalc.plannedRR > 0 && autoCalc.plannedRR < 2) {
       setError(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:2, idéal 1:3. Ajuste ton Take Profit.`)
       return
@@ -271,9 +290,31 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
   }
 
   const levierNum = parseInt(form.levier) || 1
-  const positionValue = autoCalc.units * parseFloat(form.entryPrice || '0')
+  const entryNum = parseFloat(form.entryPrice || '0')
+  const slNum = parseFloat(form.stopLoss || '0')
+  const positionValue = autoCalc.units * entryNum
   const marginRequired = levierNum > 0 ? positionValue / levierNum : 0
   const marginPct = currentCapital > 0 ? (marginRequired / currentCapital) * 100 : 0
+  const liquidationPrice =
+    entryNum > 0 && levierNum > 0
+      ? estimateLiquidationPrice(entryNum, form.direction, levierNum)
+      : null
+  const slSaferThanLiq =
+    liquidationPrice != null && slNum > 0
+      ? isStopLossSaferThanLiquidation(entryNum, slNum, liquidationPrice, form.direction)
+      : true
+  const priceValidationError =
+    entryNum > 0 && slNum > 0
+      ? validateTradePrices(entryNum, slNum, parseFloat(form.takeProfit || '0'), form.direction)
+      : null
+
+  const canSubmit =
+    allRequiredChecked &&
+    form.invalidations.trim() &&
+    parseInt(form.emotionScore) >= 3 &&
+    !priceValidationError &&
+    slSaferThanLiq &&
+    autoCalc.units > 0
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -429,22 +470,57 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         </div>
       </div>
 
+      {/* Levier — avant le calculateur pour que la marge soit à jour */}
+      <div>
+        <label className={labelClass}>Levier Hyperliquid — marge isolée (protocole : 2-3x, max 5x)</label>
+        <div className="flex gap-2 max-w-md">
+          {['1', '2', '3', '5'].map((lev) => (
+            <button
+              key={lev}
+              type="button"
+              onClick={() => setForm({ ...form, levier: lev })}
+              className={cn(
+                'flex-1 rounded-md border py-2.5 text-sm font-mono font-semibold transition-all',
+                form.levier === lev
+                  ? 'border-accent bg-accent-dim text-accent'
+                  : 'border-border text-text-muted hover:border-border-strong',
+              )}
+            >
+              {lev}x
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-xs text-text-muted leading-relaxed">
+          La taille de position est fixée par le risque ({riskPercent}% du capital), pas par le levier. Le levier réduit uniquement la marge bloquée sur Hyperliquid.
+        </p>
+      </div>
+
+      {priceValidationError && (
+        <div className="flex items-center gap-2 rounded-lg border border-loss/30 bg-loss-dim px-4 py-3 text-sm text-loss">
+          <AlertCircle size={16} />
+          {priceValidationError}
+        </div>
+      )}
+
       {/* Auto-calculateur */}
       {autoCalc.units > 0 && (
-        <div className="rounded-lg border border-accent/20 bg-accent/5 p-4">
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-accent">
+        <div className="rounded-lg border border-accent/20 bg-accent/5 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-accent">
             <Calculator size={14} />
             Calculateur de position automatique
           </div>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <p className="text-xs text-text-muted font-mono leading-relaxed">
+            Formule : Risque {riskPercent}% = ${formatNumber(autoCalc.riskAmount, 2)} ÷ distance SL ({formatNumber(Math.abs(entryNum - slNum), 2)}$) = {formatNumber(autoCalc.units, 4)} unités × ${formatNumber(entryNum, 2)} = ${formatNumber(positionValue, 2)} notionnel
+          </p>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             <div>
-              <p className="text-sm text-text-muted">Unités</p>
+              <p className="text-sm text-text-muted">Unités (taille coin)</p>
               <p className="font-mono text-lg font-bold text-text-primary">
                 {formatNumber(autoCalc.units, 4)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-text-muted">Risque (1%)</p>
+              <p className="text-sm text-text-muted">Perte max au SL ({riskPercent}%)</p>
               <p className="font-mono text-lg font-bold text-loss">
                 ${formatNumber(autoCalc.riskAmount, 2)}
               </p>
@@ -461,29 +537,54 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
               </p>
             </div>
             <div>
-              <p className="text-sm text-text-muted">Taille position</p>
+              <p className="text-sm text-text-muted">Distance SL</p>
+              <p className="font-mono text-lg font-bold text-text-secondary">
+                {entryNum > 0 && slNum > 0
+                  ? `${Math.abs((entryNum - slNum) / entryNum * 100).toFixed(2)}%`
+                  : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-text-muted">Notionnel (exposition)</p>
               <p className="font-mono text-lg font-bold text-text-primary">
                 ${formatNumber(positionValue, 2)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-text-muted">Marge ({levierNum}x)</p>
-              <p className="font-mono text-lg font-bold text-accent">
+              <p className="text-sm text-text-muted">Marge requise ({levierNum}x)</p>
+              <p className={cn('font-mono text-lg font-bold', marginPct > 25 ? 'text-loss' : 'text-accent')}>
                 ${formatNumber(marginRequired, 2)}
               </p>
-              <p className="text-xs text-text-muted">{marginPct.toFixed(1)}% capital</p>
-            </div>
-            <div>
-              <p className="text-sm text-text-muted">Distance SL</p>
-              <p className="font-mono text-lg font-bold text-text-secondary">
-                {form.entryPrice && form.stopLoss
-                  ? `${Math.abs((parseFloat(form.entryPrice) - parseFloat(form.stopLoss)) / parseFloat(form.entryPrice) * 100).toFixed(2)}%`
-                  : '—'}
+              <p className={cn('text-xs', marginPct > 25 ? 'text-loss' : 'text-text-muted')}>
+                {marginPct.toFixed(1)}% du capital
               </p>
             </div>
+            {liquidationPrice != null && (
+              <div>
+                <p className="text-sm text-text-muted">Liquidation estimée</p>
+                <p className={cn('font-mono text-lg font-bold', slSaferThanLiq ? 'text-text-secondary' : 'text-loss')}>
+                  ${formatNumber(liquidationPrice, 2)}
+                </p>
+                <p className={cn('text-xs', slSaferThanLiq ? 'text-profit' : 'text-loss')}>
+                  {slSaferThanLiq ? 'SL avant liquidation ✓' : 'Levier trop élevé ✗'}
+                </p>
+              </div>
+            )}
           </div>
+          {!slSaferThanLiq && (
+            <div className="flex items-center gap-2 text-sm text-loss">
+              <AlertCircle size={12} />
+              Réduis le levier : la liquidation serait touchée avant ton Stop Loss (règle Hyperliquid du protocole).
+            </div>
+          )}
+          {marginPct > 25 && slSaferThanLiq && (
+            <div className="flex items-center gap-2 text-sm text-neutral">
+              <AlertCircle size={12} />
+              Marge {'>'} 25% du capital — augmente le levier ou réduis la distance SL si possible.
+            </div>
+          )}
           {autoCalc.plannedRR > 0 && autoCalc.plannedRR < 2 && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-loss">
+            <div className="flex items-center gap-2 text-sm text-loss">
               <AlertCircle size={12} />
               R/R insuffisant — minimum 1:2, protocole exige 1:3. Utilise les boutons TP @ 2R / @ 3R.
             </div>
@@ -640,41 +741,16 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         />
       </div>
 
-      {/* Levier + notes */}
-      <div className="grid grid-cols-4 gap-4">
-        <div>
-          <label className={labelClass}>Levier (max 5x)</label>
-          <div className="flex gap-1.5">
-            {['1', '2', '3', '5'].map((lev) => (
-              <button
-                key={lev}
-                type="button"
-                onClick={() => setForm({ ...form, levier: lev })}
-                className={cn(
-                  'flex-1 rounded-md border py-2 text-sm font-mono font-semibold transition-all',
-                  form.levier === lev
-                    ? 'border-accent bg-accent-dim text-accent'
-                    : 'border-border text-text-muted hover:border-border-strong',
-                )}
-              >
-                {lev}x
-              </button>
-            ))}
-          </div>
-          {parseInt(form.levier) > 3 && (
-            <p className="mt-1 text-sm text-neutral">Protocole recommande 2-3x max.</p>
-          )}
-        </div>
-        <div className="col-span-3">
-          <label className={labelClass}>Notes & Observations</label>
-          <textarea
-            placeholder="Contexte, observations, état d'esprit..."
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            rows={2}
-            className={cn(inputClass, 'resize-none')}
-          />
-        </div>
+      {/* Notes */}
+      <div>
+        <label className={labelClass}>Notes & Observations</label>
+        <textarea
+          placeholder="Contexte, observations, état d'esprit..."
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          rows={2}
+          className={cn(inputClass, 'resize-none')}
+        />
       </div>
 
       {/* Screenshot */}
@@ -744,17 +820,17 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
 
       <button
         type="submit"
-        disabled={loading || !allRequiredChecked}
+        disabled={loading || !canSubmit}
         className={cn(
           'flex w-full items-center justify-center gap-2 rounded-lg py-3.5 text-base font-semibold tracking-wide transition-all',
-          allRequiredChecked && form.invalidations.trim() && parseInt(form.emotionScore) >= 3
+          canSubmit
             ? 'bg-accent text-white hover:bg-accent/90 active:scale-[0.99]'
             : 'cursor-not-allowed bg-bg-elevated text-text-muted',
         )}
       >
         {loading ? (
           'Enregistrement...'
-        ) : allRequiredChecked ? (
+        ) : canSubmit ? (
           <>
             <CheckCircle2 size={18} />
             Enregistrer le Trade (Protocole validé)
@@ -762,7 +838,13 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         ) : (
           <>
             <AlertTriangle size={18} />
-            Protocole incomplet
+            {!allRequiredChecked
+              ? 'Protocole incomplet'
+              : priceValidationError
+                ? 'Prix SL/TP invalides'
+                : !slSaferThanLiq
+                  ? 'Levier trop élevé — liquidation avant SL'
+                  : 'Formulaire incomplet'}
           </>
         )}
       </button>
