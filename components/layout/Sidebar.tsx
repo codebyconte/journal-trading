@@ -13,6 +13,7 @@ import {
   Zap,
   TrendingUp,
   Clock,
+  Library,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +23,7 @@ const navItems = [
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/journal', label: 'Journal', icon: BookOpen },
   { href: '/protocol', label: 'Protocole', icon: Shield },
+  { href: '/sources', label: 'Sources Fiables', icon: Library },
   { href: '/settings', label: 'Paramètres', icon: Settings },
 ] as const
 

@@ -206,13 +206,13 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
       setError('Valide les 6 confluences obligatoires avant de soumettre. C\'est le protocole.')
       return
     }
-    if (!form.invalidations.trim()) {
-      setError('Liste tes 3 raisons d\'invalidation (champ requis du protocole).')
-      return
-    }
     if (parseInt(form.emotionScore) <= 2) {
       setError('État émotionnel ≤ 2/5 — pas de trade selon le protocole. Reviens demain.')
       return
+    }
+    // Invalidations : avertissement non-bloquant (recommandé mais pas obligatoire)
+    if (!form.invalidations.trim()) {
+      if (!confirm('Aucune raison d\'invalidation renseignée.\n\nVan Tharp recommande d\'identifier 3 scénarios "j\'ai tort" avant chaque trade. Continuer sans ?')) return
     }
 
     const entry = parseFloat(form.entryPrice)
@@ -310,7 +310,6 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
 
   const canSubmit =
     allRequiredChecked &&
-    form.invalidations.trim() &&
     parseInt(form.emotionScore) >= 3 &&
     !priceValidationError &&
     slSaferThanLiq &&
@@ -722,14 +721,15 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         )}
       </div>
 
-      {/* 3 raisons d'invalidation — obligatoire protocole */}
+      {/* 3 raisons d'invalidation — fortement recommandé */}
       <div>
         <label className={labelClass}>
-          3 Raisons d'Invalidation <span className="text-loss">* obligatoire</span>
+          3 Raisons d'Invalidation{' '}
+          <span className="text-neutral normal-case font-normal tracking-normal">— recommandé (Van Tharp)</span>
         </label>
         <p className="mb-2 text-sm text-text-muted">
-          Protocole Van Tharp : avant d'entrer, identifie 3 scénarios qui prouvent que tu as tort.
-          Exemple : "1. Si la bougie 4H clôture sous l'EMA 50. 2. Si le Whale Ratio passe {'>'} 0.90. 3. Si le volume est inférieur à la moyenne."
+          Avant d'entrer, identifie 3 scénarios qui prouvent que tu as tort.
+          Ex : "1. Si la bougie 4H clôture sous l'EMA 50. 2. Si le Whale Ratio passe {'>'} 0.90. 3. Si le volume est inférieur à la moyenne." Si vide, une confirmation sera demandée.
         </p>
         <textarea
           placeholder="1. Si...\n2. Si...\n3. Si..."
@@ -737,8 +737,13 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           onChange={(e) => setForm({ ...form, invalidations: e.target.value })}
           rows={3}
           className={cn(inputClass, 'resize-none font-mono text-sm')}
-          required
         />
+        {!form.invalidations.trim() && (
+          <p className="mt-1.5 text-xs text-neutral flex items-center gap-1.5">
+            <AlertTriangle size={12} />
+            Recommandé : liste 3 raisons d'invalidation pour objectiver ton analyse.
+          </p>
+        )}
       </div>
 
       {/* Notes */}
@@ -839,12 +844,14 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           <>
             <AlertTriangle size={18} />
             {!allRequiredChecked
-              ? 'Protocole incomplet'
-              : priceValidationError
-                ? 'Prix SL/TP invalides'
-                : !slSaferThanLiq
-                  ? 'Levier trop élevé — liquidation avant SL'
-                  : 'Formulaire incomplet'}
+              ? 'Protocole incomplet — 6 confluences requises'
+              : parseInt(form.emotionScore) <= 2
+                ? 'État émotionnel ≤ 2/5 — pas de trade'
+                : priceValidationError
+                  ? 'Prix SL/TP invalides'
+                  : !slSaferThanLiq
+                    ? 'Levier trop élevé — liquidation avant SL'
+                    : 'Remplis entrée + SL pour calculer la taille'}
           </>
         )}
       </button>

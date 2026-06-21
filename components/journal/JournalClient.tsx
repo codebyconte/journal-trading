@@ -6,7 +6,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday
 import { fr } from 'date-fns/locale'
 import {
   ChevronLeft, ChevronRight, Save, RefreshCw, AlertTriangle,
-  BookOpen, Calendar, PenLine,
+  BookOpen, Calendar, PenLine, RotateCcw, CheckCircle2,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { MoodIcon } from '@/components/ui/TradingIcons'
@@ -105,7 +105,8 @@ export function JournalClient({
     const hasNotes = journal.notes.trim().length > 0
     const hasPrompts = Object.values(journal.prompts).some((v) => v?.trim())
     const hasAudit = Object.values(journal.audit).some((v) => v === true)
-    return hasNotes || hasPrompts || hasAudit
+    const hasWeekly = Object.values(journal.weeklyReview ?? {}).some((v) => v?.trim())
+    return hasNotes || hasPrompts || hasAudit || hasWeekly
   }, [journal])
 
   const save = async () => {
@@ -139,6 +140,15 @@ export function JournalClient({
       audit: { ...prev.audit, [key]: value },
     }))
   }
+
+  const updateWeeklyReview = (idx: number, value: string) => {
+    setJournal((prev) => ({
+      ...prev,
+      weeklyReview: { ...prev.weeklyReview, [String(idx)]: value },
+    }))
+  }
+
+  const weeklyAnsweredCount = Object.values(journal.weeklyReview ?? {}).filter((v) => v?.trim()).length
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentMonth),
@@ -377,31 +387,61 @@ export function JournalClient({
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <PatternInsights patterns={patterns} />
 
-        {/* Revue hebdomadaire */}
+        {/* Revue hebdomadaire interactive */}
         <Card variant="accent">
           <CardHeader>
-            <CardTitle className="text-base normal-case tracking-normal text-text-primary">
-              Revue hebdomadaire
-            </CardTitle>
-            <span className="text-xs text-text-muted">Dimanche · 20-30 min</span>
+            <div>
+              <CardTitle className="text-base normal-case tracking-normal text-text-primary">
+                Revue hebdomadaire
+              </CardTitle>
+              <span className="text-xs text-text-muted">Dimanche · 20-30 min</span>
+            </div>
+            <span className={cn(
+              'rounded-full px-2.5 py-1 text-xs font-bold',
+              weeklyAnsweredCount >= 6 ? 'bg-profit-dim text-profit' :
+              weeklyAnsweredCount >= 3 ? 'bg-neutral-dim text-neutral' :
+              'bg-bg-hover text-text-muted',
+            )}>
+              {weeklyAnsweredCount}/{WEEKLY_PROMPTS.length}
+            </span>
           </CardHeader>
           <p className="text-sm text-text-secondary mb-4">
-            78% des traders profitables font une revue structurée. Réponds honnêtement — une seule amélioration concrète pour la semaine suivante.
+            78% des traders profitables font une revue structurée. Réponds honnêtement — une seule amélioration concrète pour la semaine suivante. <span className="text-text-muted">(Tout optionnel — sauvegardé avec le reste du journal)</span>
           </p>
           <div className="space-y-3">
-            {WEEKLY_PROMPTS.map(({ q, hint }, i) => (
-              <div key={i} className="rounded-xl border border-border bg-bg-surface px-4 py-3">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-accent/15 text-xs font-bold text-accent">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-text-primary">{q}</p>
-                    <p className="text-xs text-text-muted mt-1 italic">{hint}</p>
+            {WEEKLY_PROMPTS.map(({ q, hint }, i) => {
+              const answer = (journal.weeklyReview ?? {})[String(i)] ?? ''
+              const answered = !!answer.trim()
+              return (
+                <div key={i} className={cn(
+                  'rounded-xl border bg-bg-surface transition-colors',
+                  answered ? 'border-accent/25' : 'border-border',
+                )}>
+                  <div className="flex items-start gap-3 px-4 pt-3 pb-2">
+                    <span className={cn(
+                      'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                      answered ? 'bg-profit/20 text-profit' : 'bg-accent/15 text-accent',
+                    )}>
+                      {answered ? <CheckCircle2 size={13} /> : i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-text-primary">{q}</p>
+                      <p className="text-xs text-text-muted mt-0.5 italic">{hint}</p>
+                    </div>
+                  </div>
+                  <div className="px-4 pb-3 pl-13">
+                    <textarea
+                      value={answer}
+                      onChange={(e) => updateWeeklyReview(i, e.target.value)}
+                      placeholder="Ta réponse…"
+                      rows={2}
+                      aria-label={q}
+                      className="w-full resize-none rounded-lg border border-border bg-bg-card px-3 py-2.5 text-sm text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30"
+                    />
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </Card>
 

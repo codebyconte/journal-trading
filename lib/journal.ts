@@ -29,6 +29,8 @@ export interface JournalStorage {
   notes: string
   prompts: Partial<Record<PromptId, string>>
   audit: Partial<Record<AuditKey, boolean>>
+  /** Réponses libres aux questions de la revue hebdomadaire, indexées par index */
+  weeklyReview?: Partial<Record<string, string>>
 }
 
 export const EMPTY_JOURNAL: JournalStorage = {
@@ -36,6 +38,7 @@ export const EMPTY_JOURNAL: JournalStorage = {
   notes: '',
   prompts: {},
   audit: {},
+  weeklyReview: {},
 }
 
 export function parseJournalContent(raw: string | null | undefined): JournalStorage {
@@ -48,6 +51,7 @@ export function parseJournalContent(raw: string | null | undefined): JournalStor
         notes: parsed.notes ?? '',
         prompts: parsed.prompts ?? {},
         audit: parsed.audit ?? {},
+        weeklyReview: parsed.weeklyReview ?? {},
       }
     }
   } catch {
@@ -60,8 +64,9 @@ export function serializeJournalContent(data: JournalStorage): string {
   const hasPrompts = Object.values(data.prompts).some((v) => v?.trim())
   const hasAudit = Object.values(data.audit).some((v) => v === true)
   const hasNotes = data.notes.trim().length > 0
+  const hasWeekly = Object.values(data.weeklyReview ?? {}).some((v) => v?.trim())
 
-  if (!hasPrompts && !hasAudit && hasNotes) {
+  if (!hasPrompts && !hasAudit && !hasWeekly && hasNotes) {
     return data.notes
   }
   return JSON.stringify(data)

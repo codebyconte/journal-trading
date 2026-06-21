@@ -116,6 +116,7 @@ export async function closeTrade(
   exitPrice: number,
   mae?: number | null,
   mfe?: number | null,
+  postTradeNotes?: string | null,
 ): Promise<ActionResult> {
   try {
     const trade = await prisma.trade.findUnique({ where: { id } })
@@ -129,6 +130,14 @@ export async function closeTrade(
     const rMultiple = calculateRMultiple(pnl, trade.riskAmount)
     const newCapital = capitalBeforeClose + pnl
 
+    // Append post-trade notes to existing trade notes if provided
+    const existingNotes = trade.notes ?? ''
+    const updatedNotes = postTradeNotes?.trim()
+      ? existingNotes
+        ? `${existingNotes}\n\n[POST-TRADE]\n${postTradeNotes.trim()}`
+        : `[POST-TRADE]\n${postTradeNotes.trim()}`
+      : existingNotes || null
+
     await prisma.$transaction([
       prisma.trade.update({
         where: { id },
@@ -141,6 +150,7 @@ export async function closeTrade(
           mfe: mfe ?? null,
           status: 'CLOSED',
           closedAt: new Date(),
+          notes: updatedNotes,
         },
       }),
       prisma.settings.upsert({
