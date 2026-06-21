@@ -13,46 +13,85 @@ interface Props {
   onSuccess: () => void
 }
 
-const CHECKLIST = [
+const CHECKLIST_LONG = [
   {
     key: 'checkEMA',
-    label: 'Ruban EMA validé — prix sur EMA 50 ou 200 + bougie 4H confirmée (fermée)',
-    desc: 'Bull market : EMA 20 > 50 > 100 > 200. N\'entrer qu\'au retest, jamais en No Man\'s Land.',
+    label: 'Ruban EMA validé — prix sur EMA 50 ou 200 par le dessus + bougie 4H confirmée (fermée)',
+    desc: 'Bull market : EMA 20 > 50 > 100 > 200 toutes haussières. N\'entrer qu\'au retest par le dessus (support), jamais en No Man\'s Land.',
     required: true,
   },
   {
     key: 'checkRSI',
-    label: 'RSI < 60 (long) ou > 40 (short) — divergence vérifiée sur 4H',
-    desc: 'Divergence haussière = prix nouveau bas + RSI bas plus haut. Précision backtestée 68% sur BTC 4H 2020-2024.',
+    label: 'RSI < 60 (long) — divergence haussière vérifiée sur 4H',
+    desc: 'Divergence haussière = prix nouveau creux + RSI creux moins profond. RSI > 65 au moment d\'entrer = surachat, R/R dégradé. Précision 68% BTC 4H 2020-2024.',
     required: true,
   },
   {
     key: 'checkVolume',
-    label: 'Volume Profile POC identifié + volume de confirmation > 120% de la moyenne',
-    desc: 'FRVP depuis dernier ATH/ATL. POC valide seulement s\'il coïncide avec une EMA. Volume confirme le rebond.',
+    label: 'Volume Profile POC identifié + volume de rebond > 120% de la moyenne',
+    desc: 'FRVP depuis dernier ATH/ATL. POC valide seulement s\'il coïncide avec une EMA (double confluence). OBV monte ou accumulation cachée (OBV monte + prix stagne).',
     required: true,
   },
   {
     key: 'checkLiquid',
-    label: 'CryptoQuant : 4/7 filtres validés (Whale Ratio, OI, Leverage, CPG, Reserve, SSR, Bubble Map)',
-    desc: 'Whale Ratio < 0.85, Leverage < 0.25, Exchange Reserve stable ou en baisse, SSR bas = setup long validé.',
+    label: 'CryptoQuant long : Whale Ratio < 0.85 + Exchange Reserve stable ou en baisse',
+    desc: 'Whale Ratio < 0.85 (pas de distribution massive), Exchange Reserve baissière (offre réduite), Leverage bas, SSR bas = setup long validé. Si Whale Ratio ≥ 0.85 → doute, réduis la taille.',
     required: true,
   },
   {
     key: 'checkUnlocks',
-    label: 'Arkham Intel : aucune alerte gouvernement / whale adverse dans les 4 dernières heures',
-    desc: 'Gouvernement > $50M sur exchange = stop. CEX Deposit > $20M = filtre. Croise avec Whale Ratio.',
+    label: 'Arkham Intel : aucune alerte gouvernement / whale hostile dans les 4 dernières heures',
+    desc: 'Gouvernement ≥ $50M vers exchange = pas de long ce jour. CEX Deposit ≥ $20M = vérifier Whale Ratio avant de conclure. Aucune alerte adverse = continue.',
     required: true,
   },
   {
     key: 'checkTVL',
     label: 'Macro OK — pas d\'événement rouge Forex Factory dans les 24h + DXY/QQQ favorables',
-    desc: 'FOMC / CPI dans les 24h = pas de trade. QQQ sous EMA 200 = sois très sélectif sur les longs BTC/ETH/SOL.',
+    desc: 'FOMC / CPI dans les 24h = pas de trade. QQQ au-dessus EMA 200 + DXY faible = conditions favorables. QQQ sous EMA 200 = taille réduite 30%.',
     required: true,
   },
 ] as const
 
-type ChecklistKey = (typeof CHECKLIST)[number]['key']
+const CHECKLIST_SHORT = [
+  {
+    key: 'checkEMA',
+    label: 'Ruban EMA validé — prix sous EMA 50 ou 200 + retest résistance par le dessous confirmé',
+    desc: 'Bear market : EMA 20 < 50 < 100 < 200 toutes baissières. Entrée uniquement sur retest de résistance EMA par le dessous (le prix a cassé, remonte tester, rejette). Jamais en No Man\'s Land.',
+    required: true,
+  },
+  {
+    key: 'checkRSI',
+    label: 'RSI > 40 (short) — divergence baissière vérifiée sur 4H',
+    desc: 'Divergence régulière baissière = prix nouveau sommet + RSI sommet moins élevé. RSI < 35 au moment d\'entrer = survente, R/R dégradé, évite le short. Précision 68% BTC 4H 2020-2024.',
+    required: true,
+  },
+  {
+    key: 'checkVolume',
+    label: 'Volume Profile POC comme résistance + volume de rejection > 120% de la moyenne',
+    desc: 'FRVP depuis dernier ATH/ATL. POC comme résistance seulement s\'il coïncide avec une EMA. OBV en baisse ou distribution cachée (OBV descend + prix monte = vente institutionnelle).',
+    required: true,
+  },
+  {
+    key: 'checkLiquid',
+    label: 'CryptoQuant short : Whale Ratio ≥ 0.85 + Exchange Reserve montante',
+    desc: 'Whale Ratio ≥ 0.85 (mains intelligentes déposent pour vendre), Exchange Reserve montante (offre en hausse), Leverage élevé (fragilité). Si Whale Ratio < 0.85 → signal insuffisant, pas de short.',
+    required: true,
+  },
+  {
+    key: 'checkUnlocks',
+    label: 'Arkham Intel : alerte gouvernement/whale confirmée + Whale Ratio ≥ 0.85 (signal short actif)',
+    desc: 'Gouvernement ≥ $50M + Whale Ratio ≥ 0.85 + structure 4H baissière (LH/LL) = signal short actionnable. CEX Deposit ≥ $20M seul sans Whale Ratio = pas de trade. La confluence est obligatoire.',
+    required: true,
+  },
+  {
+    key: 'checkTVL',
+    label: 'Macro confirmée baissière — DXY fort et/ou QQQ sous EMA 200 weekly',
+    desc: 'DXY au-dessus EMA 50 et montant = vent de face crypto = favorable aux shorts. QQQ sous EMA 200 = régime baissier institutionnel. FOMC / CPI dans les 24h = pas de trade même short.',
+    required: true,
+  },
+] as const
+
+type ChecklistKey = (typeof CHECKLIST_LONG)[number]['key']
 
 export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -153,7 +192,9 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
     return () => document.removeEventListener('paste', handlePaste)
   }, [handlePaste])
 
-  const allRequiredChecked = CHECKLIST.filter((c) => c.required).every(
+  const activeChecklist = form.direction === 'SHORT' ? CHECKLIST_SHORT : CHECKLIST_LONG
+
+  const allRequiredChecked = activeChecklist.filter((c) => c.required).every(
     (c) => checklist[c.key],
   )
 
@@ -535,11 +576,11 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
             Checklist Protocole — 6 Confluences Obligatoires
           </label>
           <span className={cn('text-sm font-semibold', allRequiredChecked ? 'text-profit' : 'text-loss')}>
-            {CHECKLIST.filter((c) => checklist[c.key]).length}/{CHECKLIST.length} validés
+            {activeChecklist.filter((c) => checklist[c.key]).length}/{activeChecklist.length} validés
           </span>
         </div>
         <div className="rounded-lg border border-border bg-bg-surface divide-y divide-border">
-          {CHECKLIST.map((item, idx) => (
+          {activeChecklist.map((item, idx) => (
             <label
               key={item.key}
               className={cn(

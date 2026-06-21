@@ -5,18 +5,27 @@ export type MarketCondition = 'TREND_UP' | 'TREND_DOWN' | 'RANGING' | 'VOLATILE'
 export type SessionTime = 'ASIA' | 'LONDON' | 'NY' | 'OVERLAP'
 
 export const TRADE_SETUPS = [
-  'Retest EMA 200 (Setup principal)',
-  'Retest EMA 50',
-  'Retest EMA 100',
-  'Retest POC (Volume Profile)',
-  'Support/Résistance Historique',
+  // ─── Setups LONG ───────────────────────────────────────────────────
+  'Retest EMA 200 par dessus (Long — setup #1)',
+  'Retest EMA 50 par dessus (Long — setup #2)',
+  'Retest EMA 100 par dessus (Long)',
+  'Retest POC + EMA confluence (Long)',
+  'Support Historique + EMA',
   'Breakout Confirmé (volume > 120%)',
+  'Divergence RSI Haussière (Long)',
+  'Divergence OBV Haussière (Long)',
+  'Stop Hunt Haussier — Buy Side',
+  'Capitulation Volume (Long)',
+  // ─── Setups SHORT ──────────────────────────────────────────────────
+  'Retest EMA 200 par dessous (Short — setup #1)',
+  'Retest EMA 50 comme résistance (Short — setup #2)',
+  'Retest POC + EMA résistance (Short)',
   'Rejet Résistance Majeure (Short)',
-  'Cassure Support + Retest (Short)',
-  'Divergence RSI Haussière',
-  'Divergence RSI Baissière',
-  'Divergence OBV Haussière',
-  'Capitulation Volume',
+  'Cassure Support + Retest résistance (Short)',
+  'Divergence RSI Baissière (Short)',
+  'Divergence OBV Baissière (Short)',
+  'Stop Hunt Baissier — Sell Side',
+  // ─── Neutre ────────────────────────────────────────────────────────
   'Autre',
 ] as const
 

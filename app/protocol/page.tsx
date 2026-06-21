@@ -386,6 +386,24 @@ function TabMTF() {
           <p className="text-text-secondary">Bougie 4H fermée sur EMA 50 avec mèche basse rejetée. RSI 4H en divergence haussière. Volume de la bougie de rejet {'>'} 150% moyenne. → <span className="text-profit font-bold">Signal d'entrée validé — Protocole complet requis</span></p>
         </div>
       </div>
+
+      <SubHeading icon={<BarChart2 size={18} />}>Exemple concret — BTC Short setup</SubHeading>
+      <div className="rounded-xl border border-loss/20 bg-loss-dim p-5 font-mono text-sm space-y-3">
+        <div className="space-y-2">
+          <p className="text-text-muted text-xs font-bold uppercase tracking-wide">Weekly</p>
+          <p className="text-text-secondary">BTC weekly : EMA 20 {'<'} 50 {'<'} 200 → Ruban baissier. Dernier weekly a fermé en dessous de l'EMA 20. Prix sous EMA 200 weekly. → <span className="text-loss font-bold">Biais SHORT confirmé</span></p>
+        </div>
+        <div className="h-px bg-border" />
+        <div className="space-y-2">
+          <p className="text-text-muted text-xs font-bold uppercase tracking-wide">Daily</p>
+          <p className="text-text-secondary">BTC daily : Prix remonte tester l'EMA 50 daily par le dessous (l'EMA est devenue résistance). RSI daily à 52. Structure LH/LL intacte. → <span className="text-loss font-bold">Zone de résistance identifiée</span></p>
+        </div>
+        <div className="h-px bg-border" />
+        <div className="space-y-2">
+          <p className="text-text-muted text-xs font-bold uppercase tracking-wide">4H</p>
+          <p className="text-text-secondary">Bougie 4H fermée sous EMA 50 après rejet (mèche haute longue). RSI 4H en divergence baissière (prix nouveau sommet + RSI sommet plus bas). Volume du rejet {'>'} 150% moyenne. → <span className="text-loss font-bold">Signal d'entrée SHORT validé — Protocole complet requis</span></p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -562,9 +580,16 @@ function TabTechnique() {
         Le ratio de Fibonacci (0.618 = "Golden Ratio") est présent dans la nature, l'architecture et les marchés financiers. Dans les marchés, il fonctionne parce qu'assez de traders et d'algorithmes l'utilisent comme référence — créant une zone de demande réelle autour du 0.618.
       </Callout>
 
-      <p className="text-sm text-text-secondary mb-3">
-        <strong className="text-text-primary">Comment tracer :</strong> TradingView → outil "Fibonacci Retracement" → du dernier swing low important au dernier swing high important (pour les longs en uptrend).
-      </p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 mb-3">
+        <div className="rounded-lg border border-profit/20 bg-profit-dim px-4 py-3 text-sm text-text-secondary">
+          <p className="font-bold text-profit mb-1">LONG — Comment tracer (uptrend)</p>
+          <p>TradingView → "Fibonacci Retracement" → <strong className="text-text-primary">du dernier swing low au dernier swing high</strong>. Les niveaux 0.618/0.705 sous le swing high = zones d'entrée long au retest.</p>
+        </div>
+        <div className="rounded-lg border border-loss/20 bg-loss-dim px-4 py-3 text-sm text-text-secondary">
+          <p className="font-bold text-loss mb-1">SHORT — Comment tracer (downtrend)</p>
+          <p>TradingView → "Fibonacci Retracement" → <strong className="text-text-primary">du dernier swing high au dernier swing low</strong>. Les niveaux 0.618/0.705 au-dessus du swing low = zones de résistance et d'entrée short au retest.</p>
+        </div>
+      </div>
 
       <DataTable
         headers={['Niveau Fibonacci', 'Valeur', 'Signification', 'Force']}
@@ -1187,6 +1212,17 @@ function TabGestion() {
           <p className="text-profit">@ 66 800$ (+1.5R) → Ferme 40% → +720$ sécurisés</p>
           <p className="text-profit">@ 67 400$ (+2R) → SL déplacé à 66 200$ (dernier HL)</p>
           <p className="text-profit">@ 68 600$ (+3R) → Ferme 100% restant → +2 880$ total</p>
+        </div>
+      </Callout>
+
+      <Callout type="tip" title="Exemple concret — BTC Short à 65 000$, risque 1R = 1 000$">
+        <div className="font-mono text-sm space-y-1.5 mt-1">
+          <p className="text-text-muted text-xs">Note : en short, le SL est AU-DESSUS de l'entrée. Le trailing descend avec les LH formés.</p>
+          <p>Entrée : 65 000$ | SL initial : 66 200$ (+1 200$ = 1R) | TP : 61 400$ (= +3R)</p>
+          <p className="text-accent">@ 63 800$ (+1R) → SL déplacé à 65 000$ (breakeven)</p>
+          <p className="text-loss">@ 63 200$ (+1.5R) → Ferme 40% → +720$ sécurisés</p>
+          <p className="text-loss">@ 62 600$ (+2R) → SL déplacé à 63 800$ (dernier LH)</p>
+          <p className="text-loss">@ 61 400$ (+3R) → Ferme 100% restant → +2 880$ total</p>
         </div>
       </Callout>
 
