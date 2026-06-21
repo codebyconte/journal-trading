@@ -34,8 +34,8 @@ const CHECKLIST_LONG = [
   },
   {
     key: 'checkLiquid',
-    label: 'CryptoQuant long : Whale Ratio < 0.85 + Exchange Reserve stable ou en baisse',
-    desc: 'Whale Ratio < 0.85 (pas de distribution massive), Exchange Reserve baissière (offre réduite), Leverage bas, SSR bas = setup long validé. Si Whale Ratio ≥ 0.85 → doute, réduis la taille.',
+    label: 'CryptoQuant long : Whale Ratio < 0.85 + Funding Rate < 0.03% + Exchange Reserve en baisse',
+    desc: 'Whale Ratio < 0.85 (pas de distribution), Funding Rate entre -0.01% et +0.03% (pas de sur-leverage), Exchange Reserve baissière, SSR bas = 3/3 confluence long. Si Funding Rate > 0.05% → 73% de correction dans 72h (CryptoQuant 2024) = pas de long.',
     required: true,
   },
   {
@@ -73,8 +73,8 @@ const CHECKLIST_SHORT = [
   },
   {
     key: 'checkLiquid',
-    label: 'CryptoQuant short : Whale Ratio ≥ 0.85 + Exchange Reserve montante',
-    desc: 'Whale Ratio ≥ 0.85 (mains intelligentes déposent pour vendre), Exchange Reserve montante (offre en hausse), Leverage élevé (fragilité). Si Whale Ratio < 0.85 → signal insuffisant, pas de short.',
+    label: 'CryptoQuant short : Whale Ratio ≥ 0.85 + Funding Rate > 0.03% + Exchange Reserve montante',
+    desc: 'Whale Ratio ≥ 0.85 (distribution), Funding Rate > 0.03% (longs sur-représentés = pression vendeuse mécanique imminent), Exchange Reserve montante. 3/3 = setup short validé. Si Funding Rate < -0.02% → squeeze haussier possible → évite le short.',
     required: true,
   },
   {

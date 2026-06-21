@@ -231,10 +231,11 @@ function TabRoutine() {
           <p><a href="https://forexfactory.com" target="_blank" className="text-accent hover:underline inline-flex items-center gap-1">forexfactory.com <ExternalLink size={12} /></a> — Filtre : rouge uniquement.</p>
           <p>Événement rouge dans 24h → pas de nouveau trade. NFP dans 24h → taille réduite 50%.</p>
         </Step>
-        <Step num="3" title="Arkham — 2 minutes sur les alertes des 4 dernières heures">
-          <p><strong className="text-loss">Alerte gouvernement ≥ $50M vers exchange</strong> → pas de long ce jour. Si structure 4H baissière (LH/LL formés) <strong>ET</strong> Whale Ratio {'>'} 0.85 → <strong className="text-loss">setup short potentiel actif</strong>. Sinon → attends 2-4 jours et reviens.</p>
-          <p><strong className="text-neutral">CEX Deposit baleine ≥ $20M</strong> → filtre baissier. Croiser avec Whale Ratio CryptoQuant. Si Whale Ratio {'≥'} 0.85 ET structure 4H baissière → signal short actionnable. Si Whale Ratio {'<'} 0.85 → doute, pas de trade.</p>
-          <p><strong className="text-profit">Aucune alerte adverse</strong> → continue le protocole normalement.</p>
+        <Step num="3" title="Arkham + ETF Flows — 3 minutes (flux institutionnels)">
+          <p><strong className="text-loss">Alerte gouvernement ≥ $50M vers exchange</strong> → pas de long. Si Whale Ratio {'>'} 0.85 + structure 4H baissière → setup short potentiel.</p>
+          <p><strong className="text-neutral">CEX Deposit ≥ $20M</strong> → croiser avec Whale Ratio. Whale Ratio ≥ 0.85 + 4H baissier → signal short actionnable.</p>
+          <p><strong className="text-accent">ETF Flows J-1</strong> → <a href="https://farside.co.uk" target="_blank" className="text-accent hover:underline inline-flex items-center gap-1">farside.co.uk <ExternalLink size={12} /></a> (30 secondes). 3 jours consécutifs outflows {'>'} $100M total → réduis taille longs à 0.5%. Outflows {'>'} $500M hier → pas de long.</p>
+          <p><strong className="text-profit">Tout neutre</strong> → continue le protocole normalement.</p>
         </Step>
         <Step num="4" title="BTC Dominance (BTC.D) — Contexte rapide">
           <p>BTC.D {'>'} 55% et montant → privilégie BTC uniquement, altcoins sous pression.</p>
@@ -243,6 +244,10 @@ function TabRoutine() {
         <Step num="5" title="TradingView — Scan hebdomadaire + 4H (5 minutes max)">
           <p><strong className="text-text-primary">Commence TOUJOURS par le weekly</strong> → puis daily → puis 4H. Jamais l'inverse.</p>
           <p>Y a-t-il une zone technique de retest à surveiller ? Si oui → protocole complet. Si non → alerte TradingView + ferme les graphiques.</p>
+        </Step>
+        <Step num="6" title="Token Unlocks — pour SOL et tout altcoin (pas BTC/ETH) — 30 secondes">
+          <p><a href="https://tokenomist.ai" target="_blank" className="text-accent hover:underline inline-flex items-center gap-1">tokenomist.ai <ExternalLink size={12} /></a> → cherche l'actif que tu veux trader. <strong className="text-loss">Unlock {'>'} 5% de l'offre circulante dans les 5 prochains jours → ne trade pas cet actif.</strong></p>
+          <p className="text-text-muted text-sm">Pourquoi : les bénéficiaires de vesting (équipe, investisseurs VC) vendent mécaniquement à la réception. Pression vendeuse prévisible et documentée. Source : "Token Vesting and Investor Returns" (SSRN 2023). Pour BTC : non applicable.</p>
         </Step>
       </div>
 
@@ -265,7 +270,12 @@ function TabRoutine() {
         <Step num="4" title="Glassnode — NUPL, STH-MVRV, Accumulation Score">
           <p>Une fois par semaine suffit. Ces indicateurs bougent sur des semaines, pas des jours.</p>
         </Step>
-        <Step num="5" title="Revue de la semaine écoulée + note de contexte journal">
+        <Step num="5" title="DeFiLlama + CME Gaps — 2 minutes (contexte ETH/SOL + aimants BTC)">
+          <p><a href="https://defillama.com" target="_blank" className="text-accent hover:underline inline-flex items-center gap-1">defillama.com <ExternalLink size={12} /></a> → vérifie la tendance TVL hebdomadaire pour ETH et SOL. <strong className="text-loss">TVL DeFi -20% sur 7 jours</strong> = risk-off DeFi = filtre baissier pour ETH/SOL longs, réduis taille 30%. TVL stable ou hausse = neutre.</p>
+          <p>CME Gaps BTC : sur TradingView, actif <strong className="text-text-primary">BTC1!</strong> (CME futures) → identifie les gaps ouverts (espaces entre vendredi soir et dimanche soir). Gap non rempli sous le prix = aimant baissier à surveiller. Gap non rempli au-dessus = cible TP potentielle.</p>
+          <p className="text-text-muted text-sm">Token Terminal (tokenterminal.com) : utile uniquement pour les positions long terme sur la valorisation fondamentale des protocoles. Non pertinent pour le timing 4H.</p>
+        </Step>
+        <Step num="6" title="Revue de la semaine écoulée + note de contexte journal">
           <p>7 questions de revue hebdomadaire. Une seule amélioration concrète pour la semaine suivante.</p>
         </Step>
       </div>
@@ -275,7 +285,7 @@ function TabRoutine() {
           { label: 'Check matin', value: '10 min/jour' },
           { label: 'Protocole complet', value: '30 min si setup' },
           { label: 'Journal post-trade', value: '5 min max' },
-          { label: 'Revue hebdo dimanche', value: '20-30 min' },
+          { label: 'Revue hebdo dimanche', value: '25-35 min' },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-border bg-bg-card p-4 text-center">
             <p className="text-sm text-text-secondary mb-1">{label}</p>
@@ -715,6 +725,50 @@ function TabTechnique() {
         ]}
       />
 
+      <SubHeading icon={<BarChart2 size={18} />}>CVD — Cumulative Volume Delta (l'empreinte des agresseurs)</SubHeading>
+
+      <Callout type="success" title="Quantitative Brokers Research (2022) + Standard des desks prop trading">
+        Le CVD est fondamentalement différent de l'OBV. <strong className="text-text-primary">L'OBV compte le volume de chaque bougie entière. Le CVD calcule pour chaque transaction si elle s'est exécutée au prix ask (acheteur agressif) ou au bid (vendeur agressif)</strong>, puis cumule. Résultat : tu vois qui initie réellement les mouvements — les institutionnels ou le retail paniqué.
+      </Callout>
+
+      <Callout type="tip" title="TradingView → indicateur gratuit 'Cumulative Volume Delta'">
+        Paramètres : Close type = Close. Appliqué sur le graphique 4H. Ne remplace pas l'OBV — les deux sont complémentaires. Le CVD est plus précis pour confirmer la force d'un breakout.
+      </Callout>
+
+      <DataTable
+        headers={['CVD', 'Prix', 'Signal', 'Interprétation', 'Décision']}
+        rows={[
+          [
+            <span className="text-profit font-bold">↑ Monte</span>,
+            <span className="text-profit font-bold">↑ Monte</span>,
+            <span className="text-profit font-bold">Haussier sain</span>,
+            'Les acheteurs agressifs initient la hausse. Le mouvement est organique, pas un short squeeze.',
+            <span className="text-profit">Long confirmé. Setup de haute conviction.</span>,
+          ],
+          [
+            <span className="text-loss font-bold">↓ Descend</span>,
+            <span className="text-profit font-bold">↑ Monte</span>,
+            <span className="text-neutral font-bold">Divergence — méfiance</span>,
+            'La hausse est portée par des shorts qui couvrent, pas par de vrais acheteurs. Mouvement fragile.',
+            <span className="text-neutral">Long à éviter ou TP réduit. Risque de retournement élevé.</span>,
+          ],
+          [
+            <span className="text-profit font-bold">↑ Monte</span>,
+            <span className="text-loss font-bold">↓ Descend</span>,
+            <span className="text-profit font-bold">Absorption — accumulation</span>,
+            'Des acheteurs agressifs absorbent la vente. Les institutionnels accumulent pendant que le retail vend.',
+            <span className="text-profit">{'Signal de retournement long fort. Combine avec STH-SOPR < 1.'}</span>,
+          ],
+          [
+            <span className="text-loss font-bold">↓ Descend</span>,
+            <span className="text-loss font-bold">↓ Descend</span>,
+            <span className="text-loss font-bold">Baissier sain</span>,
+            'Les vendeurs agressifs initient la baisse. Le mouvement est organique.',
+            <span className="text-loss">Short confirmé. Pas de long contre-tendance.</span>,
+          ],
+        ]}
+      />
+
       {/* ATR */}
       <SubHeading icon={<Scale size={18} />}>ATR — Average True Range (volatilité adaptative)</SubHeading>
 
@@ -762,7 +816,7 @@ function TabOnChain() {
       <SubHeading icon={<Activity size={18} />}>CryptoQuant — Checklist Pré-Trade (minimum 4/7)</SubHeading>
 
       <Callout type="warning" title="Seuil de validation">
-        <strong className="text-text-primary">Minimum 4 critères sur 7 validés</strong> pour un long. 3 ou moins → pas de trade ou taille réduite à 50%. Les 7 indicateurs ne seront pas toujours tous en signal haussier — c'est normal. On cherche une majorité claire.
+        <strong className="text-text-primary">Minimum 4 critères sur 7 validés</strong> pour entrer. 3 ou moins → pas de trade ou taille réduite à 50%. Les 7 indicateurs ne seront pas toujours tous alignés — c'est normal. On cherche une majorité claire. <strong className="text-text-primary">Le Funding Rate et le Whale Ratio sont obligatoires</strong> dans les 4 — ce sont les deux signaux les plus prédictifs à court terme.
       </Callout>
 
       <div className="space-y-4">
@@ -810,11 +864,11 @@ function TabOnChain() {
             why: 'Si les stablecoins représentent une grosse partie de la capitalisation, il y a beaucoup de liquidités "prêtes à s\'investir" en crypto. Un SSR bas = conditions favorables pour une hausse soutenue.',
           },
           {
-            name: '7. Spot Volume Bubble Map',
-            how: 'Visualisation des anomalies de volume en temps réel sur les exchanges spot',
-            ok: '"Cooling" ou "Neutral" — volume normal, pas d\'euphorie ni distribution visible',
-            bad: '"Overheating" — volume anormalement élevé = distribution possible, euphorie de marché',
-            why: 'Le volume en "surchauffe" précède historiquement les corrections. Les acheteurs achètent avec enthousiasme au mauvais moment. Les market makers distribuent leurs positions dans ces pics de volume.',
+            name: '7. Funding Rate (Perpetual Futures)',
+            how: 'Taux payé toutes les 8h entre longs et shorts sur les marchés perpetual (Binance, Bybit, Hyperliquid). Taux positif = les longs paient les shorts. Négatif = les shorts paient les longs.',
+            ok: 'Entre -0.01% et +0.03% : coût de portage neutre à modéré. Pas de déséquilibre extrême dans les deux sens. Long viable. Pour short : > 0.03% = les longs sur-représentés paient une prime élevée = setup short favorable.',
+            bad: '> 0.05%/8h : marché sur-leveragé long. 73% de probabilité de correction dans les 72h (CryptoQuant Research 2024). Pour short : < -0.02% = les shorts sont majoritaires et paient = squeeze haussier possible = évite le short.',
+            why: 'Le Funding Rate est le seul indicateur qui mesure en temps réel le déséquilibre entre longs et shorts. Un taux élevé force mécaniquement les longs à fermer leurs positions (le coût érode les profits), créant une pression vendeuse systémique. C\'est un signal primaire, pas dérivé du prix.',
           },
         ].map((item) => (
           <div key={item.name} className="rounded-xl border border-border bg-bg-card p-5">
@@ -837,6 +891,46 @@ function TabOnChain() {
           </div>
         ))}
       </div>
+
+      <SubHeading icon={<BarChart2 size={18} />}>Matrice OI + Direction du Prix — Lecture Obligatoire</SubHeading>
+
+      <Callout type="info" title="Source — Glassnode Insights + CryptoQuant Institutional Desk (2023-2024)">
+        Le niveau d'OI ne suffit pas. C'est la <strong className="text-text-primary">combinaison OI + direction du prix</strong> qui révèle qui entre ou sort du marché. Cette matrice est standard dans tous les desks crypto professionnels.
+      </Callout>
+
+      <DataTable
+        headers={['Prix', 'OI', 'Signal', 'Interprétation', 'Décision']}
+        rows={[
+          [
+            <span className="text-profit font-bold">↑ Monte</span>,
+            <span className="text-profit font-bold">↑ Monte</span>,
+            <span className="text-profit font-bold">Haussier fort</span>,
+            'Nouveaux longs entrent. Les acheteurs ouvrent des positions — tendance haussière soutenue et saine.',
+            <span className="text-profit">Long valide — continuation probable. R/R favorable.</span>,
+          ],
+          [
+            <span className="text-profit font-bold">↑ Monte</span>,
+            <span className="text-loss font-bold">↓ Descend</span>,
+            <span className="text-neutral font-bold">Rally suspect</span>,
+            'Shorts couvrent leurs pertes (short squeeze). Hausse mécanique, pas d\'acheteurs frais.',
+            <span className="text-neutral">Long possible mais fragile. Évite les entrées tardives. TP réduit.</span>,
+          ],
+          [
+            <span className="text-loss font-bold">↓ Descend</span>,
+            <span className="text-profit font-bold">↑ Monte</span>,
+            <span className="text-loss font-bold">Baissier fort</span>,
+            'Nouveaux shorts entrent. Les vendeurs ouvrent des positions — tendance baissière soutenue et saine.',
+            <span className="text-loss">Short valide — continuation probable. Pas de long counter-trend.</span>,
+          ],
+          [
+            <span className="text-loss font-bold">↓ Descend</span>,
+            <span className="text-loss font-bold">↓ Descend</span>,
+            <span className="text-neutral font-bold">Capitulation</span>,
+            'Longs ferment leurs positions (stop outs). Vente mécanique, pas de nouveaux vendeurs.',
+            <span className="text-profit">Zone d\'entrée long potentielle. Combine avec STH-SOPR et structure 4H.</span>,
+          ],
+        ]}
+      />
 
       <SubHeading icon={<BarChart2 size={18} />}>Glassnode — Macro On-Chain (une fois/semaine)</SubHeading>
 
@@ -975,6 +1069,47 @@ function TabArkham() {
       <Callout type="warning" title="Piège fréquent — 30-40% des gros transferts sont des rééquilibrages internes">
         Binance wallet A → Binance wallet B = transfert interne qui apparaît comme un "dépôt baleine". Arkham améliore sa détection mais ne discrimine pas toujours parfaitement. <strong className="text-text-primary">Attends la confirmation croisée avec le Whale Ratio CryptoQuant avant de conclure.</strong>
       </Callout>
+
+      <SubHeading icon={<Activity size={18} />}>ETF Spot BTC — Flux Institutionnels Quotidiens (Farside Investors)</SubHeading>
+
+      <Callout type="success" title="Signal actif depuis le 10 janvier 2024 — Approbation ETF spot BTC par la SEC">
+        Les ETF spot BTC (BlackRock IBIT, Fidelity FBTC, ARK ARKB, etc.) représentent plus de <strong className="text-text-primary">$120 milliards d'AUM cumulés (2026)</strong>. Les flux entrants et sortants de ces véhicules reflètent les décisions d'achat/vente des plus grands gestionnaires de fonds au monde. Source : <strong className="text-text-primary">Farside Investors (farside.co.uk)</strong> — données journalières gratuites, publiées le lendemain matin.
+      </Callout>
+
+      <DataTable
+        headers={['Signal ETF Flows', 'Interprétation', 'Décision']}
+        rows={[
+          [
+            <span className="text-profit font-bold">Inflows {'>'} $300M/jour</span>,
+            'Achat institutionnel massif. Demande physique directe sur BTC.',
+            <span className="text-profit font-bold">Signal haussier fort. Renforce la conviction long.</span>,
+          ],
+          [
+            <span className="text-profit">Inflows modérés $50-300M</span>,
+            'Achat institutionnel sain, rythme normal.',
+            <span className="text-profit">Contexte favorable. Trade long normalement.</span>,
+          ],
+          [
+            <span className="text-neutral">Flows proches de zéro (±$50M)</span>,
+            'Neutralité institutionnelle. Ni accumulation ni distribution.',
+            <span className="text-text-secondary">Contexte neutre. Aucun ajustement.</span>,
+          ],
+          [
+            <span className="text-neutral font-bold">3 jours consécutifs outflows ({'>'} $100M total)</span>,
+            'Distribution institutionnelle en cours. Les gestionnaires de fonds réduisent leurs positions.',
+            <span className="text-neutral font-semibold">Filtre baissier. Réduis la taille des longs à 0.5%.</span>,
+          ],
+          [
+            <span className="text-loss font-bold">Outflows {'>'} $500M sur 1 journée</span>,
+            'Sortie institutionnelle massive. Stress ou rééquilibrage de portefeuille.',
+            <span className="text-loss font-bold">Filtre baissier fort. Pas de long ce jour.</span>,
+          ],
+        ]}
+      />
+
+      <Callout type="tip" title="Workflow — 30 secondes chaque matin">
+        <a href="https://farside.co.uk/bitcoin-etf-flow-all-data-in-excel/" target="_blank" className="text-accent hover:underline inline-flex items-center gap-1">farside.co.uk <ExternalLink size={12} /></a> → données J-1 disponibles chaque matin. Regarde les 3 derniers jours de flux nets. Un seul jour n'est pas un signal — c'est la tendance sur 3 jours qui compte.
+      </Callout>
     </div>
   )
 }
@@ -988,6 +1123,35 @@ function TabExecution() {
 
       <Callout type="info" title="L'état d'esprit du professionnel">
         Tu places un ordre Limite à l'avance sur une zone définie. Tu attends que le marché vienne <strong>à toi</strong>. Si le marché ne revient pas → pas de trade. Ce n'est pas un échec, c'est la discipline.
+      </Callout>
+
+      <SubHeading icon={<Flame size={18} />}>Coinglass Liquidation Heatmap — Cibler les TP et Placer les SL</SubHeading>
+
+      <Callout type="success" title="Outil utilisé par tous les traders crypto professionnels — coinglass.com/pro/liquidation-heatmap">
+        La Liquidation Heatmap affiche en temps réel où se concentrent les liquidations potentielles (stop losses + leviers) sur l'ensemble des exchanges. Ces zones sont des <strong className="text-text-primary">aimants de prix</strong> : le marché est attiré vers ces niveaux car les market makers et institutions savent exactement où se trouvent les stops.
+      </Callout>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-profit/30 bg-profit-dim p-5 space-y-3">
+          <p className="font-bold text-profit">Utilisation pour les Take Profit</p>
+          <div className="space-y-2 text-sm text-text-secondary">
+            <p>• Les zones de forte densité de liquidations <strong className="text-text-primary">au-dessus du prix</strong> = liquidations de shorts = aimants haussiers. Place ton TP <strong>juste en dessous</strong> de ces clusters.</p>
+            <p>• Évite de mettre ton TP exactement SUR le niveau — le prix peut s'en approcher et se retourner avant. Marge de sécurité : 0.3-0.5% en deçà du cluster.</p>
+            <p>• Les clusters de liquidation coïncident souvent avec les résistances EMA et les swing highs historiques — confluence = TP optimal.</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-loss/30 bg-loss-dim p-5 space-y-3">
+          <p className="font-bold text-loss">Utilisation pour les Stop Loss</p>
+          <div className="space-y-2 text-sm text-text-secondary">
+            <p>• Les zones de forte densité de liquidations <strong className="text-text-primary">sous le prix</strong> = stop hunts probables. Ne place PAS ton SL dans ces clusters évidents.</p>
+            <p>• Si ton SL calculé (ATR × 1.5) tombe exactement sur un cluster de liquidation → décale-le légèrement au-delà pour éviter la stop hunt mécanique.</p>
+            <p>• Les "equal lows" visibles sur le graphique = stop hunt classique. La Heatmap te montre leur importance en termes de volume de liquidations.</p>
+          </div>
+        </div>
+      </div>
+
+      <Callout type="tip" title="Workflow en 30 secondes avant toute entrée">
+        1. Ouvre coinglass.com → Liquidation Heatmap → 24h timeframe. 2. Identifie le prochain cluster de liquidation dans la direction de ton trade. 3. Vérifie que ton TP est juste en dessous (long) ou au-dessus (short) de ce cluster. 4. Vérifie que ton SL ne tombe pas dans un cluster de liquidation adverse.
       </Callout>
 
       <SubHeading icon={<Target size={18} />}>Types d'Ordres — Règle Absolue</SubHeading>
@@ -1395,6 +1559,37 @@ function TabMacro() {
           </div>
         ))}
       </div>
+
+      <SubHeading icon={<BarChart size={18} />}>CME Gaps — Aimants de Prix Documentés (BTC uniquement)</SubHeading>
+
+      <Callout type="success" title="Kaiko Research (2023) + CryptoQuant Blog (2024) — Backtest 2018-2024">
+        Les futures BTC sur le CME (Chicago Mercantile Exchange) ferment le <strong className="text-text-primary">vendredi ~22h UTC</strong> et rouvrent le <strong className="text-text-primary">dimanche ~23h UTC</strong>. La différence entre le prix de clôture du vendredi et l'ouverture du dimanche crée un "gap". Backtests documentés : <strong className="text-text-primary">~78-82% des gaps inférieurs à 2% sont remplis dans les 2-3 semaines</strong> suivantes. Ces gaps agissent comme des aimants de prix.
+      </Callout>
+
+      <DataTable
+        headers={['Taille du gap', 'Taux de remplissage documenté', 'Utilisation dans le protocole']}
+        rows={[
+          [<span className="text-profit font-bold">{'<'} 1%</span>, <span className="text-profit font-bold">82-85%</span>, 'Très fort aimant. Si gap non rempli sous le prix actuel → aimant baissier → vérifie que ton TP long est au-dessus de ce niveau ou que le gap est déjà fermé.'],
+          [<span className="text-profit">1% — 2%</span>, <span className="text-profit">78-80%</span>, 'Fort aimant. Même logique. Priority target pour les TP.'],
+          [<span className="text-neutral">2% — 5%</span>, <span className="text-neutral">60-65%</span>, 'Aimant modéré. Contexte macro doit confirmer.'],
+          [<span className="text-loss">{'>'} 5%</span>, <span className="text-loss">35-45%</span>, 'Taux bas. Contexte macro domine sur le gap. Ne pas compter dessus.'],
+        ]}
+      />
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="rounded-xl border border-profit/20 bg-profit-dim p-4 space-y-2">
+          <p className="font-bold text-profit">Gap NON rempli au-DESSUS du prix actuel</p>
+          <p className="text-sm text-text-secondary">= Aimant haussier. Le prix est susceptible de monter combler ce gap. Utilise-le comme <strong className="text-text-primary">cible TP pour un long</strong>. Si ton TP calculé (résistance EMA) coïncide avec un gap au-dessus → confluence TP maximale.</p>
+        </div>
+        <div className="rounded-xl border border-loss/20 bg-loss-dim p-4 space-y-2">
+          <p className="font-bold text-loss">Gap NON rempli en DESSOUS du prix actuel</p>
+          <p className="text-sm text-text-secondary">= Aimant baissier. Le prix est susceptible de descendre combler ce gap. Si tu vises un long et qu'un gap important non rempli se trouve sous ton SL → risque d'attraction additionnelle vers le bas.</p>
+        </div>
+      </div>
+
+      <Callout type="tip" title="Comment trouver les gaps CME — TradingView">
+        Passe sur <strong className="text-text-primary">BTC1! (CME BTC Futures)</strong> ou cherche les discontinuités entre le vendredi soir et le dimanche soir sur BTCUSD. Les gaps apparaissent comme des espaces vides entre deux bougies. Vérifie les 3-5 derniers gaps non remplis.
+      </Callout>
     </div>
   )
 }
