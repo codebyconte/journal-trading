@@ -25,9 +25,13 @@ function serializeAdjustment(adj: PrismaCapitalAdjustment): CapitalAdjustment {
 }
 
 export const getCapitalAdjustments = cache(async (): Promise<CapitalAdjustment[]> => {
-  const rows = await prisma.capitalAdjustment.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  })
-  return rows.map(serializeAdjustment)
+  try {
+    const rows = await prisma.capitalAdjustment.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    })
+    return rows.map(serializeAdjustment)
+  } catch {
+    return []
+  }
 })

@@ -71,6 +71,8 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
       }))
       showMessage(positive ? 'Dépôt enregistré' : 'Retrait enregistré')
       refresh()
+    } else {
+      showMessage(result.error ?? 'Erreur lors de l\'ajustement')
     }
   }
 
@@ -112,8 +114,13 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
       />
 
       {actionMessage && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
-          <CheckCircle2 size={16} />
+        <div className={cn(
+          'mb-4 flex items-center gap-2 rounded-lg border px-4 py-3 text-sm',
+          actionMessage.includes('Erreur')
+            ? 'border-red-500/30 bg-red-500/10 text-red-400'
+            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+        )}>
+          {actionMessage.includes('Erreur') ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
           {actionMessage}
         </div>
       )}
@@ -258,9 +265,9 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
           <CardTitle>Dépôt / Retrait</CardTitle>
         </CardHeader>
         <FieldGroup>
-          <Description>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Quand tu ajoutes de l&apos;argent sur ton compte, enregistre-le ici. Le capital actuel augmente et ton risque 1% sera recalculé sur le nouveau montant.
-          </Description>
+          </p>
           <Field>
             <Label>Montant ($)</Label>
             <Input
@@ -311,20 +318,20 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
           <CardTitle>Maintenance du journal</CardTitle>
         </CardHeader>
         <FieldGroup>
-          <Description>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Supprimer un trade individuel : page Trades → icône poubelle (le P&amp;L est automatiquement retiré du capital si le trade était clôturé).
-          </Description>
+          </p>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" outline onClick={handleRecalculate}>
+            <Button type="button" {...{ outline: true as const }} onClick={handleRecalculate}>
               <Calculator data-slot="icon" aria-hidden="true" /> Recalculer le capital
             </Button>
             <Button type="button" {...{ outline: true as const }} onClick={handleReset}>
               <RotateCcw data-slot="icon" aria-hidden="true" /> Recommencer à zéro
             </Button>
           </div>
-          <Description className="text-xs">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
             Recalculer = capital initial + somme des P&amp;L clôturés + dépôts/retraits. Utile si le capital a dérivé.
-          </Description>
+          </p>
         </FieldGroup>
       </Card>
 

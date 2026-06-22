@@ -87,10 +87,15 @@ export async function recalculateCapital(): Promise<ActionResult & { capital?: n
     })
     const tradePnl = closedTrades.reduce((s, t) => s + (t.pnl ?? 0), 0)
 
-    const adjustments = await prisma.capitalAdjustment.findMany({
-      select: { amount: true },
-    })
-    const adjustmentTotal = adjustments.reduce((s, a) => s + a.amount, 0)
+    let adjustmentTotal = 0
+    try {
+      const adjustments = await prisma.capitalAdjustment.findMany({
+        select: { amount: true },
+      })
+      adjustmentTotal = adjustments.reduce((s, a) => s + a.amount, 0)
+    } catch {
+      adjustmentTotal = 0
+    }
 
     const newCapital = initial + tradePnl + adjustmentTotal
 

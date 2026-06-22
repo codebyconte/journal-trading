@@ -862,22 +862,21 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
       </Field>
 
       {/* Mode journal honnête — violation protocole */}
-      <Field>
-        <CheckboxField className="rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-4">
-          <Checkbox
-            color="red"
-            checked={protocolOverride}
-            onChange={(checked) => setProtocolOverride(checked)}
-          />
-          <Label>
-            <span className="font-semibold text-red-300">Mode journal honnête — enregistrer malgré violation du protocole</span>
-          </Label>
-          <Description>
-            Active si tu n&apos;as pas respecté les règles (confluence insuffisante, émotion basse, risque &gt; 1%, etc.)
-            mais que tu veux quand même documenter le trade pour analyse long terme. Le trade sera marqué en rouge partout.
-          </Description>
-        </CheckboxField>
-        {protocolOverride && (
+      <CheckboxField className="rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-4">
+        <Checkbox
+          color="red"
+          checked={protocolOverride}
+          onChange={(checked) => setProtocolOverride(checked)}
+        />
+        <Label>
+          <span className="font-semibold text-red-300">Mode journal honnête — enregistrer malgré violation du protocole</span>
+        </Label>
+        <Description>
+          Active si tu n&apos;as pas respecté les règles (confluence insuffisante, émotion basse, risque &gt; 1%, etc.)
+          mais que tu veux quand même documenter le trade pour analyse long terme. Le trade sera marqué en rouge partout.
+        </Description>
+      </CheckboxField>
+      {protocolOverride && (
           <div className="mt-3 space-y-3 rounded-xl border border-red-500/40 bg-red-500/10 p-4">
             <CalloutBanner
               tone="red"
@@ -917,7 +916,6 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
             </Field>
           </div>
         )}
-      </Field>
 
       {/* Screenshot */}
       <Field>
