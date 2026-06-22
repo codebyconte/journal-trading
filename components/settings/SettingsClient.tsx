@@ -7,6 +7,13 @@ import { Save, RefreshCw, AlertTriangle, CheckCircle2, Plus, Minus, RotateCcw, C
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/catalyst/button'
+import {
+  Alert,
+  AlertActions,
+  AlertBody,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/catalyst/alert'
 import { Field, FieldGroup, Label, Description } from '@/components/catalyst/fieldset'
 import { Input } from '@/components/catalyst/input'
 import { Textarea } from '@/components/catalyst/textarea'
@@ -32,6 +39,8 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   const refresh = () => startTransition(() => router.refresh())
 
@@ -87,18 +96,19 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
 
   const handleReset = async () => {
     const capital = parseFloat(form.initialCapital) || initialSettings.initialCapital
-    if (
-      !confirm(
-        `⚠️ RÉINITIALISATION COMPLÈTE\n\nCela va :\n• Supprimer TOUS les trades\n• Remettre le capital à ${formatCurrency(capital)}\n\nCette action est irréversible. Continuer ?`,
-      )
-    ) {
-      return
-    }
-    const result = await resetJournal({ resetCapitalTo: capital, deleteAdjustments: true })
-    if (result.success) {
-      setForm((f) => ({ ...f, currentCapital: String(capital) }))
-      showMessage('Journal réinitialisé')
-      refresh()
+    setResetting(true)
+    try {
+      const result = await resetJournal({ resetCapitalTo: capital, deleteAdjustments: true })
+      if (result.success) {
+        setForm((f) => ({ ...f, currentCapital: String(capital) }))
+        setResetDialogOpen(false)
+        showMessage('Journal réinitialisé')
+        refresh()
+      } else {
+        showMessage(result.error ?? 'Erreur lors de la réinitialisation')
+      }
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -325,7 +335,7 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
             <Button type="button" {...{ outline: true as const }} onClick={handleRecalculate}>
               <Calculator data-slot="icon" aria-hidden="true" /> Recalculer le capital
             </Button>
-            <Button type="button" {...{ outline: true as const }} onClick={handleReset}>
+            <Button type="button" {...{ outline: true as const }} onClick={() => setResetDialogOpen(true)}>
               <RotateCcw data-slot="icon" aria-hidden="true" /> Recommencer à zéro
             </Button>
           </div>
@@ -357,6 +367,63 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
           ))}
         </div>
       </Card>
+
+      <Alert open={resetDialogOpen} onClose={() => !resetting && setResetDialogOpen(false)} size="md">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-red-500/15 ring-1 ring-red-500/30">
+            <AlertTriangle className="size-6 text-red-400" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1 text-center sm:text-left">
+            <AlertTitle>Recommencer à zéro ?</AlertTitle>
+            <AlertDescription>
+              Cette action est <strong className="text-white">irréversible</strong>. Tout ton historique de trading sera effacé.
+            </AlertDescription>
+          </div>
+        </div>
+        <AlertBody>
+          <ul className="space-y-2 rounded-xl bg-red-500/5 px-4 py-3 text-sm text-zinc-300 ring-1 ring-red-500/20">
+            <li className="flex gap-2">
+              <span className="text-red-400">•</span>
+              <span>Suppression de <strong className="text-white">tous les trades</strong></span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-red-400">•</span>
+              <span>Suppression de l&apos;historique des dépôts / retraits</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-red-400">•</span>
+              <span>
+                Capital remis à{' '}
+                <strong className="font-mono text-white">
+                  {formatCurrency(parseFloat(form.initialCapital) || initialSettings.initialCapital)}
+                </strong>
+              </span>
+            </li>
+          </ul>
+        </AlertBody>
+        <AlertActions>
+          <Button
+            plain
+            onClick={() => setResetDialogOpen(false)}
+            disabled={resetting}
+          >
+            Annuler
+          </Button>
+          <Button color="red" onClick={handleReset} disabled={resetting}>
+            {resetting ? (
+              <>
+                <RefreshCw data-slot="icon" className="animate-spin" aria-hidden="true" />
+                Réinitialisation…
+              </>
+            ) : (
+              <>
+                <RotateCcw data-slot="icon" aria-hidden="true" />
+                Oui, tout effacer
+              </>
+            )}
+          </Button>
+        </AlertActions>
+      </Alert>
     </PageShell>
   )
 }
