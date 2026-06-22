@@ -92,6 +92,8 @@ export interface Trade {
   screenshot?: string | null
   openedAt?: string | null
   closedAt?: string | null
+  protocolOverride?: boolean
+  overrideReason?: string | null
 }
 
 export interface JournalEntry {
@@ -109,6 +111,14 @@ export interface Settings {
   currentCapital: number
   riskPercent: number
   currency: string
+}
+
+export interface CapitalAdjustment {
+  id: string
+  createdAt: string
+  amount: number
+  note?: string | null
+  balanceAfter: number
 }
 
 import type { CircuitBreakerState } from './stats'

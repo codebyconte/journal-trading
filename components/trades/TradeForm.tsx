@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Image from 'next/image'
 import { Calculator, X, CheckCircle2, AlertCircle, Camera, AlertTriangle, TrendingUp, TrendingDown, Shield, Target } from 'lucide-react'
 import { cn, calculateUnits, calculatePlannedRR, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices } from '@/lib/utils'
-import { isCoinglassApplicable } from '@/lib/analytics'
+import { isCoinglassApplicable, getConfluenceTone, getConfluenceMax, formatConfluenceScore, getEffectiveRiskPercent, getMissingConfluenceKeys, CONFLUENCE_KEY_LABELS, getProtocolViolations } from '@/lib/analytics'
 import { createTrade } from '@/app/actions/trades'
 import { CalloutBanner } from '@/components/ui/SystemState'
 import { Button } from '@/components/catalyst/button'
@@ -149,6 +149,9 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [protocolOverride, setProtocolOverride] = useState(false)
+  const [overrideReason, setOverrideReason] = useState('')
+  const [customRiskPercent, setCustomRiskPercent] = useState('')
 
   // Calculs automatiques
   const [autoCalc, setAutoCalc] = useState({
@@ -164,9 +167,17 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
     const tp = parseFloat(form.takeProfit)
 
     if (!isNaN(entry) && !isNaN(sl) && entry > 0 && sl > 0) {
+      const protocolRisk = getEffectiveRiskPercent(riskPercent, { ...checklist, asset: form.asset || '' })
+      let riskForCalc: number
+      if (protocolOverride) {
+        const custom = parseFloat(customRiskPercent)
+        riskForCalc = !isNaN(custom) && custom > 0 ? custom : riskPercent
+      } else {
+        riskForCalc = protocolRisk ?? riskPercent
+      }
       const { units, riskAmount } = calculateUnits(
         currentCapital,
-        riskPercent,
+        riskForCalc,
         entry,
         sl,
         form.direction,
@@ -176,7 +187,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           ? calculatePlannedRR(entry, sl, tp, form.direction)
           : 0
 
-      setAutoCalc({ units, riskAmount, plannedRR, riskPercent })
+      setAutoCalc({ units, riskAmount, plannedRR, riskPercent: riskForCalc })
 
       // Auto-remplir les unités si pas encore modifiées
       setForm((prev) => ({
@@ -184,7 +195,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         units: units > 0 ? formatNumber(units, 4) : prev.units,
       }))
     }
-  }, [form.entryPrice, form.stopLoss, form.takeProfit, form.direction, currentCapital, riskPercent])
+  }, [form.entryPrice, form.stopLoss, form.takeProfit, form.direction, form.asset, currentCapital, riskPercent, checklist, protocolOverride, customRiskPercent])
 
   useEffect(() => {
     recalculate()
@@ -219,22 +230,67 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
   // Coinglass s'applique uniquement aux crypto perpetuels (pas aux indices SPX/QQQ)
   const isCryptoAsset = !form.asset || isCoinglassApplicable(form.asset)
 
-  const allRequiredChecked = activeChecklist
-    .filter((c) => c.required)
-    .filter((c) => isCryptoAsset || c.key !== 'checkCoinglass')
-    .every((c) => checklist[c.key])
+  const confluenceTrade = useMemo(
+    () => ({ ...checklist, asset: form.asset || '' }),
+    [checklist, form.asset],
+  )
+
+  const confluenceMax = getConfluenceMax(form.asset || '')
+  const confluenceTone = getConfluenceTone(confluenceTrade)
+  const confluenceLabel = formatConfluenceScore(confluenceTrade)
+  const effectiveRiskPercent = getEffectiveRiskPercent(riskPercent, confluenceTrade)
+  const missingConfluenceKeys = getMissingConfluenceKeys(confluenceTrade)
+
+  const canSubmitConfluence = confluenceTone !== 'low'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    if (!allRequiredChecked) {
-      setError(`Valide les ${isCryptoAsset ? '7' : '6'} confluences obligatoires avant de soumettre. C'est le protocole.`)
-      return
-    }
-    if (parseInt(form.emotionScore) <= 2) {
-      setError('État émotionnel ≤ 2/5 — pas de trade selon le protocole. Reviens demain.')
-      return
+    if (!protocolOverride) {
+      if (!canSubmitConfluence || effectiveRiskPercent === null) {
+        setError(
+          `Confluence insuffisante (${confluenceLabel}) — minimum ${confluenceMax - 1}/${confluenceMax} pour taille réduite (0.5%). Active le mode journal honnête si tu veux quand même enregistrer.`,
+        )
+        return
+      }
+      if (confluenceTone === 'partial') {
+        const missingLabels = missingConfluenceKeys.map((k) => CONFLUENCE_KEY_LABELS[k]).join(', ')
+        if (
+          !confirm(
+            `Confluence ${confluenceLabel} — taille réduite à ${effectiveRiskPercent}% (protocole : 6/7 = 0.5%).\n\nConfluence manquante : ${missingLabels}\n\nContinuer avec la taille réduite ?`,
+          )
+        ) {
+          return
+        }
+      }
+      if (parseInt(form.emotionScore) <= 2) {
+        setError('État émotionnel ≤ 2/5 — pas de trade selon le protocole. Active le mode journal honnête si tu veux quand même enregistrer.')
+        return
+      }
+    } else {
+      if (!overrideReason.trim() || overrideReason.trim().length < 10) {
+        setError('Mode journal honnête : explique pourquoi tu violates le protocole (minimum 10 caractères).')
+        return
+      }
+      const violations = getProtocolViolations(
+        {
+          ...checklist,
+          asset: form.asset || '',
+          riskPercent: autoCalc.riskPercent,
+          plannedRR: autoCalc.plannedRR,
+          emotionScore: parseInt(form.emotionScore),
+          protocolOverride: false,
+        },
+        riskPercent,
+      )
+      if (
+        !confirm(
+          `⚠️ MODE JOURNAL HONNÊTE\n\nTu enregistres un trade HORS protocole :\n${violations.map((v) => `• ${v.label}`).join('\n')}\n\nRaison : ${overrideReason.trim()}\n\nCe trade sera marqué en ROUGE dans tout le journal pour analyse. Continuer ?`,
+        )
+      ) {
+        return
+      }
     }
     // Invalidations : avertissement non-bloquant (recommandé mais pas obligatoire)
     if (!form.invalidations.trim()) {
@@ -260,8 +316,12 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
     }
 
     if (autoCalc.plannedRR > 0 && autoCalc.plannedRR < 2) {
-      setError(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:2, idéal 1:3. Ajuste ton Take Profit.`)
-      return
+      if (protocolOverride) {
+        if (!confirm(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:2. Enregistrer quand même en mode journal honnête ?`)) return
+      } else {
+        setError(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:2, idéal 1:3. Ajuste ton Take Profit.`)
+        return
+      }
     }
     if (autoCalc.plannedRR > 0 && autoCalc.plannedRR < 3) {
       if (!confirm(`R/R = 1:${autoCalc.plannedRR.toFixed(1)} — protocole recommande 1:3 minimum. Continuer ?`)) return
@@ -278,7 +338,16 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         screenshotUrl = data.url
       }
 
-      const notesWithInvalidations = `${form.notes ? form.notes + '\n\n' : ''}[Invalidation]\n${form.invalidations}`
+      const partialPrefix =
+        confluenceTone === 'partial' && !protocolOverride
+          ? `[Taille réduite] Confluence ${confluenceLabel} — risque ${effectiveRiskPercent}% (protocole ${confluenceMax - 1}/${confluenceMax})\n`
+          : ''
+      const overridePrefix = protocolOverride
+        ? `[⚠️ VIOLATION PROTOCOLE] ${overrideReason.trim()}\n`
+        : ''
+      const notesWithInvalidations = `${overridePrefix}${partialPrefix}${form.notes ? form.notes + '\n\n' : ''}[Invalidation]\n${form.invalidations}`
+
+      const submitRiskPercent = protocolOverride ? autoCalc.riskPercent : (effectiveRiskPercent ?? autoCalc.riskPercent)
 
       const result = await createTrade({
         ...form,
@@ -286,7 +355,9 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         ...checklist,
         units: autoCalc.units || parseFloat(form.units),
         riskAmount: autoCalc.riskAmount,
-        riskPercent,
+        riskPercent: submitRiskPercent,
+        protocolOverride,
+        overrideReason: protocolOverride ? overrideReason.trim() : null,
         screenshot: screenshotUrl,
         direction: form.direction as 'LONG' | 'SHORT',
         orderType: form.orderType as 'LIMITE' | 'STOP',
@@ -331,11 +402,11 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
       : null
 
   const canSubmit =
-    allRequiredChecked &&
-    parseInt(form.emotionScore) >= 3 &&
+    (protocolOverride || (canSubmitConfluence && effectiveRiskPercent !== null && parseInt(form.emotionScore) >= 3)) &&
     !priceValidationError &&
     slSaferThanLiq &&
-    autoCalc.units > 0
+    autoCalc.units > 0 &&
+    (!protocolOverride || overrideReason.trim().length >= 10)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -493,7 +564,8 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           ))}
         </div>
         <Description>
-          La taille de position est fixée par le risque ({riskPercent}% du capital), pas par le levier. Le levier réduit uniquement la marge bloquée sur Hyperliquid.
+          La taille de position est fixée par le risque ({riskPercent}% du capital = perte max au SL), pas par le levier.
+          Ex. avec {formatNumber(currentCapital, 0)}$ de capital et {riskPercent}% de risque, tu perds max {formatNumber(currentCapital * riskPercent / 100, 2)}$ si le SL est touché — même si la position notionnelle vaut bien plus (levier).
         </Description>
       </Field>
 
@@ -512,7 +584,10 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
             Calculateur de position automatique
           </div>
           <p className="text-xs text-zinc-500 font-mono leading-relaxed">
-            Formule : Risque {riskPercent}% = ${formatNumber(autoCalc.riskAmount, 2)} ÷ distance SL ({formatNumber(Math.abs(entryNum - slNum), 2)}$) = {formatNumber(autoCalc.units, 4)} unités × ${formatNumber(entryNum, 2)} = ${formatNumber(positionValue, 2)} notionnel
+            Formule : Risque {autoCalc.riskPercent}% = ${formatNumber(autoCalc.riskAmount, 2)} ÷ distance SL ({formatNumber(Math.abs(entryNum - slNum), 2)}$) = {formatNumber(autoCalc.units, 4)} unités × ${formatNumber(entryNum, 2)} = ${formatNumber(positionValue, 2)} notionnel
+            {confluenceTone === 'partial' && (
+              <span className="text-amber-400"> · Taille réduite ({confluenceLabel})</span>
+            )}
           </p>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             <div>
@@ -522,7 +597,10 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
               </p>
             </div>
             <div>
-              <p className="text-sm text-zinc-500">Perte max au SL ({riskPercent}%)</p>
+              <p className="text-sm text-zinc-500">
+                Perte max au SL ({autoCalc.riskPercent}%)
+                {confluenceTone === 'partial' && <span className="text-amber-400"> — réduit</span>}
+              </p>
               <p className="font-mono text-lg font-bold text-red-400">
                 ${formatNumber(autoCalc.riskAmount, 2)}
               </p>
@@ -670,10 +748,16 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         <div className="mb-2 flex items-center justify-between">
           <Label>
             Checklist Protocole —{' '}
-            {isCryptoAsset ? '7 Confluences Obligatoires' : '6 Confluences (Coinglass non applicable aux indices)'}
+            {isCryptoAsset
+              ? '7/7 = 1% · 6/7 = 0.5%'
+              : '6/6 = 1% · 5/6 = 0.5% (Coinglass N/A)'}
           </Label>
-          <Badge color={allRequiredChecked ? 'emerald' : 'red'}>
-            {activeChecklist.filter((c) => checklist[c.key]).length}/{activeChecklist.length} validés
+          <Badge
+            color={
+              confluenceTone === 'full' ? 'emerald' : confluenceTone === 'partial' ? 'amber' : 'red'
+            }
+          >
+            {confluenceLabel} validés
           </Badge>
         </div>
         <CheckboxGroup className="divide-y divide-white/10 overflow-hidden rounded-xl bg-zinc-900/80 ring-1 ring-white/10">
@@ -715,10 +799,26 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
             )
           })}
         </CheckboxGroup>
-        {!allRequiredChecked && (
+        {confluenceTone === 'partial' && (
+          <CalloutBanner tone="amber" icon={<AlertTriangle data-slot="icon" className="size-5 text-amber-400" aria-hidden="true" />}>
+            <span className="font-semibold text-white">Taille réduite — {confluenceLabel}</span>
+            <p className="mt-1">
+              Une confluence manque ({missingConfluenceKeys.map((k) => CONFLUENCE_KEY_LABELS[k]).join(', ')}).
+              Risque automatiquement réduit à <strong className="text-amber-300">{effectiveRiskPercent}%</strong> au lieu de {riskPercent}%.
+              Confirmation requise à l&apos;enregistrement.
+            </p>
+          </CalloutBanner>
+        )}
+        {confluenceTone === 'low' && (
           <p className="mt-2 flex items-center gap-2 text-sm text-red-400">
             <Target size={14} />
-            Protocole non respecté — les {isCryptoAsset ? '7' : '6'} confluences sont obligatoires. Consulte /protocol si doute.
+            Confluence insuffisante ({confluenceLabel}) — minimum {confluenceMax - 1}/{confluenceMax} pour taille réduite. Pas de trade.
+          </p>
+        )}
+        {confluenceTone === 'full' && (
+          <p className="mt-2 flex items-center gap-2 text-sm text-emerald-400">
+            <CheckCircle2 size={14} />
+            Confluence complète ({confluenceLabel}) — taille normale {riskPercent}%.
           </p>
         )}
       </Field>
@@ -759,6 +859,64 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
           rows={2}
         />
+      </Field>
+
+      {/* Mode journal honnête — violation protocole */}
+      <Field>
+        <CheckboxField className="rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-4">
+          <Checkbox
+            color="red"
+            checked={protocolOverride}
+            onChange={(checked) => setProtocolOverride(checked)}
+          />
+          <Label>
+            <span className="font-semibold text-red-300">Mode journal honnête — enregistrer malgré violation du protocole</span>
+          </Label>
+          <Description>
+            Active si tu n&apos;as pas respecté les règles (confluence insuffisante, émotion basse, risque &gt; 1%, etc.)
+            mais que tu veux quand même documenter le trade pour analyse long terme. Le trade sera marqué en rouge partout.
+          </Description>
+        </CheckboxField>
+        {protocolOverride && (
+          <div className="mt-3 space-y-3 rounded-xl border border-red-500/40 bg-red-500/10 p-4">
+            <CalloutBanner
+              tone="red"
+              icon={<AlertTriangle data-slot="icon" className="size-5 text-red-400" aria-hidden="true" />}
+            >
+              <span className="font-bold text-red-200">⚠️ VIOLATION DU PROTOCOLE ASSUMÉE</span>
+              <p className="mt-1 text-sm">
+                Ce trade sera compté séparément dans tes analytics. Tu pourras voir si tu gagnes ou perds quand tu ne respectes pas tes règles.
+              </p>
+            </CalloutBanner>
+            <Field>
+              <Label>Pourquoi tu violates le protocole ? (obligatoire)</Label>
+              <Textarea
+                resizable={false}
+                placeholder="Ex : FOMO sur le breakout, j'ai mis 2% au lieu de 1%, confluence seulement 4/7..."
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+                rows={2}
+                className="border-red-500/30"
+              />
+            </Field>
+            <Field>
+              <Label>Risque personnalisé (%) — optionnel</Label>
+              <Description>
+                Laisse vide pour utiliser {riskPercent}% de base. Renseigne si tu as mis plus (ex. 2%) ou moins que le protocole.
+              </Description>
+              <Input
+                type="number"
+                step="0.1"
+                min="0.1"
+                max="10"
+                placeholder={String(riskPercent)}
+                value={customRiskPercent}
+                onChange={(e) => setCustomRiskPercent(e.target.value)}
+                className="max-w-xs"
+              />
+            </Field>
+          </div>
+        )}
       </Field>
 
       {/* Screenshot */}
@@ -831,23 +989,36 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
       <Button
         type="submit"
         disabled={loading || !canSubmit}
-        color="indigo"
+        color={protocolOverride ? 'red' : 'indigo'}
         className="w-full"
       >
         {loading ? (
           'Enregistrement...'
         ) : canSubmit ? (
           <>
-            <CheckCircle2 data-slot="icon" className="size-4" aria-hidden="true" />
-            Enregistrer le Trade (Protocole validé)
+            {protocolOverride ? (
+              <>
+                <AlertTriangle data-slot="icon" className="size-4" aria-hidden="true" />
+                Enregistrer (VIOLATION — journal honnête)
+              </>
+            ) : (
+              <>
+                <CheckCircle2 data-slot="icon" className="size-4" aria-hidden="true" />
+                {confluenceTone === 'partial'
+                  ? `Enregistrer (${confluenceLabel} — taille ${effectiveRiskPercent}%)`
+                  : `Enregistrer le Trade (${confluenceLabel} — ${riskPercent}%)`}
+              </>
+            )}
           </>
         ) : (
           <>
             <AlertTriangle data-slot="icon" className="size-4" aria-hidden="true" />
-            {!allRequiredChecked
-              ? 'Protocole incomplet — 7 confluences requises'
-              : parseInt(form.emotionScore) <= 2
-                ? 'État émotionnel ≤ 2/5 — pas de trade'
+            {protocolOverride && overrideReason.trim().length < 10
+              ? 'Explique la violation du protocole (min. 10 caractères)'
+              : !protocolOverride && !canSubmitConfluence
+              ? `Protocole incomplet — min. ${confluenceMax - 1}/${confluenceMax} ou mode journal honnête`
+              : !protocolOverride && parseInt(form.emotionScore) <= 2
+                ? 'État émotionnel ≤ 2/5 — mode journal honnête disponible'
                 : priceValidationError
                   ? 'Prix SL/TP invalides'
                   : !slSaferThanLiq

@@ -9,8 +9,9 @@ import {
 import { ChecklistIcon, MoodIcon } from '@/components/ui/TradingIcons'
 import { cn, formatCurrency, formatDateTime, formatR } from '@/lib/utils'
 import { DirectionBadge, StatusBadge } from '@/components/ui/Badge'
+import { Badge } from '@/components/catalyst/badge'
 import { Button } from '@/components/catalyst/button'
-import { formatConfluenceScore, getConfluenceTone } from '@/lib/analytics'
+import { formatConfluenceScore, getConfluenceTone, getProtocolViolations } from '@/lib/analytics'
 import { reviewTrade } from '@/lib/journal'
 import { MARKET_CONDITIONS, PRESET_ASSETS, type Trade, type TradeStatus } from '@/lib/types'
 
@@ -195,6 +196,19 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
               const review = reviewTrade(trade)
               const emotion = normalizeEmotion(trade.emotionScore)
               const isExpanded = expandedId === trade.id
+              const violations = trade.protocolOverride
+                ? [{ label: trade.overrideReason || 'Violation protocole assumée' }]
+                : getProtocolViolations(
+                    {
+                      ...trade,
+                      asset: trade.asset,
+                      riskPercent: trade.riskPercent,
+                      plannedRR: trade.plannedRR,
+                      emotionScore: trade.emotionScore,
+                    },
+                    1,
+                  )
+              const hasViolation = trade.protocolOverride || violations.length > 0
 
               return (
                 <Fragment key={trade.id}>
@@ -203,6 +217,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                     className={cn(
                       'cursor-pointer transition-colors hover:bg-white/5',
                       isExpanded && 'bg-zinc-800',
+                      hasViolation && 'bg-red-500/5 ring-1 ring-inset ring-red-500/20',
                     )}
                   >
                     <td className="px-3 py-3 font-mono text-xs text-zinc-400 whitespace-nowrap">
@@ -210,6 +225,11 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                     </td>
                     <td className="px-3 py-3">
                       <span className="font-mono font-bold text-white">{trade.asset}</span>
+                      {hasViolation && (
+                        <Badge color="red" className="mt-1 text-[10px] uppercase tracking-wide">
+                          ⚠ Violation
+                        </Badge>
+                      )}
                       {trade.setup && (
                         <p className="text-xs text-zinc-500 mt-0.5 truncate max-w-[120px]">{trade.setup.split('(')[0].trim()}</p>
                       )}
@@ -306,6 +326,18 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                     <tr className="bg-zinc-800/80">
                       <td colSpan={11} className="px-5 py-5">
                         <div className="space-y-5">
+                          {hasViolation && (
+                            <div className="rounded-xl border-2 border-red-500/40 bg-red-500/15 p-4">
+                              <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-red-300">
+                                <AlertTriangle size={16} /> Violation du protocole
+                              </p>
+                              <ul className="mt-2 space-y-1">
+                                {violations.map((v) => (
+                                  <li key={v.label} className="text-sm text-red-200/90">• {v.label}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                           {/* Analyse protocole */}
                           {(review.strengths.length > 0 || review.issues.length > 0) && (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

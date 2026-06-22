@@ -3,21 +3,23 @@
 import { useState, useTransition } from 'react'
 import { PageShell } from '@/components/ui/PageShell'
 import { useRouter } from 'next/navigation'
-import { Save, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Save, RefreshCw, AlertTriangle, CheckCircle2, Plus, Minus, RotateCcw, Calculator } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/catalyst/button'
 import { Field, FieldGroup, Label, Description } from '@/components/catalyst/fieldset'
 import { Input } from '@/components/catalyst/input'
-import type { Settings } from '@/lib/types'
-import { formatCurrency, cn } from '@/lib/utils'
-import { updateSettings } from '@/app/actions/settings'
+import { Textarea } from '@/components/catalyst/textarea'
+import type { Settings, CapitalAdjustment } from '@/lib/types'
+import { formatCurrency, cn, formatDateTime } from '@/lib/utils'
+import { updateSettings, adjustCapital, recalculateCapital, resetJournal } from '@/app/actions/settings'
 
 interface SettingsClientProps {
   settings: Settings
+  adjustments: CapitalAdjustment[]
 }
 
-export function SettingsClient({ settings: initialSettings }: SettingsClientProps) {
+export function SettingsClient({ settings: initialSettings, adjustments: initialAdjustments }: SettingsClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [form, setForm] = useState({
@@ -25,10 +27,18 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
     currentCapital: String(initialSettings.currentCapital),
     riskPercent: String(initialSettings.riskPercent),
   })
+  const [depositAmount, setDepositAmount] = useState('')
+  const [depositNote, setDepositNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
 
   const refresh = () => startTransition(() => router.refresh())
+
+  const showMessage = (msg: string) => {
+    setActionMessage(msg)
+    setTimeout(() => setActionMessage(null), 3000)
+  }
 
   const save = async () => {
     setSaving(true)
@@ -47,8 +57,52 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
     }
   }
 
+  const handleDeposit = async (positive: boolean) => {
+    const amount = parseFloat(depositAmount)
+    if (!amount || amount <= 0) return
+    const signed = positive ? amount : -amount
+    const result = await adjustCapital({ amount: signed, note: depositNote || (positive ? 'Dépôt' : 'Retrait') })
+    if (result.success) {
+      setDepositAmount('')
+      setDepositNote('')
+      setForm((f) => ({
+        ...f,
+        currentCapital: String(parseFloat(f.currentCapital) + signed),
+      }))
+      showMessage(positive ? 'Dépôt enregistré' : 'Retrait enregistré')
+      refresh()
+    }
+  }
+
+  const handleRecalculate = async () => {
+    const result = await recalculateCapital()
+    if (result.success && result.capital != null) {
+      setForm((f) => ({ ...f, currentCapital: String(result.capital) }))
+      showMessage(`Capital recalculé : ${formatCurrency(result.capital)}`)
+      refresh()
+    }
+  }
+
+  const handleReset = async () => {
+    const capital = parseFloat(form.initialCapital) || initialSettings.initialCapital
+    if (
+      !confirm(
+        `⚠️ RÉINITIALISATION COMPLÈTE\n\nCela va :\n• Supprimer TOUS les trades\n• Remettre le capital à ${formatCurrency(capital)}\n\nCette action est irréversible. Continuer ?`,
+      )
+    ) {
+      return
+    }
+    const result = await resetJournal({ resetCapitalTo: capital, deleteAdjustments: true })
+    if (result.success) {
+      setForm((f) => ({ ...f, currentCapital: String(capital) }))
+      showMessage('Journal réinitialisé')
+      refresh()
+    }
+  }
+
   const riskPercent = parseFloat(form.riskPercent) || 1
   const capital = parseFloat(form.currentCapital) || 100000
+  const initialCapital = parseFloat(form.initialCapital) || 100000
 
   return (
     <PageShell>
@@ -57,6 +111,32 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
         description="Configuration du protocole de gestion du risque"
       />
 
+      {actionMessage && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
+          <CheckCircle2 size={16} />
+          {actionMessage}
+        </div>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Comprendre le risque 1%</CardTitle>
+        </CardHeader>
+        <div className="space-y-3 text-sm text-zinc-400">
+          <p>
+            Le <strong className="text-white">1% de risque</strong> = la <strong className="text-red-400">perte maximale si ton Stop Loss est touché</strong>, pas la taille de ta position.
+          </p>
+          <p>
+            Exemple avec {formatCurrency(initialCapital)} de capital et {riskPercent}% de risque :
+            tu perds max <strong className="text-red-400">{formatCurrency(initialCapital * riskPercent / 100)}</strong> au SL.
+            Tu peux utiliser tout ton capital (ou plus avec levier) en position — tant que la distance entrée→SL × taille = cette perte max.
+          </p>
+          <p className="rounded-lg bg-zinc-900/80 px-3 py-2 font-mono text-xs text-zinc-300">
+            Unités = ({formatCurrency(capital)} × {riskPercent}%) ÷ distance SL
+          </p>
+        </div>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Capital & Risque</CardTitle>
@@ -64,7 +144,7 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
         <FieldGroup>
           <Field>
             <Label htmlFor="initial-capital">Capital Initial ($)</Label>
-            <Description>Montant de départ. Ne change pas automatiquement.</Description>
+            <Description>Montant de départ. Ne change pas automatiquement (sauf réinitialisation).</Description>
             <Input
               id="initial-capital"
               name="initialCapital"
@@ -81,7 +161,7 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
           <Field>
             <Label htmlFor="current-capital">Capital Actuel ($)</Label>
             <Description>
-              Mis à jour automatiquement à chaque trade clôturé. Modifie manuellement si nécessaire.
+              Mis à jour à chaque trade clôturé et à chaque dépôt/retrait. Modifiable manuellement si besoin.
             </Description>
             <Input
               id="current-capital"
@@ -175,6 +255,81 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
 
       <Card>
         <CardHeader>
+          <CardTitle>Dépôt / Retrait</CardTitle>
+        </CardHeader>
+        <FieldGroup>
+          <Description>
+            Quand tu ajoutes de l&apos;argent sur ton compte, enregistre-le ici. Le capital actuel augmente et ton risque 1% sera recalculé sur le nouveau montant.
+          </Description>
+          <Field>
+            <Label>Montant ($)</Label>
+            <Input
+              type="number"
+              step="any"
+              min="0"
+              placeholder="500"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+            />
+          </Field>
+          <Field>
+            <Label>Note (optionnel)</Label>
+            <Textarea
+              resizable={false}
+              rows={1}
+              placeholder="Ex : virement Binance, salaire..."
+              value={depositNote}
+              onChange={(e) => setDepositNote(e.target.value)}
+            />
+          </Field>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" color="green" onClick={() => handleDeposit(true)} disabled={!depositAmount}>
+              <Plus data-slot="icon" aria-hidden="true" /> Dépôt
+            </Button>
+            <Button type="button" {...{ outline: true as const }} onClick={() => handleDeposit(false)} disabled={!depositAmount}>
+              <Minus data-slot="icon" aria-hidden="true" /> Retrait
+            </Button>
+          </div>
+          {initialAdjustments.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <p className="text-xs font-semibold uppercase text-zinc-500">Historique récent</p>
+              {initialAdjustments.map((adj) => (
+                <div key={adj.id} className="flex justify-between text-sm text-zinc-400">
+                  <span>{formatDateTime(adj.createdAt)}{adj.note ? ` — ${adj.note}` : ''}</span>
+                  <span className={cn('font-mono font-semibold', adj.amount >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                    {adj.amount >= 0 ? '+' : ''}{formatCurrency(adj.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </FieldGroup>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Maintenance du journal</CardTitle>
+        </CardHeader>
+        <FieldGroup>
+          <Description>
+            Supprimer un trade individuel : page Trades → icône poubelle (le P&amp;L est automatiquement retiré du capital si le trade était clôturé).
+          </Description>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" outline onClick={handleRecalculate}>
+              <Calculator data-slot="icon" aria-hidden="true" /> Recalculer le capital
+            </Button>
+            <Button type="button" {...{ outline: true as const }} onClick={handleReset}>
+              <RotateCcw data-slot="icon" aria-hidden="true" /> Recommencer à zéro
+            </Button>
+          </div>
+          <Description className="text-xs">
+            Recalculer = capital initial + somme des P&amp;L clôturés + dépôts/retraits. Utile si le capital a dérivé.
+          </Description>
+        </FieldGroup>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Rappel — Règles Protocole Swing 4H</CardTitle>
         </CardHeader>
         <div className="space-y-2 text-sm">
@@ -186,6 +341,7 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
             { rule: 'Checklist confluences', value: '7/7 (6/7 = taille 0.5%)', color: 'text-zinc-400' },
             { rule: 'Stop loss', value: 'Jamais déplacer en perte', color: 'text-red-400' },
             { rule: '3 pertes consécutives', value: 'Arrêter la session', color: 'text-red-400' },
+            { rule: 'Violation des règles', value: 'Mode journal honnête (formulaire trade)', color: 'text-red-400' },
           ].map((item) => (
             <div key={item.rule} className="flex items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-white/5">
               <span className="text-zinc-400">{item.rule}</span>

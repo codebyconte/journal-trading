@@ -209,6 +209,10 @@ export function reviewTrade(trade: Trade): TradeReview {
   const strengths: string[] = []
   const issues: string[] = []
 
+  if (trade.protocolOverride) {
+    issues.push(`⚠️ Mode journal honnête — ${trade.overrideReason || 'violation assumée'}`)
+  }
+
   if (isFullConfluence(trade)) strengths.push(`Confluence complète (${confluenceScore}/${max})`)
   else if (confluenceScore >= max - 1) strengths.push(`Confluence partielle (${confluenceScore}/${max})`)
   else issues.push(`Confluence insuffisante (${confluenceScore}/${max}) — protocole non respecté`)

@@ -57,6 +57,10 @@ model Trade {
   emotionScore    Int?    // 1-10 état émotionnel avant le trade
   sessionTime     String? // ASIA | LONDON | NY | OVERLAP
 
+  // Violation protocole (mode journal honnête)
+  protocolOverride Boolean @default(false)
+  overrideReason   String?
+
   // Notes & media
   notes      String?
   screenshot String? // chemin fichier upload
@@ -88,4 +92,14 @@ model Settings {
   currentCapital Float  @default(100000)
   riskPercent    Float  @default(1.0)
   currency       String @default("USD")
+}
+
+model CapitalAdjustment {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  amount       Float    // positif = dépôt, négatif = retrait
+  note         String?
+  balanceAfter Float
+
+  @@index([createdAt])
 }

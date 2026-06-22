@@ -37,12 +37,126 @@ export function formatConfluenceScore(trade: ConfluenceTrade): string {
 
 export type ConfluenceTone = 'full' | 'partial' | 'low'
 
+/** Multiplicateur de risque quand une seule confluence manque (6/7 ou 5/6 indices). */
+export const PARTIAL_RISK_MULTIPLIER = 0.5
+
+export const CONFLUENCE_KEY_LABELS: Record<ConfluenceCheckKey, string> = {
+  checkEMA: 'EMA Ribbon',
+  checkRSI: 'RSI / Divergence',
+  checkVolume: 'Volume Profile',
+  checkLiquid: 'CryptoQuant',
+  checkUnlocks: 'Arkham Intel',
+  checkTVL: 'Macro / DXY',
+  checkCoinglass: 'Coinglass',
+}
+
 export function getConfluenceTone(trade: ConfluenceTrade): ConfluenceTone {
   const score = getConfluenceScore(trade)
   const max = getConfluenceMax(trade.asset)
   if (score >= max) return 'full'
   if (score >= max - 1) return 'partial'
   return 'low'
+}
+
+export function getMissingConfluenceKeys(trade: ConfluenceTrade): ConfluenceCheckKey[] {
+  return getApplicableCheckKeys(trade.asset).filter((k) => !trade[k]) as ConfluenceCheckKey[]
+}
+
+/** Risque effectif selon le score de confluence. `null` = pas de trade (≤ max-2). */
+export function getEffectiveRiskPercent(baseRiskPercent: number, trade: ConfluenceTrade): number | null {
+  const tone = getConfluenceTone(trade)
+  if (tone === 'full') return baseRiskPercent
+  if (tone === 'partial') return baseRiskPercent * PARTIAL_RISK_MULTIPLIER
+  return null
+}
+
+export type ProtocolViolationType =
+  | 'manual_override'
+  | 'low_confluence'
+  | 'risk_exceeded'
+  | 'low_emotion'
+  | 'low_rr'
+
+export interface ProtocolViolation {
+  type: ProtocolViolationType
+  label: string
+}
+
+export interface ProtocolCheckInput {
+  asset: string
+  riskPercent: number
+  plannedRR: number
+  emotionScore?: number | null
+  protocolOverride?: boolean
+  checkEMA?: boolean
+  checkRSI?: boolean
+  checkVolume?: boolean
+  checkLiquid?: boolean
+  checkUnlocks?: boolean
+  checkTVL?: boolean
+  checkCoinglass?: boolean
+}
+
+/** Détecte les violations du protocole sur un trade (pour affichage & analytics). */
+export function getProtocolViolations(
+  trade: ProtocolCheckInput,
+  baseRiskPercent = 1,
+): ProtocolViolation[] {
+  const violations: ProtocolViolation[] = []
+
+  if (trade.protocolOverride) {
+    violations.push({
+      type: 'manual_override',
+      label: 'Enregistré en mode journal honnête (violation assumée)',
+    })
+    return violations
+  }
+
+  const confluenceTrade: ConfluenceTrade = { ...trade, asset: trade.asset }
+  const tone = getConfluenceTone(confluenceTrade)
+  if (tone === 'low') {
+    violations.push({
+      type: 'low_confluence',
+      label: `Confluence insuffisante (${formatConfluenceScore(confluenceTrade)})`,
+    })
+  }
+
+  const expectedRisk = getEffectiveRiskPercent(baseRiskPercent, confluenceTrade)
+  if (expectedRisk != null && trade.riskPercent > expectedRisk + 0.05) {
+    violations.push({
+      type: 'risk_exceeded',
+      label: `Risque ${trade.riskPercent.toFixed(2)}% > ${expectedRisk}% autorisé`,
+    })
+  } else if (trade.riskPercent > baseRiskPercent + 0.05) {
+    violations.push({
+      type: 'risk_exceeded',
+      label: `Risque ${trade.riskPercent.toFixed(2)}% > ${baseRiskPercent}% protocole`,
+    })
+  }
+
+  const emotion = normalizeEmotionScore(trade.emotionScore)
+  if (emotion <= 2) {
+    violations.push({
+      type: 'low_emotion',
+      label: `État émotionnel ${emotion}/5 (minimum 3 recommandé)`,
+    })
+  }
+
+  if (trade.plannedRR > 0 && trade.plannedRR < 2) {
+    violations.push({
+      type: 'low_rr',
+      label: `R/R planifié 1:${trade.plannedRR.toFixed(1)} < 1:2 minimum`,
+    })
+  }
+
+  return violations
+}
+
+export function isTradeProtocolCompliant(
+  trade: ProtocolCheckInput,
+  baseRiskPercent = 1,
+): boolean {
+  return getProtocolViolations(trade, baseRiskPercent).length === 0
 }
 
 /** Score max absolu (crypto). */

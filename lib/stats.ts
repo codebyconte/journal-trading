@@ -1,4 +1,4 @@
-import { isFullConfluence } from '@/lib/analytics'
+import { isTradeProtocolCompliant } from '@/lib/analytics'
 
 /** Sous-ensemble utilisé pour les calculs stats (compatible Prisma + API) */
 export interface TradeLike {
@@ -17,6 +17,10 @@ export interface TradeLike {
   checkUnlocks?: boolean
   checkTVL?: boolean
   checkCoinglass?: boolean
+  riskPercent?: number
+  plannedRR?: number
+  emotionScore?: number | null
+  protocolOverride?: boolean
 }
 
 function formatUsd(n: number): string {
@@ -281,11 +285,21 @@ export function computeDashboardMetrics(
           ? -consecutiveLosses
           : 0
 
-  const fullProtocol = closedTrades.filter((t) =>
-    isFullConfluence({ ...t, asset: t.asset ?? '' }),
+  const compliantTrades = closedTrades.filter((t) =>
+    isTradeProtocolCompliant(
+      {
+        ...t,
+        asset: t.asset ?? '',
+        riskPercent: t.riskPercent ?? 1,
+        plannedRR: t.plannedRR ?? 0,
+        emotionScore: t.emotionScore,
+        protocolOverride: t.protocolOverride,
+      },
+      1,
+    ),
   ).length
   const protocolComplianceRate =
-    closedTrades.length > 0 ? (fullProtocol / closedTrades.length) * 100 : 100
+    closedTrades.length > 0 ? (compliantTrades / closedTrades.length) * 100 : 100
 
   const openRiskUsd = [...openTrades, ...pendingTrades].reduce(
     (s, t) => s + (t.riskAmount ?? 0),

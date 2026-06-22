@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import { prisma } from '@/lib/db'
-import { computeSummary, getConfluenceScore, normalizeEmotionScore } from '@/lib/analytics'
+import { computeSummary, getConfluenceScore, normalizeEmotionScore, isTradeProtocolCompliant } from '@/lib/analytics'
 import type { AnalyticsSummary } from '@/lib/analytics'
 
 const TRADING_DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as const
@@ -35,7 +35,20 @@ export const getAnalyticsData = cache(async (): Promise<AnalyticsData> => {
   })
 
   const summary = computeSummary(trades)
-  const riskViolations = trades.filter((t) => t.riskPercent > 1.01).length
+  const riskViolations = trades.filter(
+    (t) =>
+      t.protocolOverride ||
+      !isTradeProtocolCompliant(
+        {
+          ...t,
+          asset: t.asset,
+          riskPercent: t.riskPercent,
+          plannedRR: t.plannedRR,
+          emotionScore: t.emotionScore,
+        },
+        1,
+      ),
+  ).length
 
   const byAsset: Record<string, { trades: number; wins: number; pnl: number; rValues: number[] }> = {}
   for (const t of trades) {

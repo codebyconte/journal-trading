@@ -31,6 +31,8 @@ export interface CreateTradeInput {
   sessionTime?: string | null
   notes?: string | null
   screenshot?: string | null
+  protocolOverride?: boolean
+  overrideReason?: string | null
 }
 
 export async function createTrade(input: CreateTradeInput): Promise<ActionResult> {
@@ -67,6 +69,8 @@ export async function createTrade(input: CreateTradeInput): Promise<ActionResult
         sessionTime: input.sessionTime || null,
         notes: input.notes || null,
         screenshot: input.screenshot || null,
+        protocolOverride: !!input.protocolOverride,
+        overrideReason: input.overrideReason?.trim() || null,
       },
     })
 
@@ -79,7 +83,27 @@ export async function createTrade(input: CreateTradeInput): Promise<ActionResult
 
 export async function deleteTrade(id: string): Promise<ActionResult> {
   try {
-    await prisma.trade.delete({ where: { id } })
+    const trade = await prisma.trade.findUnique({ where: { id } })
+    if (!trade) return { success: false, error: 'Trade non trouvé' }
+
+    await prisma.$transaction(async (tx) => {
+      if (trade.status === 'CLOSED' && trade.pnl != null) {
+        const settings = await tx.settings.findUnique({ where: { id: 'singleton' } })
+        const current = settings?.currentCapital ?? 100000
+        await tx.settings.upsert({
+          where: { id: 'singleton' },
+          update: { currentCapital: current - trade.pnl },
+          create: {
+            id: 'singleton',
+            initialCapital: 100000,
+            currentCapital: 100000 - trade.pnl,
+            riskPercent: 1.0,
+          },
+        })
+      }
+      await tx.trade.delete({ where: { id } })
+    })
+
     revalidateTradingPaths()
     return { success: true }
   } catch {
