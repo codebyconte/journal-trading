@@ -126,7 +126,7 @@ export const getAnalyticsData = cache(async (): Promise<AnalyticsData> => {
     if ((t.pnl ?? 0) > 0) byConfluence[score].wins++
     byConfluence[score].pnl += t.pnl ?? 0
   }
-  const confluencePerformance = [0, 1, 2, 3, 4, 5, 6]
+  const confluencePerformance = [0, 1, 2, 3, 4, 5, 6, 7]
     .map((score) => {
       const data = byConfluence[score] ?? { trades: 0, wins: 0, pnl: 0 }
       return {

@@ -210,7 +210,7 @@ export function protocolPageJsonLd() {
         step: [
           { '@type': 'HowToStep', name: 'Règle Zéro', text: 'Vérifier état émotionnel ≥ 3/5 avant toute analyse.' },
           { '@type': 'HowToStep', name: 'MTF Alignment', text: 'Aligner Weekly, Daily et 4H dans la même direction.' },
-          { '@type': 'HowToStep', name: 'Setup & confluences', text: 'Valider 6/6 confluences (EMA, RSI, volume, liquidité, unlocks, TVL).' },
+          { '@type': 'HowToStep', name: 'Setup & confluences', text: 'Valider 7/7 confluences (EMA, RSI, volume, CryptoQuant, Arkham, Macro, Coinglass).' },
           { '@type': 'HowToStep', name: 'Ordre Limite', text: 'Placer entrée, SL et TP simultanément — R/R minimum 1:3.' },
           { '@type': 'HowToStep', name: 'Gestion post-trade', text: 'Breakeven à +1R, partial à +2R, trailing selon plan.' },
           { '@type': 'HowToStep', name: 'Journal & review', text: 'Enregistrer le trade et analyser les patterns hebdomadaires.' },

@@ -37,7 +37,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
     const wins = closed.filter((t) => (t.pnl ?? 0) > 0).length
     const totalPnl = closed.reduce((s, t) => s + (t.pnl ?? 0), 0)
     const winRate = closed.length > 0 ? (wins / closed.length) * 100 : 0
-    const fullProtocol = closed.filter((t) => getConfluenceScore(t) === 6).length
+    const fullProtocol = closed.filter((t) => getConfluenceScore(t) >= 7).length
     const protocolRate = closed.length > 0 ? (fullProtocol / closed.length) * 100 : 0
     const atRisk = trades
       .filter((t) => t.status === 'OPEN' || t.status === 'PENDING')
@@ -67,7 +67,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
     <PageShell>
       <PageHeader
         title="Trades — Protocole Swing 4H"
-        description="Ordre Limite · 1% risque · 6 confluences · R/R minimum 1:3"
+        description="Ordre Limite · 1% risque · 7 confluences · R/R minimum 1:3"
         icon={<Target data-slot="icon" className="size-7 text-indigo-400" aria-hidden="true" />}
         actions={
           <>

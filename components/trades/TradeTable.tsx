@@ -219,9 +219,9 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                     <td className="px-3 py-3">
                       <span className={cn(
                         'inline-flex rounded-md px-2 py-0.5 text-xs font-bold font-mono',
-                        confScore === 6 ? 'bg-emerald-500/10 text-emerald-400' : confScore >= 4 ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400',
+                        confScore >= 7 ? 'bg-emerald-500/10 text-emerald-400' : confScore >= 5 ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400',
                       )}>
-                        {confScore}/6
+                        {confScore}/7
                       </span>
                     </td>
                     <td className="px-3 py-3 font-mono text-white">

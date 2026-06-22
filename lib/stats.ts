@@ -167,7 +167,7 @@ export interface ComputedDashboardMetrics {
   equityCurve: { date: string; equity: number; drawdown: number; trade?: string }[]
 }
 
-const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL'] as const
+const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL', 'checkCoinglass'] as const
 
 function confluenceScore(trade: TradeLike): number {
   return CHECK_KEYS.filter((k) => trade[k]).length
@@ -285,7 +285,7 @@ export function computeDashboardMetrics(
           ? -consecutiveLosses
           : 0
 
-  const fullProtocol = closedTrades.filter((t) => confluenceScore(t) === 6).length
+  const fullProtocol = closedTrades.filter((t) => confluenceScore(t) >= 7).length
   const protocolComplianceRate =
     closedTrades.length > 0 ? (fullProtocol / closedTrades.length) * 100 : 100
 

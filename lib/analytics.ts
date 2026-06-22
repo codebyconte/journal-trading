@@ -120,22 +120,22 @@ export function generateInsights(data: {
     })
   }
 
-  const fullConf = data.confluencePerformance.find((c) => c.score === 6)
-  const lowConf = data.confluencePerformance.filter((c) => c.score < 6 && c.trades >= 2)
+  const fullConf = data.confluencePerformance.find((c) => c.score >= 7)
+  const lowConf = data.confluencePerformance.filter((c) => c.score < 7 && c.trades >= 2)
   if (fullConf && fullConf.trades >= 3) {
     insights.push({
       id: 'confluence-full',
       type: 'good',
-      title: 'Meilleurs résultats à 6/6 confluences',
+      title: 'Meilleurs résultats à 7/7 confluences',
       detail: `${fullConf.trades} trades avec confluence complète — WR ${fullConf.winRate.toFixed(0)}%, P&L ${fullConf.pnl >= 0 ? '+' : ''}${fullConf.pnl.toFixed(0)}$. Trade uniquement ces setups.`,
     })
   }
-  const badLowConf = lowConf.find((c) => c.score <= 4 && c.pnl < 0)
+  const badLowConf = lowConf.find((c) => c.score <= 5 && c.pnl < 0)
   if (badLowConf) {
     insights.push({
       id: 'confluence-low',
       type: 'bad',
-      title: `Pertes avec confluence ≤ ${badLowConf.score}/6`,
+      title: `Pertes avec confluence ≤ ${badLowConf.score}/7`,
       detail: `${badLowConf.trades} trades, WR ${badLowConf.winRate.toFixed(0)}%. Le protocole filtre précisément ces situations — ne pas les forcer.`,
     })
   }
