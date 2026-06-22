@@ -215,16 +215,20 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
 
   const activeChecklist = form.direction === 'SHORT' ? CHECKLIST_SHORT : CHECKLIST_LONG
 
-  const allRequiredChecked = activeChecklist.filter((c) => c.required).every(
-    (c) => checklist[c.key],
-  )
+  // Coinglass s'applique uniquement aux crypto perpetuels (pas aux indices SPX/QQQ)
+  const isCryptoAsset = !['SPX', 'QQQ'].includes(form.asset)
+
+  const allRequiredChecked = activeChecklist
+    .filter((c) => c.required)
+    .filter((c) => isCryptoAsset || c.key !== 'checkCoinglass')
+    .every((c) => checklist[c.key])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
     if (!allRequiredChecked) {
-      setError('Valide les 7 confluences obligatoires avant de soumettre. C\'est le protocole.')
+      setError(`Valide les ${isCryptoAsset ? '7' : '6'} confluences obligatoires avant de soumettre. C'est le protocole.`)
       return
     }
     if (parseInt(form.emotionScore) <= 2) {
@@ -663,23 +667,30 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
       {/* Checklist protocole 7 niveaux */}
       <Field>
         <div className="mb-2 flex items-center justify-between">
-          <Label>Checklist Protocole — 7 Confluences Obligatoires</Label>
+          <Label>
+            Checklist Protocole —{' '}
+            {isCryptoAsset ? '7 Confluences Obligatoires' : '6 Confluences (Coinglass non applicable aux indices)'}
+          </Label>
           <Badge color={allRequiredChecked ? 'emerald' : 'red'}>
             {activeChecklist.filter((c) => checklist[c.key]).length}/{activeChecklist.length} validés
           </Badge>
         </div>
         <CheckboxGroup className="divide-y divide-white/10 overflow-hidden rounded-xl bg-zinc-900/80 ring-1 ring-white/10">
-          {activeChecklist.map((item, idx) => (
+          {activeChecklist.map((item, idx) => {
+            const isNotApplicable = item.key === 'checkCoinglass' && !isCryptoAsset
+            return (
             <CheckboxField
               key={item.key}
               className={cn(
                 'px-3 py-3 transition-colors hover:bg-white/5',
                 checklist[item.key] && 'bg-emerald-500/10',
+                isNotApplicable && 'opacity-40',
               )}
             >
               <Checkbox
                 color="emerald"
                 checked={checklist[item.key]}
+                disabled={isNotApplicable}
                 onChange={(checked) =>
                   setChecklist({ ...checklist, [item.key]: checked })
                 }
@@ -687,10 +698,11 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
               <Label>
                 <span className="inline-flex w-full items-start gap-2">
                   <span className="text-sm font-mono text-zinc-500">0{idx + 1}</span>
-                  <span className={cn('min-w-0 flex-1 text-sm font-medium', checklist[item.key] ? 'text-white' : 'text-zinc-400')}>
+                  <span className={cn('min-w-0 flex-1 text-sm font-medium', checklist[item.key] ? 'text-white' : isNotApplicable ? 'text-zinc-600 line-through' : 'text-zinc-400')}>
                     {item.label}
+                    {isNotApplicable && <span className="ml-2 text-xs font-normal text-zinc-600 no-underline">(non applicable aux indices)</span>}
                   </span>
-                  {checklist[item.key] ? (
+                  {isNotApplicable ? null : checklist[item.key] ? (
                     <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-400" />
                   ) : (
                     <AlertCircle size={14} className="mt-0.5 shrink-0 text-red-400 opacity-60" />
@@ -699,12 +711,13 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
               </Label>
               <Description>{item.desc}</Description>
             </CheckboxField>
-          ))}
+            )
+          })}
         </CheckboxGroup>
         {!allRequiredChecked && (
           <p className="mt-2 flex items-center gap-2 text-sm text-red-400">
             <Target size={14} />
-            Protocole non respecté — les 7 confluences sont obligatoires (dont Coinglass). Consulte /protocol si doute.
+            Protocole non respecté — les {isCryptoAsset ? '7' : '6'} confluences sont obligatoires. Consulte /protocol si doute.
           </p>
         )}
       </Field>
@@ -831,7 +844,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           <>
             <AlertTriangle data-slot="icon" className="size-4" aria-hidden="true" />
             {!allRequiredChecked
-              ? 'Protocole incomplet — 6 confluences requises'
+              ? 'Protocole incomplet — 7 confluences requises'
               : parseInt(form.emotionScore) <= 2
                 ? 'État émotionnel ≤ 2/5 — pas de trade'
                 : priceValidationError

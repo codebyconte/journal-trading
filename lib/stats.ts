@@ -14,6 +14,7 @@ export interface TradeLike {
   checkLiquid?: boolean
   checkUnlocks?: boolean
   checkTVL?: boolean
+  checkCoinglass?: boolean
 }
 
 function formatUsd(n: number): string {

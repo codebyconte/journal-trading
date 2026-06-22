@@ -1,10 +1,13 @@
 import type { Trade } from '@/lib/types'
 
-const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL'] as const
+const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL', 'checkCoinglass'] as const
 
 export function getConfluenceScore(trade: Pick<Trade, typeof CHECK_KEYS[number]>): number {
   return CHECK_KEYS.filter((k) => trade[k]).length
 }
+
+/** Score max possible : 7 (6 pour actifs non-crypto comme SPX/QQQ sans Coinglass) */
+export const CONFLUENCE_MAX = 7
 
 export function normalizeEmotionScore(score: number | null | undefined): number {
   if (score == null) return 4

@@ -99,7 +99,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
             tone: stats.totalPnl >= 0 ? 'profit' : 'loss',
           },
           {
-            label: 'Protocole 6/6',
+            label: 'Protocole 7/7',
             value: stats.closed > 0 ? `${stats.protocolRate.toFixed(0)}%` : '—',
             tone: stats.closed > 0 ? (stats.protocolRate >= 70 ? 'profit' : 'neutral') : 'default',
           },
@@ -113,7 +113,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
         icon={<Shield data-slot="icon" className="size-5 text-indigo-400" aria-hidden="true" />}
         title="Avant chaque trade — Checklist obligatoire"
       >
-        Règle Zéro ≥ 3/5 · MTF aligné (W→D→4H) · 6/6 confluences · Ordre Limite · SL+TP simultanés · 3 invalidations
+        Règle Zéro ≥ 3/5 · MTF aligné (W→D→4H) · 7/7 confluences · Ordre Limite · SL+TP simultanés · 3 invalidations
         <div className="mt-3">
           <Button href="/protocol" outline>
             <BookOpen data-slot="icon" className="size-4" aria-hidden="true" />

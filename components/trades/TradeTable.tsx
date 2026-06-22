@@ -37,6 +37,7 @@ const CONFLUENCE_LABELS = [
   { key: 'checkLiquid', label: 'CryptoQuant 4/7' },
   { key: 'checkUnlocks', label: 'Arkham Intel' },
   { key: 'checkTVL', label: 'Macro / DXY' },
+  { key: 'checkCoinglass', label: 'Coinglass' },
 ] as const
 
 function normalizeEmotion(score: number | null | undefined): number {
@@ -402,7 +403,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
 
                           <div>
                             <p className="text-xs font-semibold uppercase text-zinc-500 mb-2">
-                              Checklist confluence — Protocole 6/6
+                              Checklist confluence — Protocole 7/7
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {CONFLUENCE_LABELS.map(({ key, label }) => {

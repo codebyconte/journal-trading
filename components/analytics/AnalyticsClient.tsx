@@ -297,7 +297,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                 Performance par Confluence (protocole)
               </CardTitle>
             </div>
-            <p className="text-xs text-zinc-500">6/6 = protocole complet · Minimum requis : 4/6</p>
+            <p className="text-xs text-zinc-500">7/7 = protocole complet · 6/7 = taille réduite à 0.5%</p>
           </CardHeader>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="h-56">
@@ -309,7 +309,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                     tick={{ fill: CHART.axis, fontSize: 11 }}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(v) => `${v}/6`}
+                    tickFormatter={(v) => `${v}/7`}
                   />
                   <YAxis
                     yAxisId="left"

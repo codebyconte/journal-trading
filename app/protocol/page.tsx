@@ -93,21 +93,104 @@ function TabRegleZero() {
         ))}
       </div>
 
+      {/* ── Quick Decision Card ── */}
+      <SubHeading icon={<Zap size={18} />}>Carte de Décision Rapide — 30 secondes</SubHeading>
+      <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-5">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">✅ TRADE POSSIBLE</p>
+            {[
+              'Score émotionnel ≥ 3/5',
+              'Aucun event rouge Forex Factory dans 24h',
+              'MTF aligné : W → D → 4H même direction',
+              'Setup technique clair (EMA retest + RSI + Volume)',
+              'CryptoQuant 4/7 minimum validés',
+              'Arkham : aucune alerte adverse active',
+              'Coinglass : Funding < 0.08% + L/S neutre (crypto)',
+              'Circuit-breaker inactif',
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-2 text-sm text-zinc-300">
+                <CheckCircle2 size={13} className="shrink-0 text-emerald-400" />
+                {item}
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-red-400">🚫 PAS DE TRADE</p>
+            {[
+              'Score émotionnel ≤ 2/5 → ferme TradingView',
+              'FOMC, CPI ou NFP dans les 24h',
+              'MTF contradictoire (W baissier + 4H haussier)',
+              'Prix en No Man\'s Land (entre deux EMA)',
+              'Whale Ratio > 0.90 + Funding > 0.08% (combo)',
+              'Alerte gouvernement ≥ $50M (crypto)',
+              'Circuit-breaker actif (−10% semaine ou 3 pertes)',
+              'R/R inférieur à 1:2',
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-2 text-sm text-zinc-300">
+                <XCircle size={13} className="shrink-0 text-red-400" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Règle de flexibilité ── */}
+      <SubHeading icon={<Scale size={18} />}>Règle de Flexibilité — Taille selon le Score</SubHeading>
+      <div className="grid gap-3 md:grid-cols-3">
+        {[
+          {
+            score: '7/7', label: 'Taille complète — 1%', color: 'border-emerald-500/30 bg-emerald-500/5',
+            tc: 'text-emerald-400', desc: 'Toutes les confluences alignées. Entrée normale, taille 1% du capital.',
+          },
+          {
+            score: '6/7', label: 'Taille réduite — 0.5%', color: 'border-amber-500/30 bg-amber-500/5',
+            tc: 'text-amber-400', desc: 'Une condition borderline (ex : Funding Rate à 0.09%). Trade possible mais avec moitié de taille. Documente quelle condition était borderline.',
+          },
+          {
+            score: '≤ 5/7', label: 'Pas de trade', color: 'border-red-500/30 bg-red-500/5',
+            tc: 'text-red-400', desc: 'Trop d\'incertitude. Le protocole existe pour que tu attendes le setup parfait, pas le prochain setup acceptable.',
+          },
+        ].map((s) => (
+          <div key={s.score} className={cn('rounded-xl border p-4', s.color)}>
+            <div className="mb-2 flex items-center gap-2">
+              <span className={cn('text-xl font-bold font-mono', s.tc)}>{s.score}</span>
+              <span className={cn('text-sm font-semibold', s.tc)}>{s.label}</span>
+            </div>
+            <p className="text-sm text-zinc-300">{s.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <Callout type="info" title="Pourquoi 2-4 trades/mois est normal en swing trading">
+        <strong className="text-white">Le but du protocole n&apos;est PAS de trouver plus de trades</strong> — c&apos;est de s&apos;assurer que chaque trade a un edge statistique. Edgewonk (50 000 trades analysés) : les traders qui respectaient leur checklist à 100% avaient un R/R moyen 37% supérieur à ceux qui « assoupissaient » leurs règles. Les meilleurs swing traders font 2-6 trades par mois — pas par jour.
+      </Callout>
+
       <SubHeading icon={<CheckCircle2 size={18} />}>Vue d'ensemble — Les 7 Étapes du Protocole</SubHeading>
       <div className="space-y-2">
         {[
-          { n: '0', label: 'Règle Zéro', desc: 'État émotionnel ≥ 3/5. Évaluation mentale avant tout graphique.', tab: 'regle' },
-          { n: '1', label: 'Analyse Multi-Timeframe', desc: 'Contexte hebdomadaire → Quotidien → 4H. Direction macro d\'abord.', tab: 'mtf' },
-          { n: '2', label: 'Market Structure', desc: 'HH/HL/LH/LL → BOS/ChoCH. Confirme que la tendance est intacte.', tab: 'structure' },
-          { n: '3', label: 'Indicateurs Techniques', desc: 'EMA Ribbon + RSI divergence + Volume Profile. Minimum 4/6 confluences.', tab: 'technique' },
-          { n: '4', label: 'On-Chain + Arkham + Coinglass', desc: 'CryptoQuant 4/7 validés. Glassnode hebdo. Arkham alertes. Coinglass : Funding Rate + Heatmap + L/S Ratio (2 min).', tab: 'onchain' },
-          { n: '5', label: 'Filtres Macro', desc: 'Pas d\'événement rouge dans 48h. DXY contexte. VIX nominal.', tab: 'macro' },
-          { n: '6', label: 'Exécution + Gestion', desc: 'Ordre Limite. SL ATR. TP calculé. Gestion active après entrée.', tab: 'execution' },
+          { n: '0', label: 'Règle Zéro', desc: 'État émotionnel ≥ 3/5. Évaluation mentale avant tout graphique. Hard stop non négociable.', tab: 'regle', hard: true },
+          { n: '1', label: 'Analyse Multi-Timeframe', desc: 'Weekly → Daily → 4H. Direction macro d\'abord. Jamais l\'inverse.', tab: 'mtf', hard: false },
+          { n: '2', label: 'Market Structure', desc: 'HH/HL/LH/LL → BOS/ChoCH. Tendance intacte = prérequis.', tab: 'structure', hard: false },
+          { n: '3', label: 'Indicateurs Techniques', desc: 'EMA Ribbon + RSI divergence + Volume Profile POC. Les 3 doivent confirmer.', tab: 'technique', hard: false },
+          { n: '4', label: 'On-Chain + Arkham + Coinglass', desc: 'CryptoQuant 4/7 validés. Glassnode hebdo. Arkham alertes. Coinglass Funding/Heatmap (crypto uniquement).', tab: 'onchain', hard: false },
+          { n: '5', label: 'Filtres Macro', desc: 'Pas d\'événement rouge dans 48h. DXY contexte. VIX nominal. Hard stop si FOMC/CPI.', tab: 'macro', hard: true },
+          { n: '6', label: 'Exécution + Gestion', desc: 'Ordre Limite. SL ATR. TP calculé. R/R minimum 1:2. Gestion active après entrée.', tab: 'execution', hard: false },
         ].map((s) => (
-          <div key={s.n} className="flex items-center gap-4 rounded-xl border border-white/10 bg-zinc-900 px-4 py-3.5 hover:bg-white/5 transition-colors">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-500/15 border border-indigo-500/30 font-bold text-indigo-400">{s.n}</div>
+          <div key={s.n} className={cn(
+            'flex items-center gap-4 rounded-xl border px-4 py-3.5 hover:bg-white/5 transition-colors',
+            s.hard ? 'border-red-500/20 bg-red-500/5' : 'border-white/10 bg-zinc-900',
+          )}>
+            <div className={cn(
+              'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full font-bold border',
+              s.hard ? 'bg-red-500/15 border-red-500/30 text-red-400' : 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400',
+            )}>{s.n}</div>
             <div className="flex-1">
-              <p className="font-semibold text-white">{s.label}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-white">{s.label}</p>
+                {s.hard && <span className="rounded px-1.5 py-0.5 text-xs font-bold bg-red-500/15 text-red-400">HARD STOP</span>}
+              </div>
               <p className="text-sm text-zinc-400">{s.desc}</p>
             </div>
             <ChevronRight size={16} className="text-zinc-500 flex-shrink-0" />
@@ -934,6 +1017,10 @@ function TabCoinglass() {
   return (
     <div className="space-y-6">
       <SectionHeading>Coinglass — Marché des Dérivés (Perpetuels)</SectionHeading>
+
+      <Callout type="warning" title="Applicable uniquement aux crypto perpetuels (BTC, ETH, SOL)">
+        Coinglass est basé sur les marchés de futures perpetuels crypto. <strong className="text-white">Pour SPX et QQQ (indices traditionnels), Coinglass n&apos;est pas applicable</strong> — il n&apos;y a pas de Funding Rate ni de Liquidation Heatmap sur ces marchés. Le TradeForm le détecte automatiquement.
+      </Callout>
 
       <Callout type="success" title="Pourquoi Coinglass comble un vrai manque dans ton système">
         Ton écosystème couvre le marché spot (CryptoQuant), les flux institutionnels identifiés (Arkham), l&apos;analyse technique (TradingView) et le macro (FedWatch/VIX). <strong className="text-white">Ce qu&apos;il manquait : une vision complète du marché des dérivés perpetuels</strong> — là où se concentre le levier des traders, les liquidations en cascade et les short/long squeezes. Coinglass te donne cette vision. Tu trades sur Hyperliquid : exactement ce marché.
