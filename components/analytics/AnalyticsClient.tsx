@@ -15,6 +15,7 @@ import { formatCurrency, formatR, cn } from '@/lib/utils'
 import {
   generateInsights,
   truncateSetup,
+  CONFLUENCE_MAX,
   type AnalyticsInsight,
 } from '@/lib/analytics'
 import type { AnalyticsData } from '@/lib/data/analytics'
@@ -110,9 +111,9 @@ function InsightCard({ insight }: { insight: AnalyticsInsight }) {
       : <Info size={16} className="text-amber-400" />
 
   const ringStyle = insight.type === 'good'
-    ? 'ring-emerald-500/25 bg-emerald-500/10/20'
+    ? 'ring-emerald-500/25 bg-emerald-500/10'
     : insight.type === 'bad'
-      ? 'ring-red-500/25 bg-red-500/10/20'
+      ? 'ring-red-500/25 bg-red-500/10'
       : 'ring-white/10 bg-zinc-900/80'
 
   return (
@@ -349,13 +350,13 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                 </thead>
                 <tbody className="divide-y divide-white/10">
                   {normalized.confluencePerformance.map((c) => (
-                    <tr key={c.score} className={cn(c.score === 6 && 'bg-emerald-500/10/20')}>
+                    <tr key={c.score} className={cn(c.score === CONFLUENCE_MAX && 'bg-emerald-500/10')}>
                       <td className="px-3 py-2.5">
                         <span className={cn(
                           'rounded-md px-2 py-0.5 font-mono text-xs font-bold',
-                          c.score === 6 ? 'bg-profit/20 text-emerald-400' : c.score >= 4 ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400',
+                          c.score === CONFLUENCE_MAX ? 'bg-profit/20 text-emerald-400' : c.score >= CONFLUENCE_MAX - 2 ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400',
                         )}>
-                          {c.score}/6
+                          {c.score}/{CONFLUENCE_MAX}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-zinc-400">{c.trades}</td>

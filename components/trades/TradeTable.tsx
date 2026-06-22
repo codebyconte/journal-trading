@@ -10,7 +10,7 @@ import { ChecklistIcon, MoodIcon } from '@/components/ui/TradingIcons'
 import { cn, formatCurrency, formatDateTime, formatR } from '@/lib/utils'
 import { DirectionBadge, StatusBadge } from '@/components/ui/Badge'
 import { Button } from '@/components/catalyst/button'
-import { getConfluenceScore } from '@/lib/analytics'
+import { formatConfluenceScore, getConfluenceTone } from '@/lib/analytics'
 import { reviewTrade } from '@/lib/journal'
 import { MARKET_CONDITIONS, PRESET_ASSETS, type Trade, type TradeStatus } from '@/lib/types'
 
@@ -190,7 +190,8 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
               </tr>
             )}
             {filtered.map((trade) => {
-              const confScore = getConfluenceScore(trade)
+              const confTone = getConfluenceTone(trade)
+              const confLabel = formatConfluenceScore(trade)
               const review = reviewTrade(trade)
               const emotion = normalizeEmotion(trade.emotionScore)
               const isExpanded = expandedId === trade.id
@@ -219,9 +220,9 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                     <td className="px-3 py-3">
                       <span className={cn(
                         'inline-flex rounded-md px-2 py-0.5 text-xs font-bold font-mono',
-                        confScore >= 7 ? 'bg-emerald-500/10 text-emerald-400' : confScore >= 5 ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400',
+                        confTone === 'full' ? 'bg-emerald-500/10 text-emerald-400' : confTone === 'partial' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400',
                       )}>
-                        {confScore}/7
+                        {confLabel}
                       </span>
                     </td>
                     <td className="px-3 py-3 font-mono text-white">
@@ -309,7 +310,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                           {(review.strengths.length > 0 || review.issues.length > 0) && (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                               {review.strengths.length > 0 && (
-                                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10/20 p-4">
+                                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
                                   <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-400 mb-2">
                                     <CheckCircle2 size={13} /> Bonnes conduites
                                   </p>
@@ -321,7 +322,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                                 </div>
                               )}
                               {review.issues.length > 0 && (
-                                <div className="rounded-xl border border-red-500/20 bg-red-500/10/20 p-4">
+                                <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
                                   <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-red-400 mb-2">
                                     <AlertTriangle size={13} /> Écarts protocole
                                   </p>

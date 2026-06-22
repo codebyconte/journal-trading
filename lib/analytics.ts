@@ -1,12 +1,51 @@
 import type { Trade } from '@/lib/types'
 
-const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL', 'checkCoinglass'] as const
+export const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL', 'checkCoinglass'] as const
+export type ConfluenceCheckKey = (typeof CHECK_KEYS)[number]
 
-export function getConfluenceScore(trade: Pick<Trade, typeof CHECK_KEYS[number]>): number {
+const NON_CRYPTO_ASSETS = new Set(['SPX', 'QQQ'])
+
+/** Coinglass ne s'applique qu'aux crypto perpetuels (pas SPX/QQQ). */
+export function isCoinglassApplicable(asset: string): boolean {
+  const normalized = asset.toUpperCase().replace(/-PERP$/, '')
+  return !NON_CRYPTO_ASSETS.has(normalized)
+}
+
+export function getApplicableCheckKeys(asset: string): readonly ConfluenceCheckKey[] {
+  if (isCoinglassApplicable(asset)) return CHECK_KEYS
+  return CHECK_KEYS.filter((k) => k !== 'checkCoinglass')
+}
+
+export function getConfluenceMax(asset: string): number {
+  return getApplicableCheckKeys(asset).length
+}
+
+export type ConfluenceChecks = Partial<Record<ConfluenceCheckKey, boolean>>
+export type ConfluenceTrade = ConfluenceChecks & { asset: string }
+
+export function getConfluenceScore(trade: ConfluenceChecks): number {
   return CHECK_KEYS.filter((k) => trade[k]).length
 }
 
-/** Score max possible : 7 (6 pour actifs non-crypto comme SPX/QQQ sans Coinglass) */
+export function isFullConfluence(trade: ConfluenceTrade): boolean {
+  return getApplicableCheckKeys(trade.asset).every((k) => !!trade[k])
+}
+
+export function formatConfluenceScore(trade: ConfluenceTrade): string {
+  return `${getConfluenceScore(trade)}/${getConfluenceMax(trade.asset)}`
+}
+
+export type ConfluenceTone = 'full' | 'partial' | 'low'
+
+export function getConfluenceTone(trade: ConfluenceTrade): ConfluenceTone {
+  const score = getConfluenceScore(trade)
+  const max = getConfluenceMax(trade.asset)
+  if (score >= max) return 'full'
+  if (score >= max - 1) return 'partial'
+  return 'low'
+}
+
+/** Score max absolu (crypto). */
 export const CONFLUENCE_MAX = 7
 
 export function normalizeEmotionScore(score: number | null | undefined): number {
@@ -120,22 +159,22 @@ export function generateInsights(data: {
     })
   }
 
-  const fullConf = data.confluencePerformance.find((c) => c.score >= 7)
-  const lowConf = data.confluencePerformance.filter((c) => c.score < 7 && c.trades >= 2)
+  const fullConf = data.confluencePerformance.find((c) => c.score >= CONFLUENCE_MAX)
+  const lowConf = data.confluencePerformance.filter((c) => c.score < CONFLUENCE_MAX && c.trades >= 2)
   if (fullConf && fullConf.trades >= 3) {
     insights.push({
       id: 'confluence-full',
       type: 'good',
-      title: 'Meilleurs résultats à 7/7 confluences',
+      title: `Meilleurs résultats à ${CONFLUENCE_MAX}/${CONFLUENCE_MAX} confluences`,
       detail: `${fullConf.trades} trades avec confluence complète — WR ${fullConf.winRate.toFixed(0)}%, P&L ${fullConf.pnl >= 0 ? '+' : ''}${fullConf.pnl.toFixed(0)}$. Trade uniquement ces setups.`,
     })
   }
-  const badLowConf = lowConf.find((c) => c.score <= 5 && c.pnl < 0)
+  const badLowConf = lowConf.find((c) => c.score <= CONFLUENCE_MAX - 2 && c.pnl < 0)
   if (badLowConf) {
     insights.push({
       id: 'confluence-low',
       type: 'bad',
-      title: `Pertes avec confluence ≤ ${badLowConf.score}/7`,
+      title: `Pertes avec confluence ≤ ${badLowConf.score}/${CONFLUENCE_MAX}`,
       detail: `${badLowConf.trades} trades, WR ${badLowConf.winRate.toFixed(0)}%. Le protocole filtre précisément ces situations — ne pas les forcer.`,
     })
   }

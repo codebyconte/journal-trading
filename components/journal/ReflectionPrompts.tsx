@@ -43,7 +43,7 @@ export function ReflectionPrompts({ prompts, onChange }: Props) {
           const answered = !!prompts[prompt.id]?.trim()
 
           return (
-            <div key={prompt.id} className={cn(isOpen && 'bg-zinc-900/80/50')}>
+            <div key={prompt.id} className={cn(isOpen && 'bg-zinc-900/50')}>
               <button
                 type="button"
                 onClick={() => setOpenId(isOpen ? null : prompt.id)}

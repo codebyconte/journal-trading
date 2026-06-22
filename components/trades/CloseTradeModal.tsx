@@ -13,7 +13,7 @@ import { Description, Field, Label } from '@/components/catalyst/fieldset'
 import { Input } from '@/components/catalyst/input'
 import { Textarea } from '@/components/catalyst/textarea'
 import { cn, calculatePnL, calculateRMultiple, formatCurrency, formatR } from '@/lib/utils'
-import { getConfluenceScore } from '@/lib/analytics'
+import { formatConfluenceScore, getConfluenceTone } from '@/lib/analytics'
 import { closeTrade } from '@/app/actions/trades'
 import type { Trade } from '@/lib/types'
 
@@ -79,7 +79,8 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
   const autoCloseType: CloseType = isTP ? 'TP' : isSL ? 'SL' : exit > 0 ? 'MANUAL' : ''
   const effectiveCloseType = closeType || autoCloseType
 
-  const confScore = getConfluenceScore(trade)
+  const confLabel = formatConfluenceScore(trade)
+  const confTone = getConfluenceTone(trade)
 
   // Construire les notes post-trade
   const buildPostTradeNotes = (): string | null => {
@@ -122,8 +123,8 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
     <Modal open={!!trade} onClose={onClose} title={`Clôturer — ${trade.asset} ${trade.direction}`} size="md">
       {/* Recap protocole */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Badge color={confScore === 6 ? 'lime' : 'pink'}>
-          Confluence {confScore}/6
+        <Badge color={confTone === 'full' ? 'lime' : confTone === 'partial' ? 'amber' : 'pink'}>
+          Confluence {confLabel}
         </Badge>
         <span className="text-xs text-zinc-500">R/R planifié 1:{trade.plannedRR.toFixed(1)}</span>
         <span className="text-xs text-zinc-500">Risque {formatCurrency(trade.riskAmount)}</span>
@@ -313,7 +314,7 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
           </Button>
 
           {showPostTrade && (
-            <div className="space-y-5 border-t border-white/10 bg-zinc-900/80/50 p-4">
+            <div className="space-y-5 border-t border-white/10 bg-zinc-900/50 p-4">
               {/* Type de clôture */}
               <Field>
                 <Label>Type de clôture</Label>

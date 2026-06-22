@@ -180,10 +180,10 @@ export function SettingsClient({ settings: initialSettings }: SettingsClientProp
         <div className="space-y-2 text-sm">
           {[
             { rule: 'Risque max par trade', value: '1% du capital', color: 'text-emerald-400' },
-            { rule: 'R/R minimum', value: '1.5R (idéal ≥ 2R)', color: 'text-amber-400' },
-            { rule: 'Timeframe principal', value: '4H + confirmation 1H', color: 'text-indigo-400' },
+            { rule: 'R/R minimum', value: '1:2 (idéal 1:3)', color: 'text-amber-400' },
+            { rule: 'Timeframe principal', value: 'Weekly → Daily → 4H', color: 'text-indigo-400' },
             { rule: "Pas d'ordre Market", value: 'Limite ou Stop uniquement', color: 'text-zinc-400' },
-            { rule: 'Checklist confluences', value: '5/6 obligatoires', color: 'text-zinc-400' },
+            { rule: 'Checklist confluences', value: '7/7 (6/7 = taille 0.5%)', color: 'text-zinc-400' },
             { rule: 'Stop loss', value: 'Jamais déplacer en perte', color: 'text-red-400' },
             { rule: '3 pertes consécutives', value: 'Arrêter la session', color: 'text-red-400' },
           ].map((item) => (

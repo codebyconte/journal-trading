@@ -1,3 +1,5 @@
+import { isFullConfluence } from '@/lib/analytics'
+
 /** Sous-ensemble utilisé pour les calculs stats (compatible Prisma + API) */
 export interface TradeLike {
   status: string
@@ -167,12 +169,6 @@ export interface ComputedDashboardMetrics {
   equityCurve: { date: string; equity: number; drawdown: number; trade?: string }[]
 }
 
-const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL', 'checkCoinglass'] as const
-
-function confluenceScore(trade: TradeLike): number {
-  return CHECK_KEYS.filter((k) => trade[k]).length
-}
-
 export function computeDashboardMetrics(
   allTrades: TradeLike[],
   settings: TradeStatsInput,
@@ -285,7 +281,9 @@ export function computeDashboardMetrics(
           ? -consecutiveLosses
           : 0
 
-  const fullProtocol = closedTrades.filter((t) => confluenceScore(t) >= 7).length
+  const fullProtocol = closedTrades.filter((t) =>
+    isFullConfluence({ ...t, asset: t.asset ?? '' }),
+  ).length
   const protocolComplianceRate =
     closedTrades.length > 0 ? (fullProtocol / closedTrades.length) * 100 : 100
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { Calculator, X, CheckCircle2, AlertCircle, Camera, AlertTriangle, TrendingUp, TrendingDown, Shield, Target } from 'lucide-react'
 import { cn, calculateUnits, calculatePlannedRR, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices } from '@/lib/utils'
+import { isCoinglassApplicable } from '@/lib/analytics'
 import { createTrade } from '@/app/actions/trades'
 import { CalloutBanner } from '@/components/ui/SystemState'
 import { Button } from '@/components/catalyst/button'
@@ -216,7 +217,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
   const activeChecklist = form.direction === 'SHORT' ? CHECKLIST_SHORT : CHECKLIST_LONG
 
   // Coinglass s'applique uniquement aux crypto perpetuels (pas aux indices SPX/QQQ)
-  const isCryptoAsset = !['SPX', 'QQQ'].includes(form.asset)
+  const isCryptoAsset = !form.asset || isCoinglassApplicable(form.asset)
 
   const allRequiredChecked = activeChecklist
     .filter((c) => c.required)

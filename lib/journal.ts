@@ -1,6 +1,11 @@
 import { isSameDay } from 'date-fns'
 import type { Trade } from '@/lib/types'
 import { formatCurrency, formatR } from '@/lib/utils'
+import {
+  getConfluenceMax,
+  getConfluenceScore,
+  isFullConfluence,
+} from '@/lib/analytics'
 
 // ─── Stockage structuré (JSON dans `content`, rétrocompatible) ────────────────
 
@@ -191,14 +196,6 @@ export const WEEKLY_PROMPTS = [
   },
 ]
 
-// ─── Analyse trades ───────────────────────────────────────────────────────────
-
-const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL', 'checkCoinglass'] as const
-
-export function getConfluenceScore(trade: Trade): number {
-  return CHECK_KEYS.filter((k) => trade[k]).length
-}
-
 export interface TradeReview {
   trade: Trade
   confluenceScore: number
@@ -208,12 +205,13 @@ export interface TradeReview {
 
 export function reviewTrade(trade: Trade): TradeReview {
   const confluenceScore = getConfluenceScore(trade)
+  const max = getConfluenceMax(trade.asset)
   const strengths: string[] = []
   const issues: string[] = []
 
-  if (confluenceScore === 7) strengths.push('Confluence complète (7/7)')
-  else if (confluenceScore >= 5) strengths.push(`Confluence partielle (${confluenceScore}/7)`)
-  else issues.push(`Confluence insuffisante (${confluenceScore}/7) — protocole non respecté`)
+  if (isFullConfluence(trade)) strengths.push(`Confluence complète (${confluenceScore}/${max})`)
+  else if (confluenceScore >= max - 1) strengths.push(`Confluence partielle (${confluenceScore}/${max})`)
+  else issues.push(`Confluence insuffisante (${confluenceScore}/${max}) — protocole non respecté`)
 
   if (trade.riskPercent <= 1.01) strengths.push(`Risque ${trade.riskPercent.toFixed(1)}% ≤ 1%`)
   else issues.push(`Risque ${trade.riskPercent.toFixed(1)}% > 1% — taille excessive`)
@@ -303,13 +301,13 @@ export function detectPatterns(trades: Trade[], entries: { mood?: number | null;
     })
   }
 
-  const lowConfluenceLosses = losers.filter((t) => getConfluenceScore(t) < 7).length
+  const lowConfluenceLosses = losers.filter((t) => !isFullConfluence(t)).length
   if (lowConfluenceLosses >= 2) {
     patterns.push({
       id: 'confluence-losses',
       type: 'bad',
       title: 'Pertes avec confluence incomplète',
-      detail: `${lowConfluenceLosses} perte(s) avec moins de 7/7 confluences. Le protocole existe pour filtrer ces trades.`,
+      detail: `${lowConfluenceLosses} perte(s) sans confluence complète. Le protocole existe pour filtrer ces trades.`,
       count: lowConfluenceLosses,
     })
   }
@@ -325,13 +323,13 @@ export function detectPatterns(trades: Trade[], entries: { mood?: number | null;
     })
   }
 
-  const fullConfluenceWins = winners.filter((t) => getConfluenceScore(t) === 7).length
+  const fullConfluenceWins = winners.filter((t) => isFullConfluence(t)).length
   if (fullConfluenceWins >= 2) {
     patterns.push({
       id: 'confluence-wins',
       type: 'good',
       title: 'Gains avec confluence complète',
-      detail: `${fullConfluenceWins} gain(s) avec 7/7 confluences. Continue à ne trader que ces setups.`,
+      detail: `${fullConfluenceWins} gain(s) avec confluence complète. Continue à ne trader que ces setups.`,
       count: fullConfluenceWins,
     })
   }

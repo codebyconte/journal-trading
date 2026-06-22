@@ -1267,7 +1267,7 @@ export default function SourcesPage() {
 
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl bg-zinc-900/80/50 py-24 text-center shadow-xs ring-1 ring-dashed ring-white/10">
+    <div className="flex flex-col items-center justify-center rounded-2xl bg-zinc-900/50 py-24 text-center shadow-xs ring-1 ring-dashed ring-white/10">
       <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-800 shadow-xs ring-1 ring-white/10">
         <BookOpen size={28} className="text-zinc-600" aria-hidden="true" />
       </div>
@@ -1445,7 +1445,7 @@ function SourceCard({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 border-t border-white/10 bg-zinc-900/80/50 p-4">
+      <div className="flex flex-col gap-2 border-t border-white/10 bg-zinc-900/50 p-4">
         {/* Toggle explication */}
         <button
           type="button"

@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/catalyst/badge'
 import { DirectionIcon } from '@/components/ui/TradingIcons'
 import { cn, formatCurrency, formatR } from '@/lib/utils'
+import { formatConfluenceScore } from '@/lib/analytics'
 import { reviewTrade, type DaySummary } from '@/lib/journal'
 import type { Trade } from '@/lib/types'
 
@@ -64,8 +65,8 @@ export function DayTradeReview({ trades, summary }: Props) {
                 key={trade.id}
                 className={cn(
                   'rounded-xl p-4 ring-1',
-                  isWin && 'ring-emerald-500/25 bg-emerald-500/10/30',
-                  isLoss && 'ring-red-500/25 bg-red-500/10/30',
+                  isWin && 'ring-emerald-500/25 bg-emerald-500/10',
+                  isLoss && 'ring-red-500/25 bg-red-500/10',
                   !isWin && !isLoss && 'ring-white/10 bg-zinc-900/80',
                 )}
               >
@@ -77,7 +78,7 @@ export function DayTradeReview({ trades, summary }: Props) {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge color="zinc">
-                      Confluence {review.confluenceScore}/6
+                      Confluence {formatConfluenceScore(trade)}
                     </Badge>
                     {trade.status === 'CLOSED' && trade.pnl != null && (
                       <span className={cn('text-sm font-bold', isWin ? 'text-emerald-400' : 'text-red-400')}>
@@ -111,7 +112,7 @@ export function DayTradeReview({ trades, summary }: Props) {
                 </div>
 
                 {isLoss && review.issues.length >= 2 && (
-                  <div className="mt-3 flex items-start gap-2 rounded-lg ring-1 ring-red-500/30 bg-red-500/10/50 px-3 py-2">
+                  <div className="mt-3 flex items-start gap-2 rounded-lg ring-1 ring-red-500/30 bg-red-500/10 px-3 py-2">
                     <AlertTriangle size={14} className="text-red-400 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-red-400">
                       Trade perdant avec plusieurs écarts protocole — documente dans les prompts ci-dessous pour éviter la répétition.

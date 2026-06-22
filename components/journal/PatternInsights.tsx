@@ -18,8 +18,8 @@ export function PatternInsights({ patterns }: Props) {
   }
 
   const ringStyle = (type: BehaviorPattern['type']) => {
-    if (type === 'good') return 'ring-emerald-500/25 bg-emerald-500/10/20'
-    if (type === 'bad') return 'ring-red-500/25 bg-red-500/10/20'
+    if (type === 'good') return 'ring-emerald-500/25 bg-emerald-500/10'
+    if (type === 'bad') return 'ring-red-500/25 bg-red-500/10'
     return 'ring-white/10 bg-zinc-900/80'
   }
 

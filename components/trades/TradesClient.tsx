@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { KpiGrid, CalloutBanner } from '@/components/ui/SystemState'
 import { Button } from '@/components/catalyst/button'
-import { getConfluenceScore } from '@/lib/analytics'
+import { isFullConfluence } from '@/lib/analytics'
 import { formatCurrency } from '@/lib/utils'
 import { cancelTrade, deleteTrade, openTrade } from '@/app/actions/trades'
 import type { Trade, Settings } from '@/lib/types'
@@ -37,7 +37,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
     const wins = closed.filter((t) => (t.pnl ?? 0) > 0).length
     const totalPnl = closed.reduce((s, t) => s + (t.pnl ?? 0), 0)
     const winRate = closed.length > 0 ? (wins / closed.length) * 100 : 0
-    const fullProtocol = closed.filter((t) => getConfluenceScore(t) >= 7).length
+    const fullProtocol = closed.filter((t) => isFullConfluence(t)).length
     const protocolRate = closed.length > 0 ? (fullProtocol / closed.length) * 100 : 0
     const atRisk = trades
       .filter((t) => t.status === 'OPEN' || t.status === 'PENDING')

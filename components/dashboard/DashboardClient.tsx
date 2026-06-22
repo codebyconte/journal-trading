@@ -19,7 +19,7 @@ import type { DashboardStats, Trade } from '@/lib/types'
 import { formatCurrency, formatPercent, formatR, safeNum, cn } from '@/lib/utils'
 import { DirectionIcon, HealthStatusIcon } from '@/components/ui/TradingIcons'
 import { formatProfitFactor, type CircuitBreakerState } from '@/lib/stats'
-import { getConfluenceScore } from '@/lib/analytics'
+import { formatConfluenceScore } from '@/lib/analytics'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -425,7 +425,7 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
             )}
             {recentTrades.map((trade) => {
               const won = (trade.pnl ?? 0) >= 0
-              const score = getConfluenceScore(trade)
+              const confLabel = formatConfluenceScore(trade)
               return (
                 <div key={trade.id} className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors">
                   <div className="flex items-center gap-3">
@@ -436,7 +436,7 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
                       <p className="text-sm font-bold text-white">{trade.asset}</p>
                       <p className="text-xs text-zinc-500">
                         {new Date(trade.closedAt ?? trade.datetime).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                        {' · '}{score}/6 conf.
+                        {' · '}{confLabel} conf.
                       </p>
                     </div>
                   </div>
@@ -474,9 +474,9 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
               return (
                 <div key={c.label} className={cn(
                   'rounded-xl border p-4',
-                  status === 'ok' && 'border-emerald-500/20 bg-emerald-500/10/30',
-                  status === 'warn' && 'border-amber-500/20 bg-amber-500/10/30',
-                  status === 'bad' && 'border-red-500/20 bg-red-500/10/30',
+                  status === 'ok' && 'border-emerald-500/20 bg-emerald-500/10',
+                  status === 'warn' && 'border-amber-500/20 bg-amber-500/10',
+                  status === 'bad' && 'border-red-500/20 bg-red-500/10',
                 )}>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-semibold text-zinc-500">{c.label}</p>
