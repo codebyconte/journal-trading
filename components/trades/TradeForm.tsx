@@ -58,6 +58,12 @@ const CHECKLIST_LONG = [
     desc: 'FOMC / CPI dans les 24h = pas de trade. QQQ au-dessus EMA 200 + DXY faible = conditions favorables. QQQ sous EMA 200 = taille réduite 30%.',
     required: true,
   },
+  {
+    key: 'checkCoinglass',
+    label: 'Coinglass long : Funding Rate < 0.08% + Long/Short < 65/35 + chemin TP dégagé + OI CME stable',
+    desc: 'Funding Rate > 0.08% = excès de longs, 73% de correction dans 72h → pas de long. Long/Short > 65% longs = trop de monde dans le même sens = signal contrarian. Vérifie que la Liquidation Heatmap ne montre pas de zone dense entre entrée et TP. OI CME stable ou en hausse = institutionnels constructifs.',
+    required: true,
+  },
 ] as const
 
 const CHECKLIST_SHORT = [
@@ -97,6 +103,12 @@ const CHECKLIST_SHORT = [
     desc: 'DXY au-dessus EMA 50 et montant = vent de face crypto = favorable aux shorts. QQQ sous EMA 200 = régime baissier institutionnel. FOMC / CPI dans les 24h = pas de trade même short.',
     required: true,
   },
+  {
+    key: 'checkCoinglass',
+    label: 'Coinglass short : Funding Rate > 0.08% + Long/Short > 65/35 + zones de liquidation longs sous le prix',
+    desc: 'Funding Rate > 0.08% = excès de longs qui vont se faire liquider → force vendeuse mécanique. Long/Short > 65% de longs = majorité dans le même sens = contrarian favorable au short. La Liquidation Heatmap doit montrer des zones de liquidation de longs entre le prix actuel et ton TP (aimant baissier). OI CME en baisse = institutionnels baissiers.',
+    required: true,
+  },
 ] as const
 
 type ChecklistKey = (typeof CHECKLIST_LONG)[number]['key']
@@ -129,6 +141,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
     checkLiquid: false,
     checkUnlocks: false,
     checkTVL: false,
+    checkCoinglass: false,
   })
 
   const [screenshot, setScreenshot] = useState<File | null>(null)
@@ -211,7 +224,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
     setError(null)
 
     if (!allRequiredChecked) {
-      setError('Valide les 6 confluences obligatoires avant de soumettre. C\'est le protocole.')
+      setError('Valide les 7 confluences obligatoires avant de soumettre. C\'est le protocole.')
       return
     }
     if (parseInt(form.emotionScore) <= 2) {
@@ -650,7 +663,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
       {/* Checklist protocole 7 niveaux */}
       <Field>
         <div className="mb-2 flex items-center justify-between">
-          <Label>Checklist Protocole — 6 Confluences Obligatoires</Label>
+          <Label>Checklist Protocole — 7 Confluences Obligatoires</Label>
           <Badge color={allRequiredChecked ? 'emerald' : 'red'}>
             {activeChecklist.filter((c) => checklist[c.key]).length}/{activeChecklist.length} validés
           </Badge>
@@ -691,7 +704,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         {!allRequiredChecked && (
           <p className="mt-2 flex items-center gap-2 text-sm text-red-400">
             <Target size={14} />
-            Protocole non respecté — les 6 confluences sont obligatoires. Consulte /protocol si doute.
+            Protocole non respecté — les 7 confluences sont obligatoires (dont Coinglass). Consulte /protocol si doute.
           </p>
         )}
       </Field>

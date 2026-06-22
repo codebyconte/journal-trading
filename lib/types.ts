@@ -83,6 +83,7 @@ export interface Trade {
   checkLiquid: boolean
   checkUnlocks: boolean
   checkTVL: boolean
+  checkCoinglass: boolean
   setup?: string | null
   marketCondition?: string | null
   emotionScore?: number | null
@@ -176,5 +177,6 @@ export interface TradeFormData {
   checkLiquid: boolean
   checkUnlocks: boolean
   checkTVL: boolean
+  checkCoinglass: boolean
   screenshot?: File | null
 }

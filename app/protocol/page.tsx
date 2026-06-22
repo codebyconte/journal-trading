@@ -33,6 +33,7 @@ const TABS = [
   { id: 'technique',   label: 'Indicateurs',     icon: TrendingUp   },
   { id: 'onchain',     label: 'On-Chain',        icon: Activity     },
   { id: 'arkham',      label: 'Arkham',          icon: Eye          },
+  { id: 'coinglass',   label: 'Coinglass',       icon: Flame        },
   { id: 'execution',   label: 'Exécution',       icon: Target       },
   { id: 'gestion',     label: 'Gestion Trade',   icon: Crosshair    },
   { id: 'macro',       label: 'Macro',           icon: Globe        },
@@ -99,7 +100,7 @@ function TabRegleZero() {
           { n: '1', label: 'Analyse Multi-Timeframe', desc: 'Contexte hebdomadaire → Quotidien → 4H. Direction macro d\'abord.', tab: 'mtf' },
           { n: '2', label: 'Market Structure', desc: 'HH/HL/LH/LL → BOS/ChoCH. Confirme que la tendance est intacte.', tab: 'structure' },
           { n: '3', label: 'Indicateurs Techniques', desc: 'EMA Ribbon + RSI divergence + Volume Profile. Minimum 4/6 confluences.', tab: 'technique' },
-          { n: '4', label: 'On-Chain + Arkham', desc: 'CryptoQuant 4/7 validés. Glassnode hebdo. Arkham alertes.', tab: 'onchain' },
+          { n: '4', label: 'On-Chain + Arkham + Coinglass', desc: 'CryptoQuant 4/7 validés. Glassnode hebdo. Arkham alertes. Coinglass : Funding Rate + Heatmap + L/S Ratio (2 min).', tab: 'onchain' },
           { n: '5', label: 'Filtres Macro', desc: 'Pas d\'événement rouge dans 48h. DXY contexte. VIX nominal.', tab: 'macro' },
           { n: '6', label: 'Exécution + Gestion', desc: 'Ordre Limite. SL ATR. TP calculé. Gestion active après entrée.', tab: 'execution' },
         ].map((s) => (
@@ -144,15 +145,23 @@ function TabRoutine() {
           <p><strong className="text-indigo-400">ETF Flows J-1</strong> → <a href="https://farside.co.uk" target="_blank" className="text-indigo-400 hover:underline inline-flex items-center gap-1">farside.co.uk <ExternalLink size={12} /></a> (30 secondes). 3 jours consécutifs outflows {'>'} $100M total → réduis taille longs à 0.5%. Outflows {'>'} $500M hier → pas de long.</p>
           <p><strong className="text-emerald-400">Tout neutre</strong> → continue le protocole normalement.</p>
         </Step>
-        <Step num="4" title="BTC Dominance (BTC.D) — Contexte rapide">
+        <Step num="4" title="Coinglass — Marché des Dérivés (2 minutes)">
+          <p>URL : <a href="https://www.coinglass.com" target="_blank" className="text-indigo-400 hover:underline inline-flex items-center gap-1">coinglass.com <ExternalLink size={12} /></a> — Vérification avant tout setup technique.</p>
+          <p><strong className="text-red-400">Funding Rate {'>'} 0.10%</strong> → excès de longs → <strong className="text-red-400">pas de nouveau long</strong>. Potentiel setup short si technique confirme.</p>
+          <p><strong className="text-amber-400">Funding Rate entre -0.05% et +0.08%</strong> → zone normale → conditions standards.</p>
+          <p><strong className="text-emerald-400">Funding Rate {'<'} -0.05%</strong> → excès de shorts → potentiel setup long contrarian si technique confirme.</p>
+          <p><strong className="text-white">Long/Short Ratio {'>'} 65% de longs</strong> → trop de monde dans le même sens → risque de purge des longs → prudence accrue.</p>
+          <p><strong className="text-white">Liquidation Heatmap</strong> → <a href="https://www.coinglass.com/pro/futures/LiquidationHeatMap" target="_blank" className="text-indigo-400 hover:underline inline-flex items-center gap-1">heatmap <ExternalLink size={12} /></a> → identifie les zones jaunes/orange denses proches du prix. Zone dense entre entrée et TP = aimant = TP potentiellement accéléré. Zone dense entre entrée et SL = place ton SL EN DESSOUS pour éviter le stop hunt.</p>
+        </Step>
+        <Step num="5" title="BTC Dominance (BTC.D) — Contexte rapide">
           <p>BTC.D {'>'} 55% et montant → privilégie BTC uniquement, altcoins sous pression.</p>
           <p>BTC.D {'<'} 50% et descendant → ETH et SOL peuvent surperformer BTC.</p>
         </Step>
-        <Step num="5" title="TradingView — Scan hebdomadaire + 4H (5 minutes max)">
+        <Step num="6" title="TradingView — Scan hebdomadaire + 4H (5 minutes max)">
           <p><strong className="text-white">Commence TOUJOURS par le weekly</strong> → puis daily → puis 4H. Jamais l'inverse.</p>
           <p>Y a-t-il une zone technique de retest à surveiller ? Si oui → protocole complet. Si non → alerte TradingView + ferme les graphiques.</p>
         </Step>
-        <Step num="6" title="Token Unlocks — pour SOL et tout altcoin (pas BTC/ETH) — 30 secondes">
+        <Step num="7" title="Token Unlocks — pour SOL et tout altcoin (pas BTC/ETH) — 30 secondes">
           <p><a href="https://tokenomist.ai" target="_blank" className="text-indigo-400 hover:underline inline-flex items-center gap-1">tokenomist.ai <ExternalLink size={12} /></a> → cherche l'actif que tu veux trader. <strong className="text-red-400">Unlock {'>'} 5% de l'offre circulante dans les 5 prochains jours → ne trade pas cet actif.</strong></p>
           <p className="text-zinc-500 text-sm">Pourquoi : les bénéficiaires de vesting (équipe, investisseurs VC) vendent mécaniquement à la réception. Pression vendeuse prévisible et documentée. Source : "Token Vesting and Investor Returns" (SSRN 2023). Pour BTC : non applicable.</p>
         </Step>
@@ -177,12 +186,18 @@ function TabRoutine() {
         <Step num="4" title="Glassnode — NUPL, STH-MVRV, Accumulation Score">
           <p>Une fois par semaine suffit. Ces indicateurs bougent sur des semaines, pas des jours.</p>
         </Step>
-        <Step num="5" title="DeFiLlama + CME Gaps — 2 minutes (contexte ETH/SOL + aimants BTC)">
+        <Step num="5" title="Coinglass — Bilan hebdomadaire des dérivés (5 minutes)">
+          <p><a href="https://www.coinglass.com/FundingRate" target="_blank" className="text-indigo-400 hover:underline inline-flex items-center gap-1">Funding Rate 7 jours <ExternalLink size={12} /></a> — Funding accumulé élevé sur 7 jours = semaine sous pression pour les longs = sois plus sélectif.</p>
+          <p><a href="https://www.coinglass.com/pro/futures/LiquidationHeatMap" target="_blank" className="text-indigo-400 hover:underline inline-flex items-center gap-1">Liquidation Heatmap 30 jours <ExternalLink size={12} /></a> — Identifie les zones jaunes/orange denses proches du prix actuel. Ce sont tes niveaux critiques pour la semaine.</p>
+          <p><a href="https://www.coinglass.com/BitcoinOpenInterest" target="_blank" className="text-indigo-400 hover:underline inline-flex items-center gap-1">OI CME vs OI Binance <ExternalLink size={12} /></a> — OI CME en hausse = institutionnels constructifs. OI Binance explose = levier retail excessif = danger.</p>
+          <p><strong className="text-amber-400">Fear & Greed Index Crypto</strong> (coinglass.com → Dashboard) : {'<'} 25 = peur extrême = zone d'accumulation long. {'>'} 75 = avidité extrême = prudence maximale, précède souvent les corrections.</p>
+        </Step>
+        <Step num="6" title="DeFiLlama + CME Gaps — 2 minutes (contexte ETH/SOL + aimants BTC)">
           <p><a href="https://defillama.com" target="_blank" className="text-indigo-400 hover:underline inline-flex items-center gap-1">defillama.com <ExternalLink size={12} /></a> → vérifie la tendance TVL hebdomadaire pour ETH et SOL. <strong className="text-red-400">TVL DeFi -20% sur 7 jours</strong> = risk-off DeFi = filtre baissier pour ETH/SOL longs, réduis taille 30%. TVL stable ou hausse = neutre.</p>
           <p>CME Gaps BTC : sur TradingView, actif <strong className="text-white">BTC1!</strong> (CME futures) → identifie les gaps ouverts (espaces entre vendredi soir et dimanche soir). Gap non rempli sous le prix = aimant baissier à surveiller. Gap non rempli au-dessus = cible TP potentielle.</p>
           <p className="text-zinc-500 text-sm">Token Terminal (tokenterminal.com) : utile uniquement pour les positions long terme sur la valorisation fondamentale des protocoles. Non pertinent pour le timing 4H.</p>
         </Step>
-        <Step num="6" title="Revue de la semaine écoulée + note de contexte journal">
+        <Step num="7" title="Revue de la semaine écoulée + note de contexte journal">
           <p>7 questions de revue hebdomadaire. Une seule amélioration concrète pour la semaine suivante.</p>
         </Step>
       </div>
@@ -192,7 +207,7 @@ function TabRoutine() {
           { label: 'Check matin', value: '10 min/jour' },
           { label: 'Protocole complet', value: '30 min si setup' },
           { label: 'Journal post-trade', value: '5 min max' },
-          { label: 'Revue hebdo dimanche', value: '25-35 min' },
+          { label: 'Revue hebdo dimanche', value: '30-40 min' },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-white/10 bg-zinc-900 p-4 text-center">
             <p className="text-sm text-zinc-400 mb-1">{label}</p>
@@ -909,6 +924,241 @@ function TabOnChain() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+// ─── Onglet : Coinglass ───────────────────────────────────────────────────────
+
+function TabCoinglass() {
+  return (
+    <div className="space-y-6">
+      <SectionHeading>Coinglass — Marché des Dérivés (Perpetuels)</SectionHeading>
+
+      <Callout type="success" title="Pourquoi Coinglass comble un vrai manque dans ton système">
+        Ton écosystème couvre le marché spot (CryptoQuant), les flux institutionnels identifiés (Arkham), l&apos;analyse technique (TradingView) et le macro (FedWatch/VIX). <strong className="text-white">Ce qu&apos;il manquait : une vision complète du marché des dérivés perpetuels</strong> — là où se concentre le levier des traders, les liquidations en cascade et les short/long squeezes. Coinglass te donne cette vision. Tu trades sur Hyperliquid : exactement ce marché.
+      </Callout>
+
+      <Callout type="info" title="Fréquence d'utilisation">
+        <strong className="text-white">Check pré-trade (2 minutes)</strong> — Funding Rate + Long/Short Ratio + Liquidation Heatmap avant chaque entrée.{' '}
+        <strong className="text-white">Check hebdomadaire dimanche (5 minutes)</strong> — Funding 7j + Heatmap 30j + OI CME vs Binance + Fear &amp; Greed Crypto.
+      </Callout>
+
+      {/* ── FONCTIONNALITÉ 1 : Liquidation Heatmap ── */}
+      <SubHeading icon={<Flame size={18} />}>1 · Liquidation Heatmap — Carte Thermique des Liquidations</SubHeading>
+
+      <Callout type="tip" title="URL directe">
+        <a href="https://www.coinglass.com/pro/futures/LiquidationHeatMap" target="_blank" className="text-indigo-400 hover:underline inline-flex items-center gap-1">coinglass.com/pro/futures/LiquidationHeatMap <ExternalLink size={12} /></a> — Vérifie avant chaque trade.
+      </Callout>
+
+      <p className="text-sm/6 text-zinc-300">
+        La Liquidation Heatmap montre, pour chaque niveau de prix, quelle quantité de positions à levier serait forcée de se clore si BTC atteignait ce niveau. Quand une position est liquidée, l&apos;exchange achète ou vend l&apos;actif mécaniquement → ces achats/ventes forcés créent du momentum → qui déclenche d&apos;autres liquidations. Les algorithmes des fonds connaissent exactement ces zones et les &quot;chassent&quot; (stop hunt / wick hunt).
+      </p>
+
+      <DataTable
+        headers={['Couleur sur la carte', 'Signification', 'Action']}
+        rows={[
+          [<span key="j" className="font-semibold text-amber-400">Jaune intense / Orange</span>, 'Zone de très forte concentration de liquidations', 'Aimant puissant — prix va probablement y aller'],
+          [<span key="g" className="font-semibold text-emerald-400">Vert moyen</span>, 'Liquidations modérées', 'Support ou résistance secondaire'],
+          [<span key="b" className="font-semibold text-zinc-400">Bleu / Foncé</span>, 'Peu de liquidations', 'Le prix traverse facilement'],
+        ]}
+      />
+
+      <div className="space-y-3">
+        {[
+          {
+            title: 'Placer ton Stop Loss intelligemment',
+            body: "Si une zone de liquidations dense se trouve entre ton entrée et ton SL défini, le prix va probablement aller « chasser » cette zone avant de rebondir. Options : (1) Déplace ton SL EN DESSOUS de cette zone pour ne pas être sorti avant le rebond réel. (2) Réduis la taille de ta position pour pouvoir absorber ce mouvement.",
+            color: 'text-red-400',
+          },
+          {
+            title: 'Confirmer ton Take Profit',
+            body: 'Si une zone de liquidations de shorts se trouve entre ton entrée et ton TP (long), quand le prix atteindra cette zone, les shorts seront liquidés (achat forcé) → accélère le mouvement dans ta direction. Double confirmation de TP.',
+            color: 'text-emerald-400',
+          },
+          {
+            title: 'Anticiper la volatilité intraday',
+            body: 'Des zones denses proches du prix actuel = marché sous tension. Un petit mouvement peut déclencher une cascade. Sois prudent sur la taille dans ce contexte.',
+            color: 'text-amber-400',
+          },
+        ].map((item) => (
+          <div key={item.title} className="flex gap-3 rounded-xl bg-zinc-900/80 px-4 py-3.5 ring-1 ring-white/10">
+            <ArrowRight size={15} className={cn('mt-0.5 shrink-0', item.color)} />
+            <div>
+              <p className={cn('text-sm font-semibold', item.color)}>{item.title}</p>
+              <p className="mt-0.5 text-sm/6 text-zinc-300">{item.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── FONCTIONNALITÉ 2 : Funding Rate ── */}
+      <SubHeading icon={<Hash size={18} />}>2 · Funding Rate — Taux de Financement des Perpetuels</SubHeading>
+
+      <p className="text-sm/6 text-zinc-300">
+        Sur les marchés perpetuels (Hyperliquid), toutes les 8 heures, les holders de longs paient les holders de shorts (ou inversement) selon le déséquilibre. Funding positif = longs sur-représentés → ils paient pour rester. Funding très positif = pression vendeuse future mécanique quand ils seront forcés de fermer.
+      </p>
+
+      <a href="https://www.coinglass.com/FundingRate" target="_blank" className="inline-flex items-center gap-1.5 text-sm text-indigo-400 hover:underline">
+        <ExternalLink size={12} /> coinglass.com/FundingRate
+      </a>
+
+      <DataTable
+        headers={['Niveau Funding (8h)', 'Signal', 'Action']}
+        rows={[
+          [<span key="h" className="font-mono font-semibold text-red-400">{'> 0.10%'}</span>, <span key="s">Marché excessivement long — danger</span>, 'Évite les nouveaux longs. Potentiel setup short si technique confirme.'],
+          [<span key="m1" className="font-mono text-amber-400">0.05% à 0.10%</span>, 'Sentiment haussier mais gérable', 'Prudence accrue sur les longs — réduis taille si besoin'],
+          [<span key="n" className="font-mono text-zinc-300">0.01% à 0.05%</span>, 'Zone normale', 'Conditions normales. Trade librement.'],
+          [<span key="z" className="font-mono text-emerald-300">≈ 0%</span>, 'Équilibre parfait', 'Meilleure condition pour les deux sens'],
+          [<span key="m2" className="font-mono text-emerald-400">-0.01% à -0.05%</span>, 'Shorts dominent — potentiel short squeeze', 'Contexte favorable aux longs contrarian'],
+          [<span key="low" className="font-mono font-semibold text-emerald-400">{'< -0.05%'}</span>, 'Marché excessivement short', 'Setup long fort si la technique confirme'],
+        ]}
+      />
+
+      <Callout type="warning" title="Combinaison explosive">
+        <strong className="text-white">Whale Ratio {'>'} 0.90 (CryptoQuant) + Funding Rate {'>'} 0.08%</strong> = signal de short ou sortie des longs très fort. Précision documentée sur 50 000+ trades (CryptoQuant Research 2024).
+      </Callout>
+
+      {/* ── FONCTIONNALITÉ 3 : Long/Short Ratio ── */}
+      <SubHeading icon={<Scale size={18} />}>3 · Long/Short Ratio — Sentiment Contrarian</SubHeading>
+
+      <p className="text-sm/6 text-zinc-300">
+        Pourcentage de comptes traders en position longue vs courte sur Binance, Bybit, OKX. <strong className="text-white">C&apos;est un indicateur contrarian</strong> : la majorité des traders à levier a tendance à se tromper aux extrêmes.
+      </p>
+
+      <a href="https://www.coinglass.com/LongShortRatio" target="_blank" className="inline-flex items-center gap-1.5 text-sm text-indigo-400 hover:underline">
+        <ExternalLink size={12} /> coinglass.com/LongShortRatio
+      </a>
+
+      <DataTable
+        headers={['Long/Short Ratio', 'Signal', 'Action']}
+        rows={[
+          ['> 70% de longs', 'Trop de monde long — risque de purge', <span key="s1" className="text-red-400">Prudence sur les longs · Setup short favorable</span>],
+          ['65% à 70% de longs', 'Sentiment haussier élevé', <span key="s2" className="text-amber-400">Réduis la taille des longs</span>],
+          ['50% à 65% de longs', 'Zone normale', <span key="s3" className="text-zinc-300">Conditions standards · Trade normalement</span>],
+          ['< 50% de longs', 'Majorité short · contrarian', <span key="s4" className="text-emerald-400">Signal optimal pour un long</span>],
+          ['< 40% de longs', 'Excès de shorts · squeeze possible', <span key="s5" className="text-emerald-400 font-semibold">Setup long fort si technique confirme</span>],
+        ]}
+      />
+
+      {/* ── FONCTIONNALITÉ 4 : OI par Exchange ── */}
+      <SubHeading icon={<BarChart size={18} />}>4 · Open Interest par Exchange — CME vs Binance</SubHeading>
+
+      <p className="text-sm/6 text-zinc-300">
+        CryptoQuant te donne l&apos;OI total agrégé. Coinglass te donne le détail par exchange — crucial pour distinguer l&apos;argent institutionnel du retail.
+      </p>
+
+      <a href="https://www.coinglass.com/BitcoinOpenInterest" target="_blank" className="inline-flex items-center gap-1.5 text-sm text-indigo-400 hover:underline">
+        <ExternalLink size={12} /> coinglass.com/BitcoinOpenInterest
+      </a>
+
+      <DataTable
+        headers={['Exchange', 'Type de money', 'Signal quand OI monte']}
+        rows={[
+          [<span key="cme" className="font-semibold text-indigo-400">CME (Chicago)</span>, 'Institutionnels américains (hedge funds, fonds de pension, BlackRock)', <span key="c1" className="text-emerald-400">Signal fort · Argent institutionnel réel</span>],
+          ['Binance', 'Retail + traders crypto-natifs', <span key="c2" className="text-amber-400">Spéculatif · Surveille le Funding Rate</span>],
+          ['Bybit / OKX', 'Mix retail + traders asiatiques', <span key="c3" className="text-zinc-300">Secondaire · Confirme avec Binance</span>],
+        ]}
+      />
+
+      <Callout type="info" title="Règle pratique">
+        Avant un long : OI CME en hausse ou stable (institutions constructives) <strong className="text-white">ET</strong> OI Binance non en explosion (pas de levier retail excessif) = double confirmation institutionnelle.
+      </Callout>
+
+      {/* ── FONCTIONNALITÉ 5 : Liquidations temps réel ── */}
+      <SubHeading icon={<Activity size={18} />}>5 · Liquidations en Temps Réel — Points d'Inflexion</SubHeading>
+
+      <p className="text-sm/6 text-zinc-300">
+        Affiche en temps réel quelles positions sont liquidées (mise à jour toutes les 2-5 secondes) : montant en USD, exchange, direction (long ou short liquidé).
+      </p>
+
+      <a href="https://www.coinglass.com/liquidations" target="_blank" className="inline-flex items-center gap-1.5 text-sm text-indigo-400 hover:underline">
+        <ExternalLink size={12} /> coinglass.com/liquidations
+      </a>
+
+      <DataTable
+        headers={['Type de liquidation', 'Signification', 'Action']}
+        rows={[
+          ['Liquidations LONGS massives', 'Traders haussiers forcés de vendre → capitulation potentielle', <span key="l1" className="text-emerald-400">Cherche signal rebond sur TradingView · Meilleur timing long</span>],
+          ['Liquidations SHORTS massives', 'Traders baissiers forcés d\'acheter → short squeeze', <span key="l2" className="text-emerald-400">Confirme un long existant · Continuation haussière probable</span>],
+        ]}
+      />
+
+      <DataTable
+        headers={['Montant en 1h', 'Importance']}
+        rows={[
+          ['> $50M', <span key="e1" className="text-amber-400">Événement significatif — surveille le graphique</span>],
+          ['> $200M', <span key="e2" className="text-red-400">Événement majeur — potentiel point d&apos;inflexion</span>],
+        ]}
+      />
+
+      {/* ── FONCTIONNALITÉ 6 : Fear & Greed Crypto ── */}
+      <SubHeading icon={<Brain size={18} />}>6 · Fear &amp; Greed Index Crypto</SubHeading>
+
+      <Callout type="info" title="Différence avec l'index actions">
+        Le Fear &amp; Greed actions (feargreedtracker.com) mesure le sentiment sur les marchés US. Coinglass propose un index <strong className="text-white">spécifique aux crypto</strong>, basé sur : Funding Rate perpetuels + sentiment Twitter/X crypto + volume de trading + volatilité BTC + dominance BTC.
+      </Callout>
+
+      <DataTable
+        headers={['Score', 'Sentiment Crypto', 'Signal']}
+        rows={[
+          [<span key="fe" className="font-mono font-semibold text-emerald-400">0 — 25</span>, 'Peur extrême (crypto)', <span key="a1" className="text-emerald-400">Zone d&apos;accumulation — longs à surveiller</span>],
+          [<span key="f" className="font-mono text-emerald-300">26 — 45</span>, 'Peur', <span key="a2" className="text-emerald-300">Conditions favorables aux longs</span>],
+          [<span key="n1" className="font-mono text-zinc-300">46 — 55</span>, 'Neutre', 'Trade normalement dans les deux sens'],
+          [<span key="g" className="font-mono text-amber-400">56 — 75</span>, 'Avidité', <span key="a3" className="text-amber-400">Vigilance sur les longs · Réduis taille</span>],
+          [<span key="ge" className="font-mono font-semibold text-red-400">76 — 100</span>, 'Avidité extrême (crypto)', <span key="a4" className="text-red-400">Prudence maximale — précède souvent les corrections</span>],
+        ]}
+      />
+
+      {/* ── Checklist intégration ── */}
+      <SubHeading icon={<CheckCircle2 size={18} />}>Checklist Intégration — Pré-Trade (2 min)</SubHeading>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
+          <p className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+            <TrendingUp size={14} /> Pour valider un LONG
+          </p>
+          {[
+            'Funding Rate < 0.08% (pas d\'excès de longs dans le marché)',
+            'Long/Short Ratio < 65/35 (majorité pas excessivement long)',
+            'Aucune zone de liquidations dense entre entrée et TP (chemin dégagé)',
+            'OI CME stable ou en légère hausse (institutionnels pas baissiers)',
+          ].map((item) => (
+            <div key={item} className="flex items-start gap-2 text-sm text-zinc-300">
+              <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-emerald-400" />
+              {item}
+            </div>
+          ))}
+        </div>
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 space-y-2">
+          <p className="text-sm font-bold text-red-400 flex items-center gap-2">
+            <TrendingDown size={14} /> Pour valider un SHORT
+          </p>
+          {[
+            'Funding Rate > 0.08% (excès de longs = ils vont se faire liquider)',
+            'Long/Short Ratio > 65/35 (majorité est long = contrarian)',
+            'Zones de liquidations de longs concentrées sous le prix actuel (aimant baissier)',
+            'OI CME en baisse ou stable (institutionnels pas haussiers)',
+          ].map((item) => (
+            <div key={item} className="flex items-start gap-2 text-sm text-zinc-300">
+              <XCircle size={13} className="mt-0.5 shrink-0 text-red-400" />
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Limites ── */}
+      <SubHeading icon={<Info size={18} />}>Ce que Coinglass N&apos;est Pas</SubHeading>
+      <Callout type="warning" title="Ne pas sur-utiliser Coinglass">
+        <ul className="space-y-1.5">
+          <li>• Coinglass ne remplace <strong className="text-white">pas CryptoQuant</strong> pour les données spot et on-chain (Exchange Reserve, Whale Ratio, SSR)</li>
+          <li>• Coinglass ne remplace <strong className="text-white">pas Glassnode</strong> pour les métriques de holders long terme (NUPL, MVRV, SOPR)</li>
+          <li>• Coinglass ne remplace <strong className="text-white">pas Arkham</strong> pour l&apos;identification des mouvements institutionnels nommés</li>
+          <li>• La Liquidation Heatmap donne des <strong className="text-white">zones approximatives</strong>, pas des niveaux exacts au dollar près</li>
+          <li>• <strong className="text-white">Coinglass n&apos;est pas applicable aux indices</strong> (SPX, QQQ) — uniquement crypto perpetuels</li>
+        </ul>
+      </Callout>
     </div>
   )
 }
@@ -1729,6 +1979,7 @@ export default function ProtocolPage() {
     technique:   <TabTechnique />,
     onchain:     <TabOnChain />,
     arkham:      <TabArkham />,
+    coinglass:   <TabCoinglass />,
     execution:   <TabExecution />,
     gestion:     <TabGestion />,
     macro:       <TabMacro />,

@@ -24,6 +24,7 @@ export interface CreateTradeInput {
   checkLiquid: boolean
   checkUnlocks: boolean
   checkTVL: boolean
+  checkCoinglass: boolean
   setup?: string | null
   marketCondition?: string | null
   emotionScore?: string | number | null
@@ -59,6 +60,7 @@ export async function createTrade(input: CreateTradeInput): Promise<ActionResult
         checkLiquid: !!input.checkLiquid,
         checkUnlocks: !!input.checkUnlocks,
         checkTVL: !!input.checkTVL,
+        checkCoinglass: !!input.checkCoinglass,
         setup: input.setup || null,
         marketCondition: input.marketCondition || null,
         emotionScore: input.emotionScore ? parseInt(String(input.emotionScore)) : null,

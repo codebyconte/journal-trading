@@ -121,8 +121,8 @@ export const POST_SESSION_PROMPTS: ReflectionPrompt[] = [
     id: 'confluencesReal',
     category: 'Confluences',
     question: 'Les 6 confluences étaient-elles vraiment présentes avant l\'entrée ?',
-    hint: 'EMA + RSI + Volume + CryptoQuant 4/7 + Arkham + Macro. Cocher une case sans vérifier = biais de confirmation. Sois honnête : combien étaient réellement validées ?',
-    placeholder: 'Ex : J\'ai coché Arkham sans vérifier — en réalité une alerte whale était active. Seulement 4/6 réellement présentes...',
+    hint: 'EMA + RSI + Volume + CryptoQuant 4/7 + Arkham + Macro + Coinglass (Funding Rate / L-S Ratio / Heatmap). Cocher une case sans vérifier = biais de confirmation. Sois honnête : combien étaient réellement validées ?',
+    placeholder: 'Ex : J\'ai coché Arkham sans vérifier — en réalité une alerte whale était active. Seulement 5/7 réellement présentes...',
   },
   {
     id: 'slMoved',
@@ -193,7 +193,7 @@ export const WEEKLY_PROMPTS = [
 
 // ─── Analyse trades ───────────────────────────────────────────────────────────
 
-const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL'] as const
+const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL', 'checkCoinglass'] as const
 
 export function getConfluenceScore(trade: Trade): number {
   return CHECK_KEYS.filter((k) => trade[k]).length
@@ -211,9 +211,9 @@ export function reviewTrade(trade: Trade): TradeReview {
   const strengths: string[] = []
   const issues: string[] = []
 
-  if (confluenceScore === 6) strengths.push('Confluence complète (6/6)')
-  else if (confluenceScore >= 4) strengths.push(`Confluence partielle (${confluenceScore}/6)`)
-  else issues.push(`Confluence insuffisante (${confluenceScore}/6) — protocole non respecté`)
+  if (confluenceScore === 7) strengths.push('Confluence complète (7/7)')
+  else if (confluenceScore >= 5) strengths.push(`Confluence partielle (${confluenceScore}/7)`)
+  else issues.push(`Confluence insuffisante (${confluenceScore}/7) — protocole non respecté`)
 
   if (trade.riskPercent <= 1.01) strengths.push(`Risque ${trade.riskPercent.toFixed(1)}% ≤ 1%`)
   else issues.push(`Risque ${trade.riskPercent.toFixed(1)}% > 1% — taille excessive`)
@@ -303,13 +303,13 @@ export function detectPatterns(trades: Trade[], entries: { mood?: number | null;
     })
   }
 
-  const lowConfluenceLosses = losers.filter((t) => getConfluenceScore(t) < 6).length
+  const lowConfluenceLosses = losers.filter((t) => getConfluenceScore(t) < 7).length
   if (lowConfluenceLosses >= 2) {
     patterns.push({
       id: 'confluence-losses',
       type: 'bad',
       title: 'Pertes avec confluence incomplète',
-      detail: `${lowConfluenceLosses} perte(s) avec moins de 6/6 confluences. Le protocole existe pour filtrer ces trades.`,
+      detail: `${lowConfluenceLosses} perte(s) avec moins de 7/7 confluences. Le protocole existe pour filtrer ces trades.`,
       count: lowConfluenceLosses,
     })
   }
@@ -325,13 +325,13 @@ export function detectPatterns(trades: Trade[], entries: { mood?: number | null;
     })
   }
 
-  const fullConfluenceWins = winners.filter((t) => getConfluenceScore(t) === 6).length
+  const fullConfluenceWins = winners.filter((t) => getConfluenceScore(t) === 7).length
   if (fullConfluenceWins >= 2) {
     patterns.push({
       id: 'confluence-wins',
       type: 'good',
       title: 'Gains avec confluence complète',
-      detail: `${fullConfluenceWins} gain(s) avec 6/6 confluences. Continue à ne trader que ces setups.`,
+      detail: `${fullConfluenceWins} gain(s) avec 7/7 confluences. Continue à ne trader que ces setups.`,
       count: fullConfluenceWins,
     })
   }

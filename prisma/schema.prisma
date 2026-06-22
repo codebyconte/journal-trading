@@ -43,12 +43,13 @@ model Trade {
   mfe        Float?   // Max Favorable Excursion ($) - combien la position est allée en ta faveur
 
   // Checklist confluence (obligatoires)
-  checkEMA     Boolean @default(false)
-  checkRSI     Boolean @default(false)
-  checkVolume  Boolean @default(false)
-  checkLiquid  Boolean @default(false)
-  checkUnlocks Boolean @default(false)
-  checkTVL     Boolean @default(false)
+  checkEMA        Boolean @default(false)
+  checkRSI        Boolean @default(false)
+  checkVolume     Boolean @default(false)
+  checkLiquid     Boolean @default(false)
+  checkUnlocks    Boolean @default(false)
+  checkTVL        Boolean @default(false)
+  checkCoinglass  Boolean @default(false) // Coinglass : Funding Rate + Liquidation Heatmap + L/S Ratio + OI CME
 
   // Contexte & tags
   setup           String? // type de setup (EMA Bounce, FVG, etc.)

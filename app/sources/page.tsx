@@ -831,6 +831,37 @@ const SOURCES: Source[] = [
     ],
   },
 
+  // ══════════════════ COINGLASS ══════════════════
+
+  {
+    id: 'coinglass-derivatives',
+    institution: 'Coinglass',
+    country: '🌐',
+    category: 'data',
+    title: 'Liquidation Heatmap, Funding Rate & Open Interest — Marché des Dérivés Crypto',
+    year: 2024,
+    url: 'https://www.coinglass.com',
+    institutionUrl: 'https://www.coinglass.com',
+    indicators: ['Liquidation Heatmap', 'Funding Rate', 'Long/Short Ratio', 'Open Interest CME vs Binance', 'Real-Time Liquidations', 'Fear & Greed Crypto'],
+    summary: "Coinglass est la référence mondiale pour l'analyse du marché des dérivés crypto — là où CryptoQuant et Glassnode s'arrêtent. Indispensable si tu trades sur des marchés perpetuels comme Hyperliquid.",
+    explanation:
+      "Le marché des futures et perpetuels crypto représente 3-5× le volume du marché spot. C'est là que le levier est concentré, que les liquidations en cascade se déclenchent, et que les algorithmes des fonds « chassent » les niveaux de liquidation. Coinglass agrège les données de positions ouvertes sur Binance, Bybit, OKX et CME pour te donner une vision complète : (1) La Liquidation Heatmap montre les zones où des positions à levier se fermeraient mécaniquement si le prix les atteint — ces zones fonctionnent comme des aimants. (2) Le Funding Rate te dit si les longs ou les shorts dominent le marché — un funding très positif indique un excès de longs qui représente une pression vendeuse future mécanique. (3) Le Long/Short Ratio est un indicateur contrarian : quand 70%+ des traders sont d'un côté, le marché a tendance à les punir. (4) L'OI CME vs Binance distingue l'argent institutionnel américain (hedge funds, BlackRock) du retail spéculatif.",
+    howToApply: [
+      "Avant chaque trade (2 min) : vérifie le Funding Rate sur coinglass.com/FundingRate. Funding > 0.08% = excès de longs = pas de nouveau long. Funding < -0.05% = excès de shorts = setup long contrarian favorable si le technique confirme.",
+      "Consulte la Liquidation Heatmap (coinglass.com/pro/futures/LiquidationHeatMap) pour identifier les zones jaunes/orange denses. Si une zone dense se trouve entre ton entrée et ton SL → déplace ton SL en dessous pour éviter le stop hunt. Si une zone dense de shorts se trouve entre entrée et TP → confirmation : ces shorts seront liquidés (achat forcé) et accéléreront ton TP.",
+      "Vérifie le Long/Short Ratio (coinglass.com/LongShortRatio). > 65% de longs = trop de monde dans le même sens = réduis la taille de tes longs ou passe en mode short contrarian. < 50% de longs = la majorité est short = setup long favorable.",
+      "Avant un long : vérifie que l'OI CME (coinglass.com/BitcoinOpenInterest) est stable ou en hausse ET que l'OI Binance n'explose pas. OI CME en hausse = institutionnels américains achètent = signal fort de qualité.",
+      "Le dimanche (5 min) : regarde le Funding Rate accumulé sur 7 jours, la Heatmap 30 jours pour identifier les niveaux clés de la semaine, et le Fear & Greed Crypto (dashboard Coinglass). Score < 25 = peur extrême = zone d'accumulation. Score > 75 = avidité = prudence maximale.",
+      "Combinaison la plus forte : Whale Ratio CryptoQuant > 0.90 + Funding Rate Coinglass > 0.08% = signal de correction imminent ou setup short. Documenté sur 50 000+ trades analysés par CryptoQuant Research 2024.",
+    ],
+    metrics: [
+      { label: 'Exchanges couverts', value: '10+' },
+      { label: 'Mise à jour', value: 'Temps réel' },
+      { label: 'Gratuit', value: 'Majoritairement' },
+    ],
+    featured: true,
+  },
+
   // ══════════════════ NOUVELLES SOURCES — ON-CHAIN ══════════════════
 
   {
