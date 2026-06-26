@@ -13,11 +13,14 @@ export interface TradeLike {
   checkEMA?: boolean
   checkRSI?: boolean
   checkVolume?: boolean
+  checkBBW?: boolean
   checkLiquid?: boolean
   checkUnlocks?: boolean
   checkTVL?: boolean
   checkCoinglass?: boolean
   riskPercent?: number
+  direction?: string
+  marketCondition?: string | null
   plannedRR?: number
   emotionScore?: number | null
   protocolOverride?: boolean
@@ -290,10 +293,13 @@ export function computeDashboardMetrics(
       {
         ...t,
         asset: t.asset ?? '',
+        direction: (t.direction as 'LONG' | 'SHORT') ?? 'LONG',
+        marketCondition: t.marketCondition,
         riskPercent: t.riskPercent ?? 1,
         plannedRR: t.plannedRR ?? 0,
         emotionScore: t.emotionScore,
         protocolOverride: t.protocolOverride,
+        checkBBW: t.checkBBW,
       },
       1,
     ),

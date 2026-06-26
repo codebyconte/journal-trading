@@ -5,6 +5,7 @@ import {
   getConfluenceMax,
   getConfluenceScore,
   isFullConfluence,
+  MIN_PLANNED_RR,
 } from '@/lib/analytics'
 
 // ─── Stockage structuré (JSON dans `content`, rétrocompatible) ────────────────
@@ -226,8 +227,8 @@ export function reviewTrade(trade: Trade): TradeReview {
     else issues.push(`Émotion neutre (${trade.emotionScore}/5) — vigilance requise`)
   }
 
-  if (trade.plannedRR >= 2) strengths.push(`R/R planifié ${trade.plannedRR.toFixed(1)}:1`)
-  else if (trade.plannedRR > 0) issues.push(`R/R planifié faible (${trade.plannedRR.toFixed(1)}:1) — minimum 1:2 recommandé`)
+  if (trade.plannedRR >= MIN_PLANNED_RR) strengths.push(`R/R planifié ${trade.plannedRR.toFixed(1)}:1 (≥ 1:${MIN_PLANNED_RR})`)
+  else if (trade.plannedRR > 0) issues.push(`R/R planifié faible (${trade.plannedRR.toFixed(1)}:1) — minimum 1:${MIN_PLANNED_RR} requis`)
 
   if (trade.status === 'CLOSED' && trade.pnl != null) {
     if (trade.pnl >= 0) {

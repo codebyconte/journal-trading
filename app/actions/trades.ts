@@ -21,6 +21,7 @@ export interface CreateTradeInput {
   checkEMA: boolean
   checkRSI: boolean
   checkVolume: boolean
+  checkBBW: boolean
   checkLiquid: boolean
   checkUnlocks: boolean
   checkTVL: boolean
@@ -37,6 +38,16 @@ export interface CreateTradeInput {
 
 export async function createTrade(input: CreateTradeInput): Promise<ActionResult> {
   try {
+    const activeCount = await prisma.trade.count({
+      where: { status: { in: ['OPEN', 'PENDING'] } },
+    })
+    if (activeCount > 0 && !input.protocolOverride) {
+      return {
+        success: false,
+        error: 'Un trade est déjà ouvert ou en attente (R14 : un seul actif à la fois). Clôture ou annule-le d\'abord, ou utilise le mode journal honnête.',
+      }
+    }
+
     const entryPrice = parseFloat(String(input.entryPrice))
     const stopLoss = parseFloat(String(input.stopLoss))
     const takeProfit = parseFloat(String(input.takeProfit))
@@ -59,6 +70,7 @@ export async function createTrade(input: CreateTradeInput): Promise<ActionResult
         checkEMA: !!input.checkEMA,
         checkRSI: !!input.checkRSI,
         checkVolume: !!input.checkVolume,
+        checkBBW: !!input.checkBBW,
         checkLiquid: !!input.checkLiquid,
         checkUnlocks: !!input.checkUnlocks,
         checkTVL: !!input.checkTVL,

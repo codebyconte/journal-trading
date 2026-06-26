@@ -41,6 +41,8 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
   const [ruleViolated, setRuleViolated] = useState('')
   const [setupWasValid, setSetupWasValid] = useState<boolean | null>(null)
   const [slWasMoved, setSlWasMoved] = useState<boolean | null>(null)
+  const [partialTpAt3R, setPartialTpAt3R] = useState<boolean | null>(null)
+  const [trailingExitUsed, setTrailingExitUsed] = useState<boolean | null>(null)
   const [mainLesson, setMainLesson] = useState('')
 
   useEffect(() => {
@@ -56,6 +58,8 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
       setRuleViolated('')
       setSetupWasValid(null)
       setSlWasMoved(null)
+      setPartialTpAt3R(null)
+      setTrailingExitUsed(null)
       setMainLesson('')
     }
   }, [trade?.id])
@@ -75,6 +79,12 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
   const isTP = !isNaN(exit) && Math.abs(exit - trade.takeProfit) / trade.takeProfit < 0.002
   const isBE = !isNaN(exit) && Math.abs(exit - trade.entryPrice) / trade.entryPrice < 0.002
 
+  const riskDist = Math.abs(trade.entryPrice - trade.stopLoss)
+  const priceAt3R =
+    trade.direction === 'LONG'
+      ? trade.entryPrice + 3 * riskDist
+      : trade.entryPrice - 3 * riskDist
+
   // Auto-detect close type
   const autoCloseType: CloseType = isTP ? 'TP' : isSL ? 'SL' : exit > 0 ? 'MANUAL' : ''
   const effectiveCloseType = closeType || autoCloseType
@@ -89,11 +99,13 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
     if (protocolRespected !== null) parts.push(`Protocole respecté : ${protocolRespected ? 'OUI' : 'NON'}${!protocolRespected && ruleViolated.trim() ? ` — Règle : ${ruleViolated.trim()}` : ''}`)
     if (setupWasValid !== null) parts.push(`Setup valide à l'entrée : ${setupWasValid ? 'OUI' : 'NON'}`)
     if (slWasMoved !== null) parts.push(`SL déplacé : ${slWasMoved ? 'OUI' : 'NON'}`)
+    if (partialTpAt3R !== null) parts.push(`50% fermé @ 3R : ${partialTpAt3R ? 'OUI' : 'NON'}`)
+    if (trailingExitUsed !== null) parts.push(`Sortie trailing EMA 20 (50% restants) : ${trailingExitUsed ? 'OUI' : 'NON'}`)
     if (mainLesson.trim()) parts.push(`Leçon : ${mainLesson.trim()}`)
     return parts.length > 0 ? parts.join('\n') : null
   }
 
-  const hasPostTradeData = effectiveCloseType || protocolRespected !== null || setupWasValid !== null || slWasMoved !== null || mainLesson.trim()
+  const hasPostTradeData = effectiveCloseType || protocolRespected !== null || setupWasValid !== null || slWasMoved !== null || partialTpAt3R !== null || trailingExitUsed !== null || mainLesson.trim()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -155,7 +167,7 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
         <div className="flex flex-wrap gap-2">
           {[
             { label: 'Stop Loss', price: trade.stopLoss, color: 'red' as const },
-            { label: 'Take Profit', price: trade.takeProfit, color: 'emerald' as const },
+            { label: 'TP @ 3R', price: priceAt3R, color: 'emerald' as const },
             { label: 'Breakeven', price: trade.entryPrice, color: undefined },
           ].map(({ label, price, color }) => (
             <Button
@@ -410,6 +422,51 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
                         type="button"
                         onClick={() => setSlWasMoved(slWasMoved === opt.val ? null : opt.val)}
                         {...(slWasMoved === opt.val ? { color: opt.color } : { outline: true as const })}
+                        className="flex-1"
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
+                </Field>
+              </div>
+
+              {/* Plan de gestion §11 */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field>
+                  <Label>50% fermé @ 3R (Limit) ?</Label>
+                  <Description>Protocole R7 — TP partiel sur la moitié de la position</Description>
+                  <div className="flex gap-2">
+                    {[
+                      { val: true, label: 'OUI', color: 'emerald' as const },
+                      { val: false, label: 'NON', color: 'red' as const },
+                    ].map((opt) => (
+                      <Button
+                        key={String(opt.val)}
+                        type="button"
+                        onClick={() => setPartialTpAt3R(partialTpAt3R === opt.val ? null : opt.val)}
+                        {...(partialTpAt3R === opt.val ? { color: opt.color } : { outline: true as const })}
+                        className="flex-1"
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
+                </Field>
+
+                <Field>
+                  <Label>50% restants sortis sur trailing EMA 20 ?</Label>
+                  <Description>Bougie 4H clôture contre la position</Description>
+                  <div className="flex gap-2">
+                    {[
+                      { val: true, label: 'OUI', color: 'emerald' as const },
+                      { val: false, label: 'NON', color: 'red' as const },
+                    ].map((opt) => (
+                      <Button
+                        key={String(opt.val)}
+                        type="button"
+                        onClick={() => setTrailingExitUsed(trailingExitUsed === opt.val ? null : opt.val)}
+                        {...(trailingExitUsed === opt.val ? { color: opt.color } : { outline: true as const })}
                         className="flex-1"
                       >
                         {opt.label}

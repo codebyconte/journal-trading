@@ -46,6 +46,7 @@ model Trade {
   checkEMA        Boolean @default(false)
   checkRSI        Boolean @default(false)
   checkVolume     Boolean @default(false)
+  checkBBW        Boolean @default(false) // Bollinger Band Width au-dessus de sa moyenne 20 bougies
   checkLiquid     Boolean @default(false)
   checkUnlocks    Boolean @default(false)
   checkTVL        Boolean @default(false)

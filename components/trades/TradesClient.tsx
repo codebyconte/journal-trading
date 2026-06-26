@@ -67,7 +67,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
     <PageShell>
       <PageHeader
         title="Trades — Protocole Swing 4H"
-        description="Ordre Limite · 1% risque · 7 confluences · R/R minimum 1:3"
+        description="Ordre Limite · 1% risque · 8 confluences · R/R minimum 1:3 · ATR SL"
         icon={<Target data-slot="icon" className="size-7 text-indigo-400" aria-hidden="true" />}
         actions={
           <>
@@ -99,7 +99,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
             tone: stats.totalPnl >= 0 ? 'profit' : 'loss',
           },
           {
-            label: 'Protocole 7/7',
+            label: 'Protocole',
             value: stats.closed > 0 ? `${stats.protocolRate.toFixed(0)}%` : '—',
             tone: stats.closed > 0 ? (stats.protocolRate >= 70 ? 'profit' : 'neutral') : 'default',
           },
@@ -113,7 +113,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
         icon={<Shield data-slot="icon" className="size-5 text-indigo-400" aria-hidden="true" />}
         title="Avant chaque trade — Checklist obligatoire"
       >
-        Règle Zéro ≥ 3/5 · MTF aligné (W→D→4H) · 7/7 confluences · Ordre Limite · SL+TP simultanés · 3 invalidations
+        Règle Zéro ≥ 3/5 · MTF aligné (W→D→4H) · 8/8 confluences · BBW · ATR SL · Ordre Limite · TP 50%@3R + trailing EMA 20
         <div className="mt-3">
           <Button href="/protocol" outline>
             <BookOpen data-slot="icon" className="size-4" aria-hidden="true" />
@@ -155,6 +155,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
         <TradeForm
           currentCapital={settings.currentCapital}
           riskPercent={settings.riskPercent}
+          openTradeCount={stats.pending + stats.open}
           onSuccess={() => { setShowForm(false); refresh() }}
         />
       </Modal>

@@ -352,11 +352,11 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
         <div className="space-y-2 text-sm">
           {[
             { rule: 'Risque max par trade', value: '1% du capital', color: 'text-emerald-400' },
-            { rule: 'R/R minimum', value: '1:2 (idéal 1:3)', color: 'text-amber-400' },
+            { rule: 'R/R minimum', value: '1:3 (TP 50% + trailing EMA 20)', color: 'text-amber-400' },
             { rule: 'Timeframe principal', value: 'Weekly → Daily → 4H', color: 'text-indigo-400' },
             { rule: "Pas d'ordre Market", value: 'Limite ou Stop uniquement', color: 'text-zinc-400' },
-            { rule: 'Checklist confluences', value: '7/7 (6/7 = taille 0.5%)', color: 'text-zinc-400' },
-            { rule: 'Stop loss', value: 'Jamais déplacer en perte', color: 'text-red-400' },
+            { rule: 'Checklist confluences', value: '8/8 (7/8 = taille 0.5%)', color: 'text-zinc-400' },
+            { rule: 'Stop loss', value: 'ATR × 1.5 — jamais déplacer en perte', color: 'text-red-400' },
             { rule: '3 pertes consécutives', value: 'Arrêter la session', color: 'text-red-400' },
             { rule: 'Violation des règles', value: 'Mode journal honnête (formulaire trade)', color: 'text-red-400' },
           ].map((item) => (

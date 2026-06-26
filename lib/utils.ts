@@ -92,6 +92,18 @@ export function calculatePlannedRR(
   }
 }
 
+/** Stop loss dynamique basé sur ATR × multiplicateur (protocole : 1.5). */
+export function calculateStopLossFromATR(
+  entryPrice: number,
+  atr: number,
+  direction: 'LONG' | 'SHORT',
+  multiplier = 1.5,
+): number | null {
+  if (!entryPrice || !atr || atr <= 0 || !isFinite(atr)) return null
+  const dist = atr * multiplier
+  return direction === 'LONG' ? entryPrice - dist : entryPrice + dist
+}
+
 /**
  * Calcule le P&L réel à la clôture.
  * LONG: pnl = (exitPrice - entryPrice) * units

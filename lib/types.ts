@@ -1,30 +1,20 @@
 export type TradeDirection = 'LONG' | 'SHORT'
 export type TradeOrderType = 'LIMITE' | 'STOP'
 export type TradeStatus = 'PENDING' | 'OPEN' | 'CLOSED' | 'CANCELLED'
-export type MarketCondition = 'TREND_UP' | 'TREND_DOWN' | 'RANGING' | 'VOLATILE' | 'BREAKOUT'
+export type MarketCondition = 'BULL' | 'BEAR' | 'LATERAL' | 'TREND_UP' | 'TREND_DOWN' | 'RANGING' | 'VOLATILE' | 'BREAKOUT'
 export type SessionTime = 'ASIA' | 'LONDON' | 'NY' | 'OVERLAP'
 
 export const TRADE_SETUPS = [
-  // ─── Setups LONG ───────────────────────────────────────────────────
-  'Retest EMA 200 par dessus (Long — setup #1)',
-  'Retest EMA 50 par dessus (Long — setup #2)',
-  'Retest EMA 100 par dessus (Long)',
-  'Retest POC + EMA confluence (Long)',
-  'Support Historique + EMA',
-  'Breakout Confirmé (volume > 120%)',
-  'Divergence RSI Haussière (Long)',
-  'Divergence OBV Haussière (Long)',
-  'Stop Hunt Haussier — Buy Side',
-  'Capitulation Volume (Long)',
-  // ─── Setups SHORT ──────────────────────────────────────────────────
-  'Retest EMA 200 par dessous (Short — setup #1)',
-  'Retest EMA 50 comme résistance (Short — setup #2)',
-  'Retest POC + EMA résistance (Short)',
-  'Rejet Résistance Majeure (Short)',
-  'Cassure Support + Retest résistance (Short)',
-  'Divergence RSI Baissière (Short)',
-  'Divergence OBV Baissière (Short)',
-  'Stop Hunt Baissier — Sell Side',
+  // ─── Setups LONG (1–4) ─────────────────────────────────────────────
+  'Long #1 — Retest EMA 200 (priorité absolue)',
+  'Long #2 — Retest EMA 50 (setup principal)',
+  'Long #3 — Retest POC Volume Profile',
+  'Long #4 — Breakout confirmé (volume > 150%)',
+  // ─── Setups SHORT (1–4) ────────────────────────────────────────────
+  'Short #1 — Retest baissier EMA 200 (bear market)',
+  'Short #2 — Rejet résistance majeure (exception bull)',
+  'Short #3 — Cassure support + retest (bear market)',
+  'Short #4 — Death Cross confirmation (EMA 50 × 200)',
   // ─── Neutre ────────────────────────────────────────────────────────
   'Autre',
 ] as const
@@ -41,9 +31,12 @@ export const PRESET_ASSETS = [
 ] as const
 
 export const MARKET_CONDITIONS: { value: MarketCondition; label: string }[] = [
-  { value: 'TREND_UP',   label: 'Tendance haussière' },
-  { value: 'TREND_DOWN', label: 'Tendance baissière' },
-  { value: 'RANGING',    label: 'Ranging / Consolidation' },
+  { value: 'BULL',       label: 'Bull market — longs prioritaires' },
+  { value: 'BEAR',       label: 'Bear market — shorts prioritaires' },
+  { value: 'LATERAL',    label: 'Marché latéral — cash ou 0.5%' },
+  { value: 'TREND_UP',   label: 'Tendance haussière (legacy)' },
+  { value: 'TREND_DOWN', label: 'Tendance baissière (legacy)' },
+  { value: 'RANGING',    label: 'Ranging / Consolidation (legacy)' },
   { value: 'VOLATILE',   label: 'Haute volatilité' },
   { value: 'BREAKOUT',   label: 'Breakout' },
 ]
@@ -80,6 +73,7 @@ export interface Trade {
   checkEMA: boolean
   checkRSI: boolean
   checkVolume: boolean
+  checkBBW: boolean
   checkLiquid: boolean
   checkUnlocks: boolean
   checkTVL: boolean
@@ -184,6 +178,7 @@ export interface TradeFormData {
   checkEMA: boolean
   checkRSI: boolean
   checkVolume: boolean
+  checkBBW: boolean
   checkLiquid: boolean
   checkUnlocks: boolean
   checkTVL: boolean

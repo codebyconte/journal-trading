@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { prisma } from '@/lib/db'
 import { computeSummary, getConfluenceScore, normalizeEmotionScore, isTradeProtocolCompliant } from '@/lib/analytics'
+import type { TradeDirection } from '@/lib/types'
 import type { AnalyticsSummary } from '@/lib/analytics'
 
 const TRADING_DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as const
@@ -42,9 +43,12 @@ export const getAnalyticsData = cache(async (): Promise<AnalyticsData> => {
         {
           ...t,
           asset: t.asset,
+          direction: t.direction as TradeDirection,
+          marketCondition: t.marketCondition,
           riskPercent: t.riskPercent,
           plannedRR: t.plannedRR,
           emotionScore: t.emotionScore,
+          checkBBW: t.checkBBW,
         },
         1,
       ),
@@ -139,7 +143,7 @@ export const getAnalyticsData = cache(async (): Promise<AnalyticsData> => {
     if ((t.pnl ?? 0) > 0) byConfluence[score].wins++
     byConfluence[score].pnl += t.pnl ?? 0
   }
-  const confluencePerformance = [0, 1, 2, 3, 4, 5, 6, 7]
+  const confluencePerformance = [0, 1, 2, 3, 4, 5, 6, 7, 8]
     .map((score) => {
       const data = byConfluence[score] ?? { trades: 0, wins: 0, pnl: 0 }
       return {

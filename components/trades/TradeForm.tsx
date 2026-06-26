@@ -3,8 +3,21 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Image from 'next/image'
 import { Calculator, X, CheckCircle2, AlertCircle, Camera, AlertTriangle, TrendingUp, TrendingDown, Shield, Target } from 'lucide-react'
-import { cn, calculateUnits, calculatePlannedRR, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices } from '@/lib/utils'
-import { isCoinglassApplicable, getConfluenceTone, getConfluenceMax, formatConfluenceScore, getEffectiveRiskPercent, getMissingConfluenceKeys, CONFLUENCE_KEY_LABELS, getProtocolViolations } from '@/lib/analytics'
+import { cn, calculateUnits, calculatePlannedRR, calculateStopLossFromATR, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices } from '@/lib/utils'
+import {
+  isCoinglassApplicable,
+  getConfluenceTone,
+  getConfluenceMax,
+  formatConfluenceScore,
+  getEffectiveRiskPercent,
+  getMissingConfluenceKeys,
+  getDirectionRegimeBlock,
+  CONFLUENCE_KEY_LABELS,
+  getProtocolViolations,
+  MIN_PLANNED_RR,
+  ATR_SL_MULTIPLIER,
+  normalizeMarketRegime,
+} from '@/lib/analytics'
 import { createTrade } from '@/app/actions/trades'
 import { CalloutBanner } from '@/components/ui/SystemState'
 import { Button } from '@/components/catalyst/button'
@@ -19,7 +32,15 @@ import { TRADE_SETUPS, MARKET_CONDITIONS, SESSION_TIMES, PRESET_ASSETS, type Tra
 interface Props {
   currentCapital: number
   riskPercent: number
+  openTradeCount?: number
   onSuccess: () => void
+}
+
+const BBW_CHECK = {
+  key: 'checkBBW' as const,
+  label: 'BBW au-dessus de sa moyenne 20 bougies — tendance active (pas de compression)',
+  desc: 'Bollinger Band Width > moyenne 20 bougies = trend following autorisé. En dessous = marché latéral → cash ou taille 0.5% max (R5).',
+  required: true,
 }
 
 const CHECKLIST_LONG = [
@@ -41,6 +62,7 @@ const CHECKLIST_LONG = [
     desc: 'FRVP depuis dernier ATH/ATL. POC valide seulement s\'il coïncide avec une EMA (double confluence). OBV monte ou accumulation cachée (OBV monte + prix stagne).',
     required: true,
   },
+  BBW_CHECK,
   {
     key: 'checkLiquid',
     label: 'CryptoQuant long : Whale Ratio < 0.85 + Funding Rate < 0.03% + Exchange Reserve en baisse',
@@ -86,6 +108,7 @@ const CHECKLIST_SHORT = [
     desc: 'FRVP depuis dernier ATH/ATL. POC comme résistance seulement s\'il coïncide avec une EMA. OBV en baisse ou distribution cachée (OBV descend + prix monte = vente institutionnelle).',
     required: true,
   },
+  BBW_CHECK,
   {
     key: 'checkLiquid',
     label: 'CryptoQuant short : Whale Ratio ≥ 0.85 + Funding Rate > 0.03% + Exchange Reserve montante',
@@ -114,7 +137,7 @@ const CHECKLIST_SHORT = [
 
 type ChecklistKey = (typeof CHECKLIST_LONG)[number]['key']
 
-export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
+export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onSuccess }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
@@ -133,12 +156,14 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
     sessionTime: '',
     notes: '',
     invalidations: '',
+    atr: '',
   })
 
   const [checklist, setChecklist] = useState<Record<ChecklistKey, boolean>>({
     checkEMA: false,
     checkRSI: false,
     checkVolume: false,
+    checkBBW: false,
     checkLiquid: false,
     checkUnlocks: false,
     checkTVL: false,
@@ -167,7 +192,13 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
     const tp = parseFloat(form.takeProfit)
 
     if (!isNaN(entry) && !isNaN(sl) && entry > 0 && sl > 0) {
-      const protocolRisk = getEffectiveRiskPercent(riskPercent, { ...checklist, asset: form.asset || '' })
+      const riskCtx = {
+        ...checklist,
+        asset: form.asset || '',
+        direction: form.direction,
+        marketCondition: form.marketCondition || null,
+      }
+      const protocolRisk = getEffectiveRiskPercent(riskPercent, riskCtx)
       let riskForCalc: number
       if (protocolOverride) {
         const custom = parseFloat(customRiskPercent)
@@ -195,7 +226,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         units: units > 0 ? formatNumber(units, 4) : prev.units,
       }))
     }
-  }, [form.entryPrice, form.stopLoss, form.takeProfit, form.direction, form.asset, currentCapital, riskPercent, checklist, protocolOverride, customRiskPercent])
+  }, [form.entryPrice, form.stopLoss, form.takeProfit, form.direction, form.asset, form.marketCondition, currentCapital, riskPercent, checklist, protocolOverride, customRiskPercent])
 
   useEffect(() => {
     recalculate()
@@ -231,8 +262,13 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
   const isCryptoAsset = !form.asset || isCoinglassApplicable(form.asset)
 
   const confluenceTrade = useMemo(
-    () => ({ ...checklist, asset: form.asset || '' }),
-    [checklist, form.asset],
+    () => ({
+      ...checklist,
+      asset: form.asset || '',
+      direction: form.direction,
+      marketCondition: form.marketCondition || null,
+    }),
+    [checklist, form.asset, form.direction, form.marketCondition],
   )
 
   const confluenceMax = getConfluenceMax(form.asset || '')
@@ -240,17 +276,23 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
   const confluenceLabel = formatConfluenceScore(confluenceTrade)
   const effectiveRiskPercent = getEffectiveRiskPercent(riskPercent, confluenceTrade)
   const missingConfluenceKeys = getMissingConfluenceKeys(confluenceTrade)
+  const regimeBlock = getDirectionRegimeBlock(confluenceTrade)
+  const marketRegime = normalizeMarketRegime(form.marketCondition)
 
-  const canSubmitConfluence = confluenceTone !== 'low'
+  const canSubmitConfluence = confluenceTone !== 'low' && effectiveRiskPercent !== null && !regimeBlock
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
     if (!protocolOverride) {
+      if (regimeBlock) {
+        setError(regimeBlock)
+        return
+      }
       if (!canSubmitConfluence || effectiveRiskPercent === null) {
         setError(
-          `Confluence insuffisante (${confluenceLabel}) — minimum ${confluenceMax - 1}/${confluenceMax} pour taille réduite (0.5%). Active le mode journal honnête si tu veux quand même enregistrer.`,
+          `Confluence ou régime insuffisant (${confluenceLabel}) — minimum ${confluenceMax - 1}/${confluenceMax} pour taille réduite (0.5%). Active le mode journal honnête si tu veux quand même enregistrer.`,
         )
         return
       }
@@ -258,7 +300,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
         const missingLabels = missingConfluenceKeys.map((k) => CONFLUENCE_KEY_LABELS[k]).join(', ')
         if (
           !confirm(
-            `Confluence ${confluenceLabel} — taille réduite à ${effectiveRiskPercent}% (protocole : 6/7 = 0.5%).\n\nConfluence manquante : ${missingLabels}\n\nContinuer avec la taille réduite ?`,
+            `Confluence ${confluenceLabel} — taille réduite à ${effectiveRiskPercent}% (protocole : ${confluenceMax - 1}/${confluenceMax} = 0.5%).\n\nConfluence manquante : ${missingLabels}\n\nContinuer avec la taille réduite ?`,
           )
         ) {
           return
@@ -280,6 +322,8 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           riskPercent: autoCalc.riskPercent,
           plannedRR: autoCalc.plannedRR,
           emotionScore: parseInt(form.emotionScore),
+          direction: form.direction,
+          marketCondition: form.marketCondition || null,
           protocolOverride: false,
         },
         riskPercent,
@@ -315,16 +359,13 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
       return
     }
 
-    if (autoCalc.plannedRR > 0 && autoCalc.plannedRR < 2) {
+    if (autoCalc.plannedRR > 0 && autoCalc.plannedRR < MIN_PLANNED_RR) {
       if (protocolOverride) {
-        if (!confirm(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:2. Enregistrer quand même en mode journal honnête ?`)) return
+        if (!confirm(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:${MIN_PLANNED_RR}. Enregistrer quand même en mode journal honnête ?`)) return
       } else {
-        setError(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:2, idéal 1:3. Ajuste ton Take Profit.`)
+        setError(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:${MIN_PLANNED_RR}. Ajuste ton Take Profit (bouton TP @ 3R).`)
         return
       }
-    }
-    if (autoCalc.plannedRR > 0 && autoCalc.plannedRR < 3) {
-      if (!confirm(`R/R = 1:${autoCalc.plannedRR.toFixed(1)} — protocole recommande 1:3 minimum. Continuer ?`)) return
     }
 
     setLoading(true)
@@ -382,6 +423,15 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
     setForm((prev) => ({ ...prev, takeProfit: tp.toFixed(4) }))
   }
 
+  const applyStopLossFromATR = () => {
+    const entry = parseFloat(form.entryPrice)
+    const atr = parseFloat(form.atr)
+    if (isNaN(entry) || isNaN(atr)) return
+    const sl = calculateStopLossFromATR(entry, atr, form.direction, ATR_SL_MULTIPLIER)
+    if (sl == null) return
+    setForm((prev) => ({ ...prev, stopLoss: sl.toFixed(4) }))
+  }
+
   const levierNum = parseInt(form.levier) || 1
   const entryNum = parseFloat(form.entryPrice || '0')
   const slNum = parseFloat(form.stopLoss || '0')
@@ -402,6 +452,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
       : null
 
   const canSubmit =
+    (openTradeCount === 0 || protocolOverride) &&
     (protocolOverride || (canSubmitConfluence && effectiveRiskPercent !== null && parseInt(form.emotionScore) >= 3)) &&
     !priceValidationError &&
     slSaferThanLiq &&
@@ -410,12 +461,19 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {openTradeCount > 0 && !protocolOverride && (
+        <CalloutBanner tone="amber" icon={<AlertTriangle data-slot="icon" className="size-5 text-amber-400" aria-hidden="true" />}>
+          <span className="font-semibold text-amber-200">Un trade est déjà actif ({openTradeCount})</span>
+          <p className="mt-1 text-sm">R14 : un seul actif à la fois. Clôture ou annule le trade existant avant d&apos;en ouvrir un nouveau.</p>
+        </CalloutBanner>
+      )}
+
       <CalloutBanner
         tone="indigo"
         icon={<Shield data-slot="icon" className="size-5 text-indigo-400" aria-hidden="true" />}
       >
         <span className="font-semibold text-white">Swing 4H — Ordre Limite uniquement.</span>{' '}
-        MTF aligné (Weekly→Daily→4H) · Bougie 4H fermée · SL+TP posés ensemble · Marge isolée · Levier 2-3x max.
+        MTF aligné (Weekly→Daily→4H) · Bougie 4H fermée · SL ATR×1.5 · TP 50%@3R + trailing EMA 20 · Levier 2-5x max.
       </CalloutBanner>
 
       {/* Row 1: Date, Actif, Direction, Ordre */}
@@ -529,8 +587,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
             {[
-              { r: 2, label: 'TP @ 2R' },
-              { r: 3, label: 'TP @ 3R (protocole)' },
+              { r: MIN_PLANNED_RR, label: `TP @ ${MIN_PLANNED_RR}R (protocole)` },
             ].map(({ r, label }) => (
               <Button
                 key={r}
@@ -546,6 +603,33 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           </div>
         </Field>
       </div>
+
+      {/* ATR — Stop Loss dynamique */}
+      <Field>
+        <Label>ATR 14 (4H) — Stop Loss dynamique</Label>
+        <Description>
+          Saisis l&apos;ATR depuis TradingView. SL = entrée ± (ATR × {ATR_SL_MULTIPLIER}). Taille = (capital × risque%) ÷ (ATR × {ATR_SL_MULTIPLIER}).
+        </Description>
+        <div className="flex max-w-lg flex-wrap gap-2">
+          <Input
+            type="number"
+            step="any"
+            placeholder="Ex: 800"
+            value={form.atr}
+            onChange={(e) => setForm({ ...form, atr: e.target.value })}
+            className="max-w-[140px] font-mono"
+          />
+          <Button
+            type="button"
+            outline
+            onClick={applyStopLossFromATR}
+            disabled={!form.entryPrice || !form.atr}
+            className="text-sm"
+          >
+            Calculer SL @ ATR×{ATR_SL_MULTIPLIER}
+          </Button>
+        </div>
+      </Field>
 
       {/* Levier — avant le calculateur pour que la marge soit à jour */}
       <Field>
@@ -610,7 +694,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
               <p
                 className={cn(
                   'font-mono text-lg font-bold',
-                  autoCalc.plannedRR >= 3 ? 'text-emerald-400' : autoCalc.plannedRR >= 2 ? 'text-amber-400' : 'text-red-400',
+                  autoCalc.plannedRR >= MIN_PLANNED_RR ? 'text-emerald-400' : 'text-red-400',
                 )}
               >
                 {autoCalc.plannedRR > 0 ? `1:${autoCalc.plannedRR.toFixed(1)}` : '—'}
@@ -663,10 +747,10 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
               Marge {'>'} 25% du capital — augmente le levier ou réduis la distance SL si possible.
             </div>
           )}
-          {autoCalc.plannedRR > 0 && autoCalc.plannedRR < 2 && (
+          {autoCalc.plannedRR > 0 && autoCalc.plannedRR < MIN_PLANNED_RR && (
             <div className="flex items-center gap-2 text-sm text-red-400">
               <AlertCircle size={12} />
-              R/R insuffisant — minimum 1:2, protocole exige 1:3. Utilise les boutons TP @ 2R / @ 3R.
+              R/R insuffisant — minimum 1:{MIN_PLANNED_RR}. Utilise le bouton TP @ {MIN_PLANNED_RR}R (50% position @ 3R + 50% trailing EMA 20).
             </div>
           )}
         </div>
@@ -687,7 +771,7 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           </Select>
         </Field>
         <Field>
-          <Label>Condition de marché</Label>
+          <Label>Condition de marché (régime)</Label>
           <Select
             value={form.marketCondition}
             onChange={(e) => setForm({ ...form, marketCondition: e.target.value })}
@@ -697,6 +781,21 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
           </Select>
+          {marketRegime === 'BULL' && form.direction === 'SHORT' && (
+            <Description className="text-amber-400">
+              Short en bull : exception stricte — minimum {confluenceMax - 3}/{confluenceMax} confluences, max 0.5% sauf {confluenceMax}/{confluenceMax}.
+            </Description>
+          )}
+          {marketRegime === 'BEAR' && form.direction === 'LONG' && (
+            <Description className="text-red-400">
+              Long interdit en bear market (R11) — privilégier shorts ou cash.
+            </Description>
+          )}
+          {marketRegime === 'LATERAL' && (
+            <Description className="text-amber-400">
+              Marché latéral — cash recommandé ou taille max 0.5%.
+            </Description>
+          )}
         </Field>
         <Field>
           <Label>Session</Label>
@@ -749,8 +848,8 @@ export function TradeForm({ currentCapital, riskPercent, onSuccess }: Props) {
           <Label>
             Checklist Protocole —{' '}
             {isCryptoAsset
-              ? '7/7 = 1% · 6/7 = 0.5%'
-              : '6/6 = 1% · 5/6 = 0.5% (Coinglass N/A)'}
+              ? `${confluenceMax}/${confluenceMax} = 1% · ${confluenceMax - 1}/${confluenceMax} = 0.5%`
+              : `${confluenceMax}/${confluenceMax} = 1% · ${confluenceMax - 1}/${confluenceMax} = 0.5% (Coinglass N/A)`}
           </Label>
           <Badge
             color={

@@ -1,9 +1,24 @@
-import type { Trade } from '@/lib/types'
+import type { Trade, TradeDirection } from '@/lib/types'
 
-export const CHECK_KEYS = ['checkEMA', 'checkRSI', 'checkVolume', 'checkLiquid', 'checkUnlocks', 'checkTVL', 'checkCoinglass'] as const
+export const CHECK_KEYS = [
+  'checkEMA',
+  'checkRSI',
+  'checkVolume',
+  'checkBBW',
+  'checkLiquid',
+  'checkUnlocks',
+  'checkTVL',
+  'checkCoinglass',
+] as const
 export type ConfluenceCheckKey = (typeof CHECK_KEYS)[number]
 
 const NON_CRYPTO_ASSETS = new Set(['SPX', 'QQQ'])
+
+/** R/R minimum protocole (Version Finale Optimisée). */
+export const MIN_PLANNED_RR = 3
+
+/** Multiplicateur ATR pour le stop loss dynamique. */
+export const ATR_SL_MULTIPLIER = 1.5
 
 /** Coinglass ne s'applique qu'aux crypto perpetuels (pas SPX/QQQ). */
 export function isCoinglassApplicable(asset: string): boolean {
@@ -23,8 +38,9 @@ export function getConfluenceMax(asset: string): number {
 export type ConfluenceChecks = Partial<Record<ConfluenceCheckKey, boolean>>
 export type ConfluenceTrade = ConfluenceChecks & { asset: string }
 
-export function getConfluenceScore(trade: ConfluenceChecks): number {
-  return CHECK_KEYS.filter((k) => trade[k]).length
+export function getConfluenceScore(trade: ConfluenceChecks & { asset?: string }): number {
+  const keys = trade.asset ? getApplicableCheckKeys(trade.asset) : CHECK_KEYS
+  return keys.filter((k) => trade[k]).length
 }
 
 export function isFullConfluence(trade: ConfluenceTrade): boolean {
@@ -37,17 +53,32 @@ export function formatConfluenceScore(trade: ConfluenceTrade): string {
 
 export type ConfluenceTone = 'full' | 'partial' | 'low'
 
-/** Multiplicateur de risque quand une seule confluence manque (6/7 ou 5/6 indices). */
+/** Multiplicateur de risque quand une seule confluence manque. */
 export const PARTIAL_RISK_MULTIPLIER = 0.5
 
+/** Minimum confluences pour short en bull market (exception stricte). */
+export const BULL_SHORT_MIN_SCORE_OFFSET = 3 // score >= max - 3
+
 export const CONFLUENCE_KEY_LABELS: Record<ConfluenceCheckKey, string> = {
-  checkEMA: 'EMA Ribbon',
+  checkEMA: 'EMA Ribbon + régime',
   checkRSI: 'RSI / Divergence',
   checkVolume: 'Volume Profile',
+  checkBBW: 'BBW — tendance active',
   checkLiquid: 'CryptoQuant',
   checkUnlocks: 'Arkham Intel',
   checkTVL: 'Macro / DXY',
   checkCoinglass: 'Coinglass',
+}
+
+export type MarketRegime = 'BULL' | 'BEAR' | 'LATERAL' | 'UNKNOWN'
+
+export function normalizeMarketRegime(condition: string | null | undefined): MarketRegime {
+  if (!condition) return 'UNKNOWN'
+  const c = condition.toUpperCase()
+  if (c === 'BULL' || c === 'TREND_UP') return 'BULL'
+  if (c === 'BEAR' || c === 'TREND_DOWN') return 'BEAR'
+  if (c === 'LATERAL' || c === 'RANGING') return 'LATERAL'
+  return 'UNKNOWN'
 }
 
 export function getConfluenceTone(trade: ConfluenceTrade): ConfluenceTone {
@@ -62,12 +93,65 @@ export function getMissingConfluenceKeys(trade: ConfluenceTrade): ConfluenceChec
   return getApplicableCheckKeys(trade.asset).filter((k) => !trade[k]) as ConfluenceCheckKey[]
 }
 
-/** Risque effectif selon le score de confluence. `null` = pas de trade (≤ max-2). */
-export function getEffectiveRiskPercent(baseRiskPercent: number, trade: ConfluenceTrade): number | null {
-  const tone = getConfluenceTone(trade)
-  if (tone === 'full') return baseRiskPercent
-  if (tone === 'partial') return baseRiskPercent * PARTIAL_RISK_MULTIPLIER
+export interface RiskContext extends ConfluenceTrade {
+  direction?: TradeDirection
+  marketCondition?: string | null
+}
+
+/** Bloque direction vs régime (hors mode journal honnête). */
+export function getDirectionRegimeBlock(ctx: RiskContext): string | null {
+  const regime = normalizeMarketRegime(ctx.marketCondition)
+  const score = getConfluenceScore(ctx)
+  const max = getConfluenceMax(ctx.asset)
+
+  if (regime === 'BEAR' && ctx.direction === 'LONG') {
+    return 'Long interdit en bear market (R11) — prix sous EMA 200, privilégier les shorts ou cash.'
+  }
+  if (regime === 'BULL' && ctx.direction === 'SHORT') {
+    const minScore = max - BULL_SHORT_MIN_SCORE_OFFSET
+    if (score < minScore) {
+      return `Short en bull market : minimum ${minScore}/${max} confluences (exception stricte R16).`
+    }
+  }
   return null
+}
+
+/**
+ * Risque effectif selon confluence, BBW, régime et direction.
+ * `null` = pas de trade.
+ */
+export function getEffectiveRiskPercent(baseRiskPercent: number, ctx: RiskContext): number | null {
+  const regime = normalizeMarketRegime(ctx.marketCondition)
+  const score = getConfluenceScore(ctx)
+  const max = getConfluenceMax(ctx.asset)
+
+  // Short en bull : minimum confluences avant tout trade
+  if (regime === 'BULL' && ctx.direction === 'SHORT' && score < max - BULL_SHORT_MIN_SCORE_OFFSET) {
+    return null
+  }
+
+  const tone = getConfluenceTone(ctx)
+  let risk: number | null
+  if (tone === 'full') risk = baseRiskPercent
+  else if (tone === 'partial') risk = baseRiskPercent * PARTIAL_RISK_MULTIPLIER
+  else return null
+
+  // BBW sous moyenne → max 0.5 % (R5)
+  if (!ctx.checkBBW && risk != null) {
+    risk = Math.min(risk, baseRiskPercent * PARTIAL_RISK_MULTIPLIER)
+  }
+
+  // Marché latéral → max 0.5 % (R5)
+  if (regime === 'LATERAL' && risk != null) {
+    risk = Math.min(risk, baseRiskPercent * PARTIAL_RISK_MULTIPLIER)
+  }
+
+  // Short en bull : max 0.5 % sauf confluence parfaite (8/8 ou 7/7 indices)
+  if (regime === 'BULL' && ctx.direction === 'SHORT' && risk != null && tone !== 'full') {
+    risk = Math.min(risk, baseRiskPercent * PARTIAL_RISK_MULTIPLIER)
+  }
+
+  return risk
 }
 
 export type ProtocolViolationType =
@@ -76,21 +160,29 @@ export type ProtocolViolationType =
   | 'risk_exceeded'
   | 'low_emotion'
   | 'low_rr'
+  | 'regime_direction'
+  | 'bbw_compression'
 
 export interface ProtocolViolation {
   type: ProtocolViolationType
   label: string
 }
 
-export interface ProtocolCheckInput {
+export interface ProtocolCheckInput extends ProtocolCheckInputBase {
+  protocolOverride?: boolean
+}
+
+interface ProtocolCheckInputBase {
   asset: string
   riskPercent: number
   plannedRR: number
   emotionScore?: number | null
-  protocolOverride?: boolean
+  direction?: TradeDirection
+  marketCondition?: string | null
   checkEMA?: boolean
   checkRSI?: boolean
   checkVolume?: boolean
+  checkBBW?: boolean
   checkLiquid?: boolean
   checkUnlocks?: boolean
   checkTVL?: boolean
@@ -121,7 +213,27 @@ export function getProtocolViolations(
     })
   }
 
-  const expectedRisk = getEffectiveRiskPercent(baseRiskPercent, confluenceTrade)
+  if (!trade.checkBBW) {
+    violations.push({
+      type: 'bbw_compression',
+      label: 'BBW sous moyenne — compression / pas de trend following',
+    })
+  }
+
+  const regimeBlock = getDirectionRegimeBlock({
+    ...confluenceTrade,
+    direction: trade.direction,
+    marketCondition: trade.marketCondition,
+  })
+  if (regimeBlock) {
+    violations.push({ type: 'regime_direction', label: regimeBlock })
+  }
+
+  const expectedRisk = getEffectiveRiskPercent(baseRiskPercent, {
+    ...confluenceTrade,
+    direction: trade.direction,
+    marketCondition: trade.marketCondition,
+  })
   if (expectedRisk != null && trade.riskPercent > expectedRisk + 0.05) {
     violations.push({
       type: 'risk_exceeded',
@@ -142,10 +254,10 @@ export function getProtocolViolations(
     })
   }
 
-  if (trade.plannedRR > 0 && trade.plannedRR < 2) {
+  if (trade.plannedRR > 0 && trade.plannedRR < MIN_PLANNED_RR) {
     violations.push({
       type: 'low_rr',
-      label: `R/R planifié 1:${trade.plannedRR.toFixed(1)} < 1:2 minimum`,
+      label: `R/R planifié 1:${trade.plannedRR.toFixed(1)} < 1:${MIN_PLANNED_RR} minimum`,
     })
   }
 
@@ -159,8 +271,8 @@ export function isTradeProtocolCompliant(
   return getProtocolViolations(trade, baseRiskPercent).length === 0
 }
 
-/** Score max absolu (crypto). */
-export const CONFLUENCE_MAX = 7
+/** Score max absolu (crypto avec Coinglass). */
+export const CONFLUENCE_MAX = 8
 
 export function normalizeEmotionScore(score: number | null | undefined): number {
   if (score == null) return 4
@@ -309,8 +421,8 @@ export function generateInsights(data: {
     insights.push({
       id: 'risk-violation',
       type: 'bad',
-      title: `${data.riskViolations} trade(s) avec risque > 1%`,
-      detail: 'Van Tharp : 94% des traders survivants 5 ans+ risquent ≤ 2%. Revenir strictement à 1% par trade.',
+      title: `${data.riskViolations} trade(s) hors protocole`,
+      detail: 'Trades avec violations (R/R, confluence, régime, BBW). Analyse pourquoi tu gagnes/perds hors règles.',
     })
   }
 

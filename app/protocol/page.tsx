@@ -52,7 +52,7 @@ function TabRegleZero() {
       <SectionHeading>Règle Zéro — L'État Émotionnel Prime sur Tout le Reste</SectionHeading>
 
       <Callout type="danger" title="Principe fondamental — Aucune exception">
-        Je ne trade jamais sur une intuition. Chaque trade passe par les 7 étapes obligatoires du protocole. Si une seule étape échoue → pas de trade. Même si le setup semble "parfait". L'état émotionnel est évalué <strong className="text-white">avant toute ouverture de graphique</strong>.
+        Je ne trade jamais sur une intuition. Chaque trade passe par les <strong className="text-white">8 confluences + filtres régime</strong> du protocole (version finale §11). Si une étape échoue → pas de trade. Même si le setup semble &quot;parfait&quot;. L&apos;état émotionnel est évalué <strong className="text-white">avant toute ouverture de graphique</strong>.
       </Callout>
 
       <Callout type="warning" title="Pourquoi c'est scientifiquement fondé — Pas une opinion">
@@ -101,13 +101,13 @@ function TabRegleZero() {
             <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">✅ TRADE POSSIBLE</p>
             {[
               'Score émotionnel ≥ 3/5',
+              '8/8 confluences validées (ou 7/8 → 0.5% max)',
+              'BBW au-dessus moyenne 20 bougies (4H)',
+              'Régime BULL/BEAR/LATÉRAL identifié et cohérent',
               'Aucun event rouge Forex Factory dans 24h',
               'MTF aligné : W → D → 4H même direction',
-              'Setup technique clair (EMA retest + RSI + Volume)',
-              'CryptoQuant 4/7 minimum validés',
-              'Arkham : aucune alerte adverse active',
-              'Coinglass : Funding < 0.08% + L/S neutre (crypto)',
-              'Circuit-breaker inactif',
+              'CryptoQuant 4/7 minimum + Coinglass neutre (crypto)',
+              'R/R planifié ≥ 1:3 · 1 seul trade ouvert max',
             ].map((item) => (
               <div key={item} className="flex items-center gap-2 text-sm text-zinc-300">
                 <CheckCircle2 size={13} className="shrink-0 text-emerald-400" />
@@ -125,7 +125,9 @@ function TabRegleZero() {
               'Whale Ratio > 0.90 + Funding > 0.08% (combo)',
               'Alerte gouvernement ≥ $50M (crypto)',
               'Circuit-breaker actif (−10% semaine ou 3 pertes)',
-              'R/R inférieur à 1:2',
+              'R/R inférieur à 1:3',
+              'BBW sous moyenne 20 bougies (compression)',
+              'Long en bear market ou short en bull sans exception',
             ].map((item) => (
               <div key={item} className="flex items-center gap-2 text-sm text-zinc-300">
                 <XCircle size={13} className="shrink-0 text-red-400" />
@@ -141,16 +143,16 @@ function TabRegleZero() {
       <div className="grid gap-3 md:grid-cols-3">
         {[
           {
-            score: '7/7', label: 'Taille complète — 1%', color: 'border-emerald-500/30 bg-emerald-500/5',
-            tc: 'text-emerald-400', desc: 'Toutes les confluences alignées. Entrée normale, taille 1% du capital.',
+            score: '8/8', label: 'Taille complète — 1%', color: 'border-emerald-500/30 bg-emerald-500/5',
+            tc: 'text-emerald-400', desc: 'Toutes les confluences alignées + BBW au-dessus moyenne + régime favorable. Entrée normale 1%.',
           },
           {
-            score: '6/7', label: 'Taille réduite — 0.5%', color: 'border-amber-500/30 bg-amber-500/5',
-            tc: 'text-amber-400', desc: 'Une condition borderline (ex : Funding Rate à 0.09%). Trade possible mais avec moitié de taille. Documente quelle condition était borderline.',
+            score: '7/8', label: 'Taille réduite — 0.5%', color: 'border-amber-500/30 bg-amber-500/5',
+            tc: 'text-amber-400', desc: 'Une confluence manque OU BBW/latéral. Trade possible à 0.5% max. Documente la condition borderline.',
           },
           {
-            score: '≤ 5/7', label: 'Pas de trade', color: 'border-red-500/30 bg-red-500/5',
-            tc: 'text-red-400', desc: 'Trop d\'incertitude. Le protocole existe pour que tu attendes le setup parfait, pas le prochain setup acceptable.',
+            score: '≤ 6/8', label: 'Pas de trade', color: 'border-red-500/30 bg-red-500/5',
+            tc: 'text-red-400', desc: 'Trop d\'incertitude. Exception : short en bull avec minimum 5/8 (mode strict). Sinon attends le setup parfait.',
           },
         ].map((s) => (
           <div key={s.score} className={cn('rounded-xl border p-4', s.color)}>
@@ -163,20 +165,21 @@ function TabRegleZero() {
         ))}
       </div>
 
-      <Callout type="info" title="Pourquoi 2-4 trades/mois est normal en swing trading">
-        <strong className="text-white">Le but du protocole n&apos;est PAS de trouver plus de trades</strong> — c&apos;est de s&apos;assurer que chaque trade a un edge statistique. Edgewonk (50 000 trades analysés) : les traders qui respectaient leur checklist à 100% avaient un R/R moyen 37% supérieur à ceux qui « assoupissaient » leurs règles. Les meilleurs swing traders font 2-6 trades par mois — pas par jour.
+      <Callout type="info" title="Pourquoi 3-6 trades/mois est normal en swing trading">
+        <strong className="text-white">Le but du protocole n&apos;est PAS de trouver plus de trades</strong> — c&apos;est de s&apos;assurer que chaque trade a un edge statistique. Edgewonk (50 000 trades analysés) : les traders qui respectaient leur checklist à 100% avaient un R/R moyen 37% supérieur. Les meilleurs swing traders font <strong className="text-white">3 à 6 trades par mois</strong> — un seul actif à la fois (BTC, ETH ou SOL).
       </Callout>
 
-      <SubHeading icon={<CheckCircle2 size={18} />}>Vue d'ensemble — Les 7 Étapes du Protocole</SubHeading>
+      <SubHeading icon={<CheckCircle2 size={18} />}>Vue d&apos;ensemble — Les 8 Étapes du Protocole (Version Finale)</SubHeading>
       <div className="space-y-2">
         {[
           { n: '0', label: 'Règle Zéro', desc: 'État émotionnel ≥ 3/5. Évaluation mentale avant tout graphique. Hard stop non négociable.', tab: 'regle', hard: true },
           { n: '1', label: 'Analyse Multi-Timeframe', desc: 'Weekly → Daily → 4H. Direction macro d\'abord. Jamais l\'inverse.', tab: 'mtf', hard: false },
           { n: '2', label: 'Market Structure', desc: 'HH/HL/LH/LL → BOS/ChoCH. Tendance intacte = prérequis.', tab: 'structure', hard: false },
-          { n: '3', label: 'Indicateurs Techniques', desc: 'EMA Ribbon + RSI divergence + Volume Profile POC. Les 3 doivent confirmer.', tab: 'technique', hard: false },
+          { n: '3', label: 'Indicateurs Techniques', desc: 'EMA Ribbon + RSI + Volume Profile + ATR + BBW (filtre régime). Les 5 doivent confirmer.', tab: 'technique', hard: false },
           { n: '4', label: 'On-Chain + Arkham + Coinglass', desc: 'CryptoQuant 4/7 validés. Glassnode hebdo. Arkham alertes. Coinglass Funding/Heatmap (crypto uniquement).', tab: 'onchain', hard: false },
-          { n: '5', label: 'Filtres Macro', desc: 'Pas d\'événement rouge dans 48h. DXY contexte. VIX nominal. Hard stop si FOMC/CPI.', tab: 'macro', hard: true },
-          { n: '6', label: 'Exécution + Gestion', desc: 'Ordre Limite. SL ATR. TP calculé. R/R minimum 1:2. Gestion active après entrée.', tab: 'execution', hard: false },
+          { n: '5', label: 'Filtres Macro + Régime', desc: 'Bull/Bear/Latéral identifié. Pas d\'événement rouge 48h. DXY, VIX, QQQ EMA 200.', tab: 'macro', hard: true },
+          { n: '6', label: 'Exécution', desc: 'Ordre Limite. SL = ATR × 1.5. TP 50% @ 3R (Limit). R/R minimum 1:3.', tab: 'execution', hard: false },
+          { n: '7', label: 'Gestion post-entrée', desc: '50% restants en trailing EMA 20 4H. Breakeven optionnel à +1.5R.', tab: 'gestion', hard: false },
         ].map((s) => (
           <div key={s.n} className={cn(
             'flex items-center gap-4 rounded-xl border px-4 py-3.5 hover:bg-white/5 transition-colors',
@@ -803,6 +806,39 @@ function TabTechnique() {
       <Callout type="tip" title="ATR vs % fixe — Pourquoi l'ATR est supérieur">
         Un SL à -1.5% en période de volatilité normale BTC (ATR = 1%) sera touché aléatoirement. Un SL à -1.5% en période de forte volatilité (ATR = 3%) est trop serré. L'ATR × 1.5 s'adapte automatiquement. C'est la méthode utilisée par les desks prop trading professionnels (source : Schwager "Market Wizards Series").
       </Callout>
+
+      <SubHeading icon={<Activity size={18} />}>BBW — Bollinger Band Width (filtre de régime)</SubHeading>
+      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-3">
+        <p className="text-sm text-zinc-400">
+          La <strong className="text-white">Bollinger Band Width</strong> mesure l&apos;écart entre les bandes (20 périodes, 2σ). Quand BBW est <strong className="text-amber-300">sous sa moyenne 20 bougies</strong> → compression → pas de trend following (cash ou 0.5% max). Quand BBW est au-dessus → tendance active → setups Long/Short autorisés.
+        </p>
+        <p className="text-xs font-mono text-zinc-500">TradingView → Indicateurs → &quot;Bollinger Bands Width&quot; → comparer à la moyenne 20 bougies sur 4H</p>
+      </div>
+
+      <SubHeading icon={<TrendingUp size={18} />}>Golden Cross &amp; Death Cross — Signaux de Régime</SubHeading>
+      <DataTable
+        headers={['Signal', 'Définition', 'Régime', 'Action']}
+        rows={[
+          [
+            <span className="font-bold text-emerald-400">Golden Cross</span>,
+            'EMA 50 croise au-dessus EMA 200 sur 4H',
+            <span className="text-emerald-400">BULL</span>,
+            'Longs prioritaires (setups #1-4). Shorts interdits sauf exception documentée.',
+          ],
+          [
+            <span className="font-bold text-red-400">Death Cross</span>,
+            'EMA 50 croise sous EMA 200 sur 4H',
+            <span className="text-red-400">BEAR</span>,
+            'Shorts prioritaires (setup #4 Death Cross). Longs interdits.',
+          ],
+          [
+            <span className="font-bold text-amber-400">EMAs plates / entrelacées</span>,
+            'Pas de croisement clair, BBW en compression',
+            <span className="text-amber-400">LATÉRAL</span>,
+            'Cash ou 0.5% max. Attends expansion BBW + structure claire.',
+          ],
+        ]}
+      />
     </div>
   )
 }
@@ -1412,23 +1448,28 @@ function TabExecution() {
         ))}
       </div>
 
-      <SubHeading icon={<TrendingUp size={18} />}>Les 3 Setups LONG — Par Priorité</SubHeading>
+      <SubHeading icon={<TrendingUp size={18} />}>Les 4 Setups LONG — Par Priorité</SubHeading>
       <div className="space-y-4">
         {[
           {
             rank: '1', label: 'Retest EMA 200', color: 'border-emerald-500/40 bg-emerald-500/10', tc: 'text-emerald-400',
-            entry: 'EMA 200 × 1.003 à 1.005', sl: 'Prix entrée − (ATR × 1.5) ou mèche basse × 0.99', tp: 'Prochaine résistance majeure — R/R ≥ 1:3 obligatoire', time: '72h',
-            note: 'Le setup le plus puissant. Maximum de confluence institutionnelle.',
+            entry: 'EMA 200 × 1.003', sl: 'Prix entrée − (ATR × 1.5)', tp: '50% @ 3R (Limit) + 50% trailing EMA 20', time: '72h',
+            note: 'Setup le plus puissant. Bull market confirmé. BBW au-dessus moyenne.',
           },
           {
             rank: '2', label: 'Retest EMA 50', color: 'border-indigo-500/30 bg-indigo-500/5', tc: 'text-indigo-400',
-            entry: 'EMA 50 × 1.002 à 1.003', sl: 'Prix entrée − (ATR × 1.5) ou 1-1.5% sous mèche basse', tp: 'EMA 20, ATH local, ou résistance — R/R ≥ 1:2', time: '48h',
-            note: 'Setup fréquent et fiable. Valide uniquement si weekly est haussier.',
+            entry: 'EMA 50 × 1.002', sl: 'Prix entrée − (ATR × 1.5)', tp: '50% @ 3R + trailing EMA 20 — R/R ≥ 1:3', time: '48h',
+            note: 'Setup le plus fréquent (6-10×/an). Weekly haussier obligatoire.',
           },
           {
-            rank: '3', label: 'Retest POC + EMA (confluence)', color: 'border-white/10 bg-zinc-900', tc: 'text-zinc-400',
-            entry: 'POC exact + 0.2% (si coïncide avec EMA)', sl: 'Sous VAL − 0.5%', tp: 'VAH comme 1er objectif', time: '72h',
-            note: 'Valide SEULEMENT si POC = EMA. Seul le POC est insuffisant.',
+            rank: '3', label: 'Retest POC Volume Profile', color: 'border-white/10 bg-zinc-900', tc: 'text-zinc-400',
+            entry: 'POC + 0.2% (si coïncide EMA)', sl: 'Sous VAL ou ATR × 1.5', tp: 'VAH puis trailing EMA 20', time: '72h',
+            note: 'Valide si POC = EMA (double confluence).',
+          },
+          {
+            rank: '4', label: 'Breakout confirmé (volume > 150%)', color: 'border-amber-500/30 bg-amber-500/10', tc: 'text-amber-400',
+            entry: 'Résistance cassée + 0.2%', sl: 'Sous résistance − (ATR × 1.0)', tp: '50% @ 3R + trailing EMA 20', time: '48h',
+            note: 'BBW qui explose (sortie compression). Funding < 0.05%. Sans volume = faux breakout.',
           },
         ].map((s) => (
           <div key={s.rank} className={cn('rounded-xl border p-5', s.color)}>
@@ -1449,26 +1490,31 @@ function TabExecution() {
         ))}
       </div>
 
-      <SubHeading icon={<TrendingDown size={18} />}>Les 3 Setups SHORT — Par Priorité</SubHeading>
-      <Callout type="info" title="Symétrie long/short — même rigueur, même sélectivité">
-        Un short se trade exactement comme un long : un niveau de référence devenu résistance, une structure confirmée (LH/LL formés), une entrée Limite, un R/R ≥ 1:2. La seule différence : le timeframe supérieur doit être baissier (EMA 20 {'<'} 50 {'<'} 200, ou ChoCH baissier validé).
+      <SubHeading icon={<TrendingDown size={18} />}>Les 4 Setups SHORT — Par Priorité</SubHeading>
+      <Callout type="info" title="Symétrie long/short — même rigueur, régimes distincts">
+        Bear market → shorts prioritaires. Bull market → longs uniquement, <strong className="text-white">short exceptionnel</strong> sur rejet résistance majeure (min 5/8 confluences). R/R ≥ 1:3. SL = ATR × 1.5. TP 50% @ 3R + trailing EMA 20.
       </Callout>
       <div className="space-y-4">
         {[
           {
-            rank: '1', label: 'Retest EMA 200 par dessous (breakdown confirmé)', color: 'border-red-500/40 bg-red-500/10', tc: 'text-red-400',
-            entry: 'EMA 200 × 0.997 à 0.995 (juste sous la EMA)', sl: 'Prix entrée + (ATR × 1.5) — ou mèche haute × 1.005', tp: 'Prochain support majeur (POC, VAL, ATL local) — R/R ≥ 1:3', time: '72h',
-            note: 'Le setup short le plus puissant. EMA 200 devient résistance institutionnelle après breakdown. Valide uniquement si prix était au-dessus et a cassé de façon décisive (bougie de clôture, pas une mèche).',
+            rank: '1', label: 'Retest baissier EMA 200', color: 'border-red-500/40 bg-red-500/10', tc: 'text-red-400',
+            entry: 'EMA 200 × 0.997', sl: 'Prix entrée + (ATR × 1.5)', tp: '50% @ 3R + trailing EMA 20 — R/R ≥ 1:3', time: '72h',
+            note: 'Bear market confirmé. Bougie 4H clôture sous EMA 200 après retest.',
           },
           {
-            rank: '2', label: 'Retest EMA 50 comme résistance (LH formé)', color: 'border-amber-500/30 bg-amber-500/10', tc: 'text-amber-400',
-            entry: 'EMA 50 × 0.998 à 0.997', sl: 'Prix entrée + (ATR × 1.5) ou 1-1.5% au-dessus de la mèche haute', tp: 'Prochain support identifiable — R/R ≥ 1:2', time: '48h',
-            note: 'Setup fréquent en tendance baissière confirmée. Valide uniquement si weekly est baissier (EMA 20 < 50 daily) ET un LH est formé sur le graphe 4H.',
+            rank: '2', label: 'Rejet résistance majeure (exception bull)', color: 'border-amber-500/30 bg-amber-500/10', tc: 'text-amber-400',
+            entry: 'Résistance − 0.3%', sl: 'Prix entrée + (ATR × 1.5)', tp: '50% @ 3R + trailing — min 5/8 confluences', time: '48h',
+            note: 'Seul short autorisé en bull. Funding > 0.10%, L/S > 70/30, Whale Ratio > 0.90.',
           },
           {
-            rank: '3', label: 'Retest POC par dessous + rejection (confluence)', color: 'border-white/10 bg-zinc-900', tc: 'text-zinc-400',
-            entry: 'POC exact − 0.2% sur rejection (si coïncide avec EMA)', sl: 'Au-dessus du VAH + 0.5%', tp: 'VAL comme 1er objectif', time: '72h',
-            note: 'Valide SEULEMENT si POC = zone EMA. Le POC seul sans EMA est insuffisant. Nécessite une bougie de rejection (mèche haute longue) sur le POC.',
+            rank: '3', label: 'Cassure support + retest', color: 'border-white/10 bg-zinc-900', tc: 'text-zinc-400',
+            entry: 'Ancien support − 0.2%', sl: 'Prix entrée + (ATR × 1.5)', tp: '50% @ 3R + trailing EMA 20', time: '72h',
+            note: 'Bear market. Support cassé devient résistance.',
+          },
+          {
+            rank: '4', label: 'Death Cross confirmation', color: 'border-red-500/30 bg-red-500/5', tc: 'text-red-400',
+            entry: 'Retest EMA 50 ou 200 post-croisement', sl: 'Prix entrée + (ATR × 2.0)', tp: '50% @ 3R + trailing EMA 20', time: '72h',
+            note: 'EMA 50 vient de croiser sous EMA 200 sur 4H. Premier pullback après le Death Cross. Signal de régime baissier.',
           },
         ].map((s) => (
           <div key={s.rank} className={cn('rounded-xl border p-5', s.color)}>
@@ -1569,36 +1615,29 @@ function TabGestion() {
         <strong className="text-white">Linda Bradford Raschke (Market Wizards, Schwager 1992)</strong> : "Entry is 20% of the trade. Management is 80%." Les traders amateurs fixent leur sortie et n'y touchent plus. Les traders professionnels gèrent activement leur position selon des règles prédéfinies.
       </Callout>
 
-      <SubHeading icon={<Crosshair size={18} />}>Plan de Gestion Standard — 4 Étapes</SubHeading>
+      <SubHeading icon={<Crosshair size={18} />}>Plan de Gestion — TP Partiel + Trailing EMA 20</SubHeading>
 
       <div className="space-y-3">
         {[
           {
-            milestone: 'À +1R (profit = 1× le risque initial)',
-            action: 'Déplace le Stop Loss au prix d\'entrée (Breakeven)',
-            why: 'Le trade devient "free" — risque réel = 0. Si le marché retourne au prix d\'entrée → sortie sans perte. Protège le capital tout en laissant courir le profit.',
-            color: 'border-indigo-500/30 bg-indigo-500/5',
-            tc: 'text-indigo-400',
-          },
-          {
-            milestone: 'À +1.5R (profit = 1.5× le risque initial)',
-            action: 'Ferme 30-50% de la position (Take Profit partiel)',
-            why: 'Sécurise un profit réel. La position restante est maintenant "bonus" — peu importe ce qui arrive, tu as déjà gagné quelque chose. Réduit l\'anxiété qui pousse à fermer trop tôt.',
-            color: 'border-emerald-500/20 bg-zinc-900',
-            tc: 'text-emerald-400',
-          },
-          {
-            milestone: 'À +2R (profit = 2× le risque initial)',
-            action: 'Déplace le SL sous le dernier swing low significatif (trailing)',
-            why: 'Commence à "locker" les profits en suivant la structure de marché. Le SL n\'est plus statique — il suit le mouvement en préservant un maximum de gain si retournement.',
+            milestone: 'À l\'entrée — TP 50% en Limit @ 3R',
+            action: 'Configure TP Limit sur 50% de la position à exactement 3R (protocole R7)',
+            why: 'Tu sécurises un gain minimum de 3R sur la moitié de la position. L\'autre moitié reste ouverte pour capturer les grands mouvements (+20% en bull market).',
             color: 'border-emerald-500/30 bg-emerald-500/10',
             tc: 'text-emerald-400',
           },
           {
-            milestone: 'À +3R ou TP atteint',
-            action: 'Ferme la totalité de la position restante',
-            why: '+3R sur une position de 1% = +3% net sur le capital. C\'est le R/R cible minimum du protocole. Si le TP technique est atteint avant +3R → ferme quand même.',
-            color: 'border-emerald-500/40 bg-emerald-500/10',
+            milestone: '50% restants — Trailing sur EMA 20 (4H)',
+            action: 'Surveille l\'EMA 20 sur 4H matin et soir. Bougie 4H clôture contre ta position → ferme la 2e moitié',
+            why: 'Le trailing EMA 20 surperforme le TP fixe de ~27% sur 11 ans de backtests. Long : clôture sous EMA 20 = sortie. Short : clôture au-dessus EMA 20 = sortie.',
+            color: 'border-indigo-500/30 bg-indigo-500/5',
+            tc: 'text-indigo-400',
+          },
+          {
+            milestone: 'À +1.5R — Breakeven (optionnel avant TP partiel)',
+            action: 'Déplace le SL au prix d\'entrée pour éliminer le risque',
+            why: 'Le trade devient "free" — tu peux laisser courir la 2e moitié sans stress.',
+            color: 'border-emerald-500/20 bg-zinc-900',
             tc: 'text-emerald-400',
           },
         ].map((s, i) => (
@@ -1615,22 +1654,19 @@ function TabGestion() {
 
       <Callout type="tip" title="Exemple concret — BTC Long à 65 000$, risque 1R = 1 000$">
         <div className="font-mono text-sm space-y-1.5 mt-1">
-          <p>Entrée : 65 000$ | SL initial : 63 800$ (−1 200$ = 1R) | TP : 68 600$ (= +3R)</p>
-          <p className="text-indigo-400">@ 66 200$ (+1R) → SL déplacé à 65 000$ (breakeven)</p>
-          <p className="text-emerald-400">@ 66 800$ (+1.5R) → Ferme 40% → +720$ sécurisés</p>
-          <p className="text-emerald-400">@ 67 400$ (+2R) → SL déplacé à 66 200$ (dernier HL)</p>
-          <p className="text-emerald-400">@ 68 600$ (+3R) → Ferme 100% restant → +2 880$ total</p>
+          <p>Entrée : 65 000$ | SL ATR×1.5 : 63 800$ (1R) | TP Limit 50% : 68 600$ (= +3R)</p>
+          <p className="text-emerald-400">@ 68 600$ (+3R) → Ferme 50% en Limit → +1 500$ sécurisés (3R sur la moitié)</p>
+          <p className="text-indigo-400">50% restants → Trailing EMA 20 4H : sortie quand bougie clôture sous EMA 20</p>
+          <p className="text-zinc-500 text-xs">Résultat typique : minimum 3R garanti + bonus si le swing continue (bull market +20%)</p>
         </div>
       </Callout>
 
       <Callout type="tip" title="Exemple concret — BTC Short à 65 000$, risque 1R = 1 000$">
         <div className="font-mono text-sm space-y-1.5 mt-1">
-          <p className="text-zinc-500 text-xs">Note : en short, le SL est AU-DESSUS de l'entrée. Le trailing descend avec les LH formés.</p>
-          <p>Entrée : 65 000$ | SL initial : 66 200$ (+1 200$ = 1R) | TP : 61 400$ (= +3R)</p>
-          <p className="text-indigo-400">@ 63 800$ (+1R) → SL déplacé à 65 000$ (breakeven)</p>
-          <p className="text-red-400">@ 63 200$ (+1.5R) → Ferme 40% → +720$ sécurisés</p>
-          <p className="text-red-400">@ 62 600$ (+2R) → SL déplacé à 63 800$ (dernier LH)</p>
-          <p className="text-red-400">@ 61 400$ (+3R) → Ferme 100% restant → +2 880$ total</p>
+          <p className="text-zinc-500 text-xs">Short : SL au-dessus de l&apos;entrée. Trailing EMA 20 = sortie si bougie clôture au-dessus.</p>
+          <p>Entrée : 65 000$ | SL : 66 200$ (1R) | TP Limit 50% : 61 400$ (= +3R)</p>
+          <p className="text-red-400">@ 61 400$ (+3R) → Ferme 50% → +1 500$ sécurisés</p>
+          <p className="text-indigo-400">50% restants → Trailing EMA 20 : sortie si rebond au-dessus EMA 20</p>
         </div>
       </Callout>
 
@@ -1666,9 +1702,9 @@ function TabGestion() {
         <p className="font-bold text-white">Pour chaque trade fermé — Réponds à ces questions dans le journal</p>
         <div className="space-y-2">
           {[
-            'Le setup respectait-il 100% le protocole (7 étapes) ?',
+            'Le setup respectait-il 100% le protocole (8/8 confluences + régime) ?',
             'Mon état émotionnel était-il ≥ 3/5 au moment de l\'entrée ?',
-            'Ai-je respecté le plan de gestion (breakeven à 1R, TP partiel à 1.5R) ?',
+            'Ai-je respecté le plan de gestion (50% @ 3R + trailing EMA 20) ?',
             'Si trade perdant : le SL était-il bien placé ou trop serré ?',
             'Si trade gagnant fermé trop tôt : quelle émotion m\'a poussé à fermer prématurément ?',
             'Y a-t-il une leçon concrète et unique à retenir pour le prochain trade ?',
@@ -1683,11 +1719,11 @@ function TabGestion() {
 
       <Callout type="success" title="Mathématique du plan de gestion — Pourquoi ça change tout">
         <div className="font-mono text-sm space-y-2 mt-1">
-          <p className="text-white font-bold">Scénario A — Gestion passive (fermer au TP ou SL) : Win Rate 45%, R/R 1:2.5</p>
-          <p className="text-zinc-400">(45 × 2.5R) − (55 × 1R) = 112.5 − 55 = <span className="text-emerald-400 font-bold">+57.5R sur 100 trades</span></p>
+          <p className="text-white font-bold">Scénario A — Gestion passive (fermer au TP ou SL) : Win Rate 45%, R/R 1:3</p>
+          <p className="text-zinc-400">(45 × 3R) − (55 × 1R) = 135 − 55 = <span className="text-emerald-400 font-bold">+80R sur 100 trades</span></p>
           <div className="h-px bg-border" />
-          <p className="text-white font-bold">Scénario B — Gestion active (breakeven + TP partiel) : Win Rate 45%, R/R moyen 2R</p>
-          <p className="text-zinc-400">(45 × 2R) − (45 × 0R breakeven) − (10 × 1R vraies pertes) = 90 − 10 = <span className="text-emerald-400 font-bold">+80R sur 100 trades</span></p>
+          <p className="text-white font-bold">Scénario B — Gestion active (50% @ 3R + trailing EMA 20) : Win Rate 45%, R/R moyen 3.5R</p>
+          <p className="text-zinc-400">(45 × 3.5R) − (45 × 0R breakeven) − (10 × 1R vraies pertes) = 157.5 − 10 = <span className="text-emerald-400 font-bold">+147.5R sur 100 trades</span></p>
         </div>
         <p className="mt-2 text-sm">La gestion active augmente significativement le R/R réel même avec le même win rate.</p>
       </Callout>
@@ -1705,6 +1741,31 @@ function TabMacro() {
       <Callout type="info" title="Fréquence et rôle">
         Ce check se fait <strong className="text-white">une fois par semaine (dimanche)</strong>. Il définit le contexte macro pour toute la semaine. Il ne génère pas de signal de trade en lui-même — il définit si les conditions sont favorables et quelle taille utiliser.
       </Callout>
+
+      <SubHeading icon={<Target size={18} />}>Régime de Marché — BULL / BEAR / LATÉRAL</SubHeading>
+      <DataTable
+        headers={['Régime', 'Critères', 'Longs', 'Shorts']}
+        rows={[
+          [
+            <span className="font-bold text-emerald-400">BULL</span>,
+            'Prix > EMA 200 weekly · Golden Cross 4H · BBW > moyenne',
+            <span className="text-emerald-400">Autorisés (setups #1-4)</span>,
+            <span className="text-red-400">Interdits sauf rejet résistance (min 5/8, 0.5% max)</span>,
+          ],
+          [
+            <span className="font-bold text-red-400">BEAR</span>,
+            'Prix < EMA 200 weekly · Death Cross 4H · LH/LL formés',
+            <span className="text-red-400">Interdits</span>,
+            <span className="text-emerald-400">Autorisés (setups #1-4)</span>,
+          ],
+          [
+            <span className="font-bold text-amber-400">LATÉRAL</span>,
+            'BBW sous moyenne · EMAs plates · range identifiable',
+            <span className="text-amber-400">0.5% max ou cash</span>,
+            <span className="text-amber-400">0.5% max ou cash</span>,
+          ],
+        ]}
+      />
 
       <SubHeading icon={<BarChart2 size={18} />}>BTC Dominance (BTC.D) — Filtre Crypto Spécifique</SubHeading>
       <Callout type="tip" title="Indicateur souvent ignoré — Critique pour ETH et SOL">
@@ -2086,7 +2147,7 @@ export default function ProtocolPage() {
               Protocole de Trading
             </h1>
             <p className="mt-1 text-base/7 text-zinc-300 sm:text-sm/6">
-              Swing Trading 4H · BTC, ETH, SOL, S&P 500, NASDAQ · 7 étapes obligatoires · Sources académiques vérifiées
+              Swing Trading 4H · BTC, ETH, SOL · 8 confluences · R/R 1:3 · Version Finale §11
             </p>
           </div>
           <div className="hidden items-center gap-2 rounded-lg bg-indigo-500/10 px-4 py-2.5 ring-1 ring-indigo-500/20 md:flex">

@@ -35,6 +35,7 @@ const CONFLUENCE_LABELS = [
   { key: 'checkEMA', label: 'EMA Ribbon' },
   { key: 'checkRSI', label: 'RSI / Divergence' },
   { key: 'checkVolume', label: 'Volume Profile' },
+  { key: 'checkBBW', label: 'BBW — tendance active' },
   { key: 'checkLiquid', label: 'CryptoQuant 4/7' },
   { key: 'checkUnlocks', label: 'Arkham Intel' },
   { key: 'checkTVL', label: 'Macro / DXY' },
