@@ -18,7 +18,7 @@ import { Field, FieldGroup, Label, Description } from '@/components/catalyst/fie
 import { Input } from '@/components/catalyst/input'
 import { Textarea } from '@/components/catalyst/textarea'
 import type { Settings, CapitalAdjustment } from '@/lib/types'
-import { formatCurrency, cn, formatDateTime } from '@/lib/utils'
+import { formatCurrency, formatNumber, cn, formatDateTime } from '@/lib/utils'
 import { updateSettings, adjustCapital, recalculateCapital, resetJournal } from '@/app/actions/settings'
 
 interface SettingsClientProps {
@@ -137,19 +137,31 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
 
       <Card>
         <CardHeader>
-          <CardTitle>Comprendre le risque 1%</CardTitle>
+          <CardTitle>Comprendre le risque — perte max, pas taille de position</CardTitle>
         </CardHeader>
         <div className="space-y-3 text-sm text-zinc-400">
           <p>
-            Le <strong className="text-white">1% de risque</strong> = la <strong className="text-red-400">perte maximale si ton Stop Loss est touché</strong>, pas la taille de ta position.
+            Le <strong className="text-white">{riskPercent}% de risque</strong> = la{' '}
+            <strong className="text-red-400">perte maximale si ton Stop Loss est touché</strong>, pas la taille de ta position ni la marge.
           </p>
           <p>
-            Exemple avec {formatCurrency(initialCapital)} de capital et {riskPercent}% de risque :
-            tu perds max <strong className="text-red-400">{formatCurrency(initialCapital * riskPercent / 100)}</strong> au SL.
-            Tu peux utiliser tout ton capital (ou plus avec levier) en position — tant que la distance entrée→SL × taille = cette perte max.
+            Exemple : {formatCurrency(capital)} de capital, {riskPercent}% → tu perds max{' '}
+            <strong className="text-red-400">{formatCurrency(capital * riskPercent / 100)}</strong> au SL.
+            Le notionnel peut être 5× ou 10× plus grand (levier) — la perte max reste fixe.
           </p>
           <p className="rounded-lg bg-zinc-900/80 px-3 py-2 font-mono text-xs text-zinc-300">
-            Unités = ({formatCurrency(capital)} × {riskPercent}%) ÷ distance SL
+            1. ATR → distance SL = ATR × 1.5<br />
+            2. Unités = (capital × risque%) ÷ distance SL<br />
+            3. Perte max = unités × distance SL = capital × risque%
+          </p>
+          <p className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-3 py-2 text-xs">
+            <strong className="text-indigo-300">Ex. BTC @ 65 000$, ATR = 800$</strong> → SL à 1 200$ (
+            {formatNumber((1200 / 65000) * 100, 2)}%) → unités = {formatCurrency(capital * riskPercent / 100)} ÷ 1 200 ={' '}
+            <strong className="text-white">{formatNumber((capital * riskPercent / 100) / 1200, 4)} BTC</strong> → notionnel{' '}
+            {formatCurrency(((capital * riskPercent / 100) / 1200) * 65000)}
+          </p>
+          <p className="text-xs text-zinc-500">
+            7/8 confluences ou filtres actifs (BBW, latéral) → le formulaire applique automatiquement {(riskPercent / 2).toFixed(1)}% (moitié).
           </p>
         </div>
       </Card>
@@ -194,7 +206,10 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
           </Field>
 
           <Field>
-            <Label htmlFor="risk-percent">Risque par trade (%)</Label>
+            <Label htmlFor="risk-percent">Risque max pleine taille — 8/8 (%)</Label>
+            <Description>
+              Perte max au SL quand toutes les confluences sont validées. 7/8 ou filtres → 0.5× automatique dans le formulaire.
+            </Description>
             <Input
               id="risk-percent"
               name="riskPercent"

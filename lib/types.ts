@@ -62,6 +62,7 @@ export interface Trade {
   units: number
   riskAmount: number
   riskPercent: number
+  atrAtEntry?: number | null
   plannedRR: number
   status: TradeStatus
   exitPrice?: number | null

@@ -119,7 +119,7 @@ export const POST_SESSION_PROMPTS: ReflectionPrompt[] = [
   {
     id: 'riskRespected',
     category: 'Gestion du risque',
-    question: 'Ai-je respecté ma gestion du risque (1% max par trade) ?',
+    question: 'Ai-je respecté ma gestion du risque (perte max au SL ≤ 1% ou 0.5% si réduit) ?',
     hint: 'Vérifie : taille calculée avec la formule, marge isolée, levier ≤ 5×, prix de liquidation ≥ 2× l\'écart SL. Augmenter la taille après des gains = violation.',
     placeholder: 'Ex : Trade 1 OK à 1%. Trade 2 j\'ai doublé la taille après le gain du matin — erreur de surconfiance...',
   },
@@ -157,7 +157,7 @@ export const QUICK_AUDIT_ITEMS: AuditItem[] = [
   { key: 'fomoEntry', label: 'Entrée FOMO (mouvement déjà > 5%)', severity: 'loss' },
   { key: 'revengeTrade', label: 'Revenge trading après une perte', severity: 'loss' },
   { key: 'protocolSkipped', label: 'Protocole incomplet (étapes sautées)', severity: 'loss' },
-  { key: 'riskExceeded', label: 'Risque > 1% sur au moins un trade', severity: 'loss' },
+  { key: 'riskExceeded', label: 'Perte max au SL > risque autorisé (1% ou 0.5%)', severity: 'loss' },
   { key: 'enteredBefore4HClose', label: 'Entrée avant clôture bougie 4H', severity: 'loss' },
   { key: 'overMonitoring', label: 'Surveillance excessive (> 2 checks/jour)', severity: 'neutral' },
 ]
@@ -218,8 +218,21 @@ export function reviewTrade(trade: Trade): TradeReview {
   else if (confluenceScore >= max - 1) strengths.push(`Confluence partielle (${confluenceScore}/${max})`)
   else issues.push(`Confluence insuffisante (${confluenceScore}/${max}) — protocole non respecté`)
 
-  if (trade.riskPercent <= 1.01) strengths.push(`Risque ${trade.riskPercent.toFixed(1)}% ≤ 1%`)
-  else issues.push(`Risque ${trade.riskPercent.toFixed(1)}% > 1% — taille excessive`)
+  if (isFullConfluence(trade)) {
+    if (trade.riskPercent <= 1.01) {
+      strengths.push(`Perte max au SL : ${trade.riskPercent.toFixed(2)}% (pleine taille 8/8)`)
+    } else {
+      issues.push(`Perte max ${trade.riskPercent.toFixed(2)}% > 1% — taille excessive pour 8/8`)
+    }
+  } else if (confluenceScore >= max - 1) {
+    if (trade.riskPercent <= 0.55) {
+      strengths.push(`Perte max au SL : ${trade.riskPercent.toFixed(2)}% (taille réduite 7/8)`)
+    } else {
+      issues.push(`Perte max ${trade.riskPercent.toFixed(2)}% — attendu ≤ 0.5% pour confluence partielle`)
+    }
+  } else if (trade.riskPercent > 0.55) {
+    issues.push(`Perte max ${trade.riskPercent.toFixed(2)}% sur confluence insuffisante`)
+  }
 
   if (trade.emotionScore != null) {
     if (trade.emotionScore <= 2) issues.push(`Émotion pré-trade ${trade.emotionScore}/5 — ne devrait pas trader`)

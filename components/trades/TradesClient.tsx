@@ -67,7 +67,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
     <PageShell>
       <PageHeader
         title="Trades — Protocole Swing 4H"
-        description="Ordre Limite · 1% risque · 8 confluences · R/R minimum 1:3 · ATR SL"
+        description="Perte max au SL (1% ou 0.5%) · ATR×1.5 · 8 confluences · R/R 1:3"
         icon={<Target data-slot="icon" className="size-7 text-indigo-400" aria-hidden="true" />}
         actions={
           <>
@@ -113,7 +113,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
         icon={<Shield data-slot="icon" className="size-5 text-indigo-400" aria-hidden="true" />}
         title="Avant chaque trade — Checklist obligatoire"
       >
-        Règle Zéro ≥ 3/5 · MTF aligné (W→D→4H) · 8/8 confluences · BBW · ATR SL · Ordre Limite · TP 50%@3R + trailing EMA 20
+        Règle Zéro ≥ 3/5 · MTF aligné · 8/8 = 1% max au SL · 7/8 = 0.5% · ATR×1.5 → taille auto · TP 50%@3R
         <div className="mt-3">
           <Button href="/protocol" outline>
             <BookOpen data-slot="icon" className="size-4" aria-hidden="true" />

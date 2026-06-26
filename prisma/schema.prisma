@@ -25,8 +25,9 @@ model Trade {
   units      Float
 
   // Risk management
-  riskAmount  Float // montant risqué ($)
-  riskPercent Float // % du capital (ex: 1.0)
+  riskAmount  Float // montant risqué ($) — perte max si SL touché
+  riskPercent Float // % du capital risqué (ex: 1.0 pleine taille, 0.5 réduit)
+  atrAtEntry  Float? // ATR(14) 4H au moment de l'entrée (référence volatilité)
 
   // R-Ratio calculé à l'entrée
   plannedRR Float // (TP - Entry) / (Entry - SL) pour LONG

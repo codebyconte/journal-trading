@@ -58,14 +58,67 @@ export function calculateUnits(
   direction: 'LONG' | 'SHORT',
 ): { units: number; riskAmount: number } {
   const riskAmount = capital * (riskPercent / 100)
-  const slDistance =
-    direction === 'LONG'
-      ? entryPrice - stopLoss
-      : stopLoss - entryPrice
+  const slDistance = getSlDistance(entryPrice, stopLoss, direction)
 
   if (slDistance <= 0) return { units: 0, riskAmount }
   const units = riskAmount / slDistance
   return { units, riskAmount }
+}
+
+/** Distance absolue entrée → SL (en $ par unité). */
+export function getSlDistance(
+  entryPrice: number,
+  stopLoss: number,
+  direction: 'LONG' | 'SHORT',
+): number {
+  return direction === 'LONG' ? entryPrice - stopLoss : stopLoss - entryPrice
+}
+
+/** Distance SL en % du prix d'entrée. */
+export function getSlDistancePercent(
+  entryPrice: number,
+  stopLoss: number,
+  direction: 'LONG' | 'SHORT',
+): number {
+  if (entryPrice <= 0) return 0
+  return (getSlDistance(entryPrice, stopLoss, direction) / entryPrice) * 100
+}
+
+/** Prix de take profit à N×R (distance SL = 1R). */
+export function calculateTakeProfitAtR(
+  entryPrice: number,
+  stopLoss: number,
+  direction: 'LONG' | 'SHORT',
+  rMultiple: number,
+): number | null {
+  const risk = getSlDistance(entryPrice, stopLoss, direction)
+  if (risk <= 0 || rMultiple <= 0) return null
+  return direction === 'LONG'
+    ? entryPrice + risk * rMultiple
+    : entryPrice - risk * rMultiple
+}
+
+export interface PositionSizing {
+  units: number
+  riskAmount: number
+  slDistance: number
+  slDistancePct: number
+  notional: number
+}
+
+/** Calcule taille, perte max et exposition à partir du risque % (perte max au SL). */
+export function calculatePositionSizing(
+  capital: number,
+  riskPercent: number,
+  entryPrice: number,
+  stopLoss: number,
+  direction: 'LONG' | 'SHORT',
+): PositionSizing {
+  const { units, riskAmount } = calculateUnits(capital, riskPercent, entryPrice, stopLoss, direction)
+  const slDistance = getSlDistance(entryPrice, stopLoss, direction)
+  const slDistancePct = getSlDistancePercent(entryPrice, stopLoss, direction)
+  const notional = units * entryPrice
+  return { units, riskAmount, slDistance, slDistancePct, notional }
 }
 
 /**

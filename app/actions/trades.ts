@@ -18,6 +18,7 @@ export interface CreateTradeInput {
   units: string | number
   riskAmount: number
   riskPercent: number
+  atrAtEntry?: string | number | null
   checkEMA: boolean
   checkRSI: boolean
   checkVolume: boolean
@@ -65,6 +66,7 @@ export async function createTrade(input: CreateTradeInput): Promise<ActionResult
         units: parseFloat(String(input.units)),
         riskAmount: input.riskAmount,
         riskPercent: input.riskPercent,
+        atrAtEntry: input.atrAtEntry ? parseFloat(String(input.atrAtEntry)) : null,
         plannedRR,
         status: 'PENDING',
         checkEMA: !!input.checkEMA,

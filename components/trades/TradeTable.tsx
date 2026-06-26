@@ -394,9 +394,15 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
                               <p className="text-sm text-white">{trade.sessionTime || '—'}</p>
                             </div>
                             <div>
-                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Risque</p>
+                              <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Perte max au SL</p>
                               <p className="text-sm font-mono text-red-400">{formatCurrency(trade.riskAmount)} ({trade.riskPercent}%)</p>
                             </div>
+                            {trade.atrAtEntry != null && trade.atrAtEntry > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">ATR entrée (4H)</p>
+                                <p className="text-sm font-mono text-zinc-300">${trade.atrAtEntry.toLocaleString()}</p>
+                              </div>
+                            )}
                             <div>
                               <p className="text-xs font-semibold uppercase text-zinc-500 mb-1">Ordre</p>
                               <p className="text-sm text-white">{trade.orderType}</p>
@@ -437,7 +443,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
 
                           <div>
                             <p className="text-xs font-semibold uppercase text-zinc-500 mb-2">
-                              Checklist confluence — Protocole 7/7
+                              Checklist confluence — {formatConfluenceScore(trade)}
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {CONFLUENCE_LABELS.map(({ key, label }) => {

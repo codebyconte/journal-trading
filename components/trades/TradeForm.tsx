@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Image from 'next/image'
 import { Calculator, X, CheckCircle2, AlertCircle, Camera, AlertTriangle, TrendingUp, TrendingDown, Shield, Target } from 'lucide-react'
-import { cn, calculateUnits, calculatePlannedRR, calculateStopLossFromATR, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices } from '@/lib/utils'
+import { cn, calculateUnits, calculatePlannedRR, calculateStopLossFromATR, calculateTakeProfitAtR, getSlDistance, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices } from '@/lib/utils'
 import {
   isCoinglassApplicable,
   getConfluenceTone,
@@ -172,6 +172,10 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
 
   const [screenshot, setScreenshot] = useState<File | null>(null)
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null)
+  /** SL/TP suivent l'ATR tant que l'utilisateur ne les modifie pas manuellement. */
+  const [slFromAtr, setSlFromAtr] = useState(true)
+  const [tpFromProtocol, setTpFromProtocol] = useState(true)
+  const skipAtrSync = useRef(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [protocolOverride, setProtocolOverride] = useState(false)
@@ -397,6 +401,7 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
         units: autoCalc.units || parseFloat(form.units),
         riskAmount: autoCalc.riskAmount,
         riskPercent: submitRiskPercent,
+        atrAtEntry: form.atr ? parseFloat(form.atr) : null,
         protocolOverride,
         overrideReason: protocolOverride ? overrideReason.trim() : null,
         screenshot: screenshotUrl,
@@ -417,24 +422,80 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
     const entry = parseFloat(form.entryPrice)
     const sl = parseFloat(form.stopLoss)
     if (isNaN(entry) || isNaN(sl)) return
-    const risk = form.direction === 'LONG' ? entry - sl : sl - entry
-    if (risk <= 0) return
-    const tp = form.direction === 'LONG' ? entry + risk * multiplier : entry - risk * multiplier
+    const tp = calculateTakeProfitAtR(entry, sl, form.direction, multiplier)
+    if (tp == null) return
+    setTpFromProtocol(true)
     setForm((prev) => ({ ...prev, takeProfit: tp.toFixed(4) }))
   }
 
-  const applyStopLossFromATR = () => {
+  const applyFromATR = useCallback(() => {
     const entry = parseFloat(form.entryPrice)
     const atr = parseFloat(form.atr)
-    if (isNaN(entry) || isNaN(atr)) return
+    if (isNaN(entry) || isNaN(atr) || entry <= 0 || atr <= 0) return
     const sl = calculateStopLossFromATR(entry, atr, form.direction, ATR_SL_MULTIPLIER)
     if (sl == null) return
-    setForm((prev) => ({ ...prev, stopLoss: sl.toFixed(4) }))
+    const tp = calculateTakeProfitAtR(entry, sl, form.direction, MIN_PLANNED_RR)
+    skipAtrSync.current = true
+    setSlFromAtr(true)
+    setTpFromProtocol(true)
+    setForm((prev) => ({
+      ...prev,
+      stopLoss: sl.toFixed(4),
+      takeProfit: tp != null ? tp.toFixed(4) : prev.takeProfit,
+    }))
+  }, [form.entryPrice, form.atr, form.direction])
+
+  // Recalcule SL (+ TP @ 3R) quand entrée ou ATR changent en mode ATR
+  useEffect(() => {
+    if (skipAtrSync.current) {
+      skipAtrSync.current = false
+      return
+    }
+    if (!slFromAtr) return
+    const entry = parseFloat(form.entryPrice)
+    const atr = parseFloat(form.atr)
+    if (isNaN(entry) || isNaN(atr) || entry <= 0 || atr <= 0) return
+    const sl = calculateStopLossFromATR(entry, atr, form.direction, ATR_SL_MULTIPLIER)
+    if (sl == null) return
+    const tp = tpFromProtocol
+      ? calculateTakeProfitAtR(entry, sl, form.direction, MIN_PLANNED_RR)
+      : null
+    setForm((prev) => ({
+      ...prev,
+      stopLoss: sl.toFixed(4),
+      ...(tp != null ? { takeProfit: tp.toFixed(4) } : {}),
+    }))
+  }, [form.entryPrice, form.atr, form.direction, slFromAtr, tpFromProtocol])
+
+  const handleStopLossChange = (value: string) => {
+    setSlFromAtr(false)
+    const entry = parseFloat(form.entryPrice)
+    const sl = parseFloat(value)
+    if (tpFromProtocol && !isNaN(entry) && !isNaN(sl) && sl > 0) {
+      const tp = calculateTakeProfitAtR(entry, sl, form.direction, MIN_PLANNED_RR)
+      setForm((prev) => ({
+        ...prev,
+        stopLoss: value,
+        takeProfit: tp != null ? tp.toFixed(4) : prev.takeProfit,
+      }))
+      return
+    }
+    setForm((prev) => ({ ...prev, stopLoss: value }))
+  }
+
+  const handleTakeProfitChange = (value: string) => {
+    setTpFromProtocol(false)
+    setForm((prev) => ({ ...prev, takeProfit: value }))
   }
 
   const levierNum = parseInt(form.levier) || 1
   const entryNum = parseFloat(form.entryPrice || '0')
   const slNum = parseFloat(form.stopLoss || '0')
+  const atrNum = parseFloat(form.atr || '0')
+  const slDistance =
+    entryNum > 0 && slNum > 0 ? getSlDistance(entryNum, slNum, form.direction) : 0
+  const displayRiskPercent = effectiveRiskPercent ?? riskPercent
+  const baseRiskAmount = currentCapital * (riskPercent / 100)
   const positionValue = autoCalc.units * entryNum
   const marginRequired = levierNum > 0 ? positionValue / levierNum : 0
   const marginPct = currentCapital > 0 ? (marginRequired / currentCapital) * 100 : 0
@@ -551,10 +612,10 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
         </Field>
       </div>
 
-      {/* Row 2: Prix */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Prix d'entrée + ATR (détermine la distance SL) */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Field>
-          <Label>Prix d&apos;entrée ($)</Label>
+          <Label>Prix d&apos;entrée — ordre Limite ($)</Label>
           <Input
             type="number"
             step="any"
@@ -565,71 +626,116 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
           />
         </Field>
         <Field>
-          <Label>Stop Loss ($)</Label>
+          <Label>ATR 14 (4H) — depuis TradingView</Label>
+          <Description>
+            L&apos;ATR fixe la <strong className="text-white">distance du SL</strong> (×{ATR_SL_MULTIPLIER}), pas le risque $. Le risque % fixe la <strong className="text-white">perte max</strong> au SL.
+          </Description>
+          <div className="flex flex-wrap gap-2">
+            <Input
+              type="number"
+              step="any"
+              placeholder="Ex: 800"
+              value={form.atr}
+              onChange={(e) => setForm({ ...form, atr: e.target.value })}
+              className="max-w-[160px] font-mono"
+            />
+            <Button
+              type="button"
+              outline
+              onClick={applyFromATR}
+              disabled={!form.entryPrice || !form.atr}
+              className="text-sm"
+            >
+              <Target data-slot="icon" className="size-4" aria-hidden="true" />
+              SL + TP @ {MIN_PLANNED_RR}R
+            </Button>
+          </div>
+          {atrNum > 0 && entryNum > 0 && (
+            <p className="mt-1.5 text-xs font-mono text-zinc-500">
+              Distance SL = ATR × {ATR_SL_MULTIPLIER} = ${formatNumber(atrNum * ATR_SL_MULTIPLIER, 2)}
+              {slFromAtr ? ' · synchronisé' : ' · SL manuel'}
+            </p>
+          )}
+        </Field>
+      </div>
+
+      {/* Stop Loss & Take Profit */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Field>
+          <Label>Stop Loss — Stop Market ($)</Label>
+          <Description>
+            {form.direction === 'LONG'
+              ? `Entrée − (ATR × ${ATR_SL_MULTIPLIER})`
+              : `Entrée + (ATR × ${ATR_SL_MULTIPLIER})`}
+          </Description>
           <Input
             type="number"
             step="any"
             placeholder="0.00"
             value={form.stopLoss}
-            onChange={(e) => setForm({ ...form, stopLoss: e.target.value })}
+            onChange={(e) => handleStopLossChange(e.target.value)}
             required
           />
+          {!slFromAtr && atrNum > 0 && (
+            <Button type="button" plain className="mt-1 text-xs text-indigo-400" onClick={() => { setSlFromAtr(true); applyFromATR() }}>
+              Revenir au SL ATR×{ATR_SL_MULTIPLIER}
+            </Button>
+          )}
         </Field>
         <Field>
-          <Label>Take Profit ($)</Label>
+          <Label>Take Profit — Limit 50% @ 3R ($)</Label>
           <Input
             type="number"
             step="any"
             placeholder="0.00"
             value={form.takeProfit}
-            onChange={(e) => setForm({ ...form, takeProfit: e.target.value })}
+            onChange={(e) => handleTakeProfitChange(e.target.value)}
             required
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {[
-              { r: MIN_PLANNED_RR, label: `TP @ ${MIN_PLANNED_RR}R (protocole)` },
-            ].map(({ r, label }) => (
-              <Button
-                key={r}
-                type="button"
-                outline
-                onClick={() => applyTakeProfitR(r)}
-                disabled={!form.entryPrice || !form.stopLoss}
-                className="text-xs"
-              >
-                {label}
+            <Button
+              type="button"
+              outline
+              onClick={() => applyTakeProfitR(MIN_PLANNED_RR)}
+              disabled={!form.entryPrice || !form.stopLoss}
+              className="text-xs"
+            >
+              TP @ {MIN_PLANNED_RR}R (protocole)
+            </Button>
+            {!tpFromProtocol && (
+              <Button type="button" plain className="text-xs text-indigo-400" onClick={() => { setTpFromProtocol(true); applyTakeProfitR(MIN_PLANNED_RR) }}>
+                Lier au protocole 3R
               </Button>
-            ))}
+            )}
           </div>
         </Field>
       </div>
 
-      {/* ATR — Stop Loss dynamique */}
-      <Field>
-        <Label>ATR 14 (4H) — Stop Loss dynamique</Label>
-        <Description>
-          Saisis l&apos;ATR depuis TradingView. SL = entrée ± (ATR × {ATR_SL_MULTIPLIER}). Taille = (capital × risque%) ÷ (ATR × {ATR_SL_MULTIPLIER}).
-        </Description>
-        <div className="flex max-w-lg flex-wrap gap-2">
-          <Input
-            type="number"
-            step="any"
-            placeholder="Ex: 800"
-            value={form.atr}
-            onChange={(e) => setForm({ ...form, atr: e.target.value })}
-            className="max-w-[140px] font-mono"
-          />
-          <Button
-            type="button"
-            outline
-            onClick={applyStopLossFromATR}
-            disabled={!form.entryPrice || !form.atr}
-            className="text-sm"
-          >
-            Calculer SL @ ATR×{ATR_SL_MULTIPLIER}
-          </Button>
+      {/* Panneau risque — le % = perte max, pas la taille de position */}
+      {entryNum > 0 && slNum > 0 && slDistance > 0 && (
+        <div className="rounded-lg border border-white/10 bg-zinc-900/60 p-4 text-sm text-zinc-400 space-y-2">
+          <p className="font-semibold text-white">Risque vs taille de position</p>
+          <p>
+            <strong className="text-red-400">{displayRiskPercent}%</strong> du capital ={' '}
+            <strong className="text-red-400">${formatNumber(autoCalc.riskAmount, 2)}</strong> de perte max si le SL est touché
+            {displayRiskPercent < riskPercent && (
+              <span className="text-amber-400"> (réduit depuis {riskPercent}% — confluence {confluenceLabel})</span>
+            )}
+            .
+          </p>
+          <p className="font-mono text-xs leading-relaxed text-zinc-500">
+            Unités = (${formatNumber(currentCapital, 0)} × {displayRiskPercent}%) ÷ ${formatNumber(slDistance, 2)} distance SL
+            = <strong className="text-white">{formatNumber(autoCalc.units, 4)}</strong> unités
+            → notionnel <strong className="text-white">${formatNumber(positionValue, 2)}</strong>
+            {atrNum > 0 && (
+              <> · ATR {formatNumber(atrNum, 2)} → SL {formatNumber((slDistance / entryNum) * 100, 2)}% du prix</>
+            )}
+          </p>
+          <p className="text-xs text-zinc-500">
+            ATR élevé = SL plus loin = moins d&apos;unités. ATR faible = SL plus proche = plus d&apos;unités. La perte max reste identique.
+          </p>
         </div>
-      </Field>
+      )}
 
       {/* Levier — avant le calculateur pour que la marge soit à jour */}
       <Field>
@@ -648,8 +754,8 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
           ))}
         </div>
         <Description>
-          La taille de position est fixée par le risque ({riskPercent}% du capital = perte max au SL), pas par le levier.
-          Ex. avec {formatNumber(currentCapital, 0)}$ de capital et {riskPercent}% de risque, tu perds max {formatNumber(currentCapital * riskPercent / 100, 2)}$ si le SL est touché — même si la position notionnelle vaut bien plus (levier).
+          Le levier ne change pas le risque ({displayRiskPercent}% = ${formatNumber(autoCalc.riskAmount || baseRiskAmount, 2)} max au SL).
+          Il change seulement la marge bloquée : notionnel ÷ levier. Protocole : liquidation ≥ 2× l&apos;écart SL.
         </Description>
       </Field>
 
@@ -681,13 +787,14 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
               </p>
             </div>
             <div>
-              <p className="text-sm text-zinc-500">
-                Perte max au SL ({autoCalc.riskPercent}%)
-                {confluenceTone === 'partial' && <span className="text-amber-400"> — réduit</span>}
-              </p>
+              <p className="text-sm text-zinc-500">Perte max au SL</p>
               <p className="font-mono text-lg font-bold text-red-400">
                 ${formatNumber(autoCalc.riskAmount, 2)}
+                <span className="ml-1 text-sm font-normal text-zinc-500">({autoCalc.riskPercent}%)</span>
               </p>
+              {autoCalc.riskPercent < riskPercent && (
+                <p className="text-xs text-amber-400">Réduit · base {riskPercent}%</p>
+              )}
             </div>
             <div>
               <p className="text-sm text-zinc-500">R/R Planifié</p>
@@ -842,7 +949,7 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
         )}
       </Field>
 
-      {/* Checklist protocole 7 niveaux */}
+      {/* Checklist protocole — confluences */}
       <Field>
         <div className="mb-2 flex items-center justify-between">
           <Label>

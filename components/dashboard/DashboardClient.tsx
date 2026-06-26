@@ -346,7 +346,7 @@ export function DashboardClient({ stats, recentTrades }: DashboardClientProps) {
                 color: s.avgLoss > 0 && s.avgWin > s.avgLoss ? 'text-emerald-400' : 'text-zinc-400',
               },
               {
-                label: 'Protocole 7/7',
+                label: 'Protocole 8/8',
                 value: hasTrades ? `${s.protocolRate.toFixed(0)}%` : '—',
                 color: s.protocolRate >= 70 ? 'text-emerald-400' : 'text-amber-400',
               },

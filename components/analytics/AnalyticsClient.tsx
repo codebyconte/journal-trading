@@ -298,7 +298,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                 Performance par Confluence (protocole)
               </CardTitle>
             </div>
-            <p className="text-xs text-zinc-500">7/7 = protocole complet · 6/7 = taille réduite à 0.5%</p>
+            <p className="text-xs text-zinc-500">8/8 = pleine taille · 7/8 = réduite (0.5×) · score sur 8 (7 pour SPX/QQQ)</p>
           </CardHeader>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="h-56">
@@ -310,7 +310,7 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                     tick={{ fill: CHART.axis, fontSize: 11 }}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(v) => `${v}/7`}
+                    tickFormatter={(v) => `${v}/8`}
                   />
                   <YAxis
                     yAxisId="left"
@@ -698,10 +698,10 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
           <AlertTriangle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-bold text-red-400">
-              {normalized.riskViolations} trade(s) avec risque {'>'} 1%
+              {normalized.riskViolations} trade(s) avec perte max au SL {'>'} risque autorisé
             </p>
             <p className="text-sm text-zinc-300 mt-1">
-              Ces trades faussent tes statistiques et augmentent le risque de ruine. Reviens strictement à 1% par trade.
+              Cible : 1% (8/8) ou 0.5% (7/8). La taille en unités varie avec l&apos;ATR — le % risqué, non.
             </p>
           </div>
         </div>
