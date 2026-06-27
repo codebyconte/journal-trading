@@ -6,6 +6,7 @@ import {
   getConfluenceScore,
   isFullConfluence,
   MIN_PLANNED_RR,
+  isPlannedRRValid,
 } from '@/lib/analytics'
 
 // ─── Stockage structuré (JSON dans `content`, rétrocompatible) ────────────────
@@ -37,6 +38,8 @@ export interface JournalStorage {
   audit: Partial<Record<AuditKey, boolean>>
   /** Réponses libres aux questions de la revue hebdomadaire, indexées par index */
   weeklyReview?: Partial<Record<string, string>>
+  /** Synthèse mensuelle cross-pertes (1×/mois) */
+  monthlyCrossReview?: Partial<Record<string, string>>
 }
 
 export const EMPTY_JOURNAL: JournalStorage = {
@@ -45,6 +48,7 @@ export const EMPTY_JOURNAL: JournalStorage = {
   prompts: {},
   audit: {},
   weeklyReview: {},
+  monthlyCrossReview: {},
 }
 
 export function parseJournalContent(raw: string | null | undefined): JournalStorage {
@@ -58,6 +62,7 @@ export function parseJournalContent(raw: string | null | undefined): JournalStor
         prompts: parsed.prompts ?? {},
         audit: parsed.audit ?? {},
         weeklyReview: parsed.weeklyReview ?? {},
+        monthlyCrossReview: parsed.monthlyCrossReview ?? {},
       }
     }
   } catch {
@@ -71,8 +76,9 @@ export function serializeJournalContent(data: JournalStorage): string {
   const hasAudit = Object.values(data.audit).some((v) => v === true)
   const hasNotes = data.notes.trim().length > 0
   const hasWeekly = Object.values(data.weeklyReview ?? {}).some((v) => v?.trim())
+  const hasMonthly = Object.values(data.monthlyCrossReview ?? {}).some((v) => v?.trim())
 
-  if (!hasPrompts && !hasAudit && !hasWeekly && hasNotes) {
+  if (!hasPrompts && !hasAudit && !hasWeekly && !hasMonthly && hasNotes) {
     return data.notes
   }
   return JSON.stringify(data)
@@ -126,9 +132,9 @@ export const POST_SESSION_PROMPTS: ReflectionPrompt[] = [
   {
     id: 'confluencesReal',
     category: 'Confluences',
-    question: 'Les 6 confluences étaient-elles vraiment présentes avant l\'entrée ?',
-    hint: 'EMA + RSI + Volume + CryptoQuant 4/7 + Arkham + Macro + Coinglass (Funding Rate / L-S Ratio / Heatmap). Cocher une case sans vérifier = biais de confirmation. Sois honnête : combien étaient réellement validées ?',
-    placeholder: 'Ex : J\'ai coché Arkham sans vérifier — en réalité une alerte whale était active. Seulement 5/7 réellement présentes...',
+    question: 'Les confluences étaient-elles vraiment présentes avant l\'entrée ?',
+    hint: '8 confluences : EMA, RSI, Volume, BBW, Liquidations, Unlocks, TVL, Coinglass. Cocher sans vérifier = biais de confirmation.',
+    placeholder: 'Ex : BBW non vérifié — en réalité compression. Seulement 6/8 réellement présentes…',
   },
   {
     id: 'slMoved',
@@ -161,6 +167,147 @@ export const QUICK_AUDIT_ITEMS: AuditItem[] = [
   { key: 'enteredBefore4HClose', label: 'Entrée avant clôture bougie 4H', severity: 'loss' },
   { key: 'overMonitoring', label: 'Surveillance excessive (> 2 checks/jour)', severity: 'neutral' },
 ]
+
+export const MONTHLY_LOSS_PROMPTS = [
+  {
+    q: 'Quel pattern systémique ressors-tu de tes pertes ce mois ?',
+    hint: 'Setup récurrent ? Même biais ? Même jour de la semaine ? Même violation de règle ? Style Ray Dalio — cause profonde, pas symptôme.',
+  },
+  {
+    q: 'Quelle règle candidate (Q4 PTJ) veux-tu tester le mois prochain ?',
+    hint: 'Précise et mesurable. Pas "être plus attentif".',
+  },
+  {
+    q: 'Tes pertes sont-elles des erreurs d\'exécution ou des pertes statistiques normales ?',
+    hint: 'Setup valide + SL touché = normal à 31% WR. Setup invalide = erreur à corriger.',
+  },
+] as const
+
+export interface MonthlyLossInsight {
+  id: string
+  type: 'good' | 'bad' | 'neutral'
+  title: string
+  detail: string
+  count?: number
+}
+
+/** Analyse transversale des pertes sur N jours (1×/mois). */
+export function analyzeMonthlyLosses(trades: Trade[], days = 30): MonthlyLossInsight[] {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+  const losers = trades.filter(
+    (t) =>
+      t.status === 'CLOSED' &&
+      (t.pnl ?? 0) < 0 &&
+      t.closedAt &&
+      new Date(t.closedAt).getTime() >= cutoff,
+  )
+
+  if (losers.length === 0) {
+    return [{
+      id: 'no-losses',
+      type: 'good',
+      title: 'Aucune perte sur la période',
+      detail: `Pas de trade perdant fermé dans les ${days} derniers jours.`,
+    }]
+  }
+
+  const insights: MonthlyLossInsight[] = []
+
+  // Par setup
+  const bySetup: Record<string, number> = {}
+  for (const t of losers) {
+    const key = t.setup?.split('(')[0].trim() || 'Non renseigné'
+    bySetup[key] = (bySetup[key] ?? 0) + 1
+  }
+  const topSetup = Object.entries(bySetup).sort((a, b) => b[1] - a[1])[0]
+  if (topSetup && topSetup[1] >= 2) {
+    insights.push({
+      id: 'setup-cluster',
+      type: 'bad',
+      title: `Pertes concentrées sur « ${topSetup[0]} »`,
+      detail: `${topSetup[1]} perte(s) sur ce setup — revoir critères d'entrée ou éviter temporairement.`,
+      count: topSetup[1],
+    })
+  }
+
+  // Émotion basse
+  const lowEmotion = losers.filter((t) => (t.emotionScore ?? 5) <= 2).length
+  if (lowEmotion >= 1) {
+    insights.push({
+      id: 'emotion-losses-month',
+      type: 'bad',
+      title: 'Pertes en état émotionnel dégradé',
+      detail: `${lowEmotion}/${losers.length} perte(s) avec émotion ≤ 2/5 à l'entrée.`,
+      count: lowEmotion,
+    })
+  }
+
+  // Confluence incomplète
+  const lowConf = losers.filter((t) => !isFullConfluence(t)).length
+  if (lowConf >= 2) {
+    insights.push({
+      id: 'confluence-losses-month',
+      type: 'bad',
+      title: 'Pertes sans confluence complète',
+      detail: `${lowConf}/${losers.length} perte(s) sans 8/8 — le protocole aurait filtré une partie.`,
+      count: lowConf,
+    })
+  }
+
+  // Violations protocole
+  const overrides = losers.filter((t) => t.protocolOverride).length
+  if (overrides >= 1) {
+    insights.push({
+      id: 'override-losses',
+      type: 'bad',
+      title: 'Pertes en mode journal honnête',
+      detail: `${overrides} perte(s) hors protocole — erreurs d'exécution, pas le système.`,
+      count: overrides,
+    })
+  }
+
+  // Pertes maîtrisées (bon signe)
+  const controlled = losers.filter((t) => (t.rMultiple ?? -99) >= -1.1).length
+  if (controlled >= losers.length * 0.6) {
+    insights.push({
+      id: 'controlled-month',
+      type: 'good',
+      title: 'SL respecté sur la majorité des pertes',
+      detail: `${controlled}/${losers.length} pertes ≤ 1R — exécution disciplinée malgré le drawdown.`,
+      count: controlled,
+    })
+  }
+
+  // Biais récurrents dans notes POST-TRADE
+  const biasHits: Record<string, number> = {}
+  for (const t of losers) {
+    const notes = t.notes ?? ''
+    for (const b of ['FOMO', 'Impatience', 'Surconfiance', 'Revenge', 'Aversion']) {
+      if (notes.includes(b)) biasHits[b] = (biasHits[b] ?? 0) + 1
+    }
+  }
+  const topBias = Object.entries(biasHits).sort((a, b) => b[1] - a[1])[0]
+  if (topBias && topBias[1] >= 2) {
+    insights.push({
+      id: 'bias-pattern',
+      type: 'bad',
+      title: `Biais récurrent : ${topBias[0]}`,
+      detail: `Identifié ${topBias[1]} fois dans les analyses PTJ — cible #1 pour le mois prochain.`,
+      count: topBias[1],
+    })
+  }
+
+  if (insights.length === 0) {
+    insights.push({
+      id: 'mixed',
+      type: 'neutral',
+      title: `${losers.length} perte(s) — pas de cluster évident`,
+      detail: 'Réponds aux 3 questions mensuelles pour formaliser une leçon systémique.',
+    })
+  }
+
+  return insights
+}
 
 export const WEEKLY_PROMPTS = [
   {
@@ -240,8 +387,10 @@ export function reviewTrade(trade: Trade): TradeReview {
     else issues.push(`Émotion neutre (${trade.emotionScore}/5) — vigilance requise`)
   }
 
-  if (trade.plannedRR >= MIN_PLANNED_RR) strengths.push(`R/R planifié ${trade.plannedRR.toFixed(1)}:1 (≥ 1:${MIN_PLANNED_RR})`)
-  else if (trade.plannedRR > 0) issues.push(`R/R planifié faible (${trade.plannedRR.toFixed(1)}:1) — minimum 1:${MIN_PLANNED_RR} requis`)
+  if (trade.plannedRR >= 5) strengths.push(`R/R planifié 1:${trade.plannedRR.toFixed(1)} — objectif PTJ (grande tendance)`)
+  else if (trade.plannedRR >= 4) strengths.push(`R/R planifié 1:${trade.plannedRR.toFixed(1)} — grande tendance`)
+  else if (isPlannedRRValid(trade.plannedRR)) strengths.push(`R/R planifié 1:${trade.plannedRR.toFixed(1)} (≥ 1:${MIN_PLANNED_RR})`)
+  else if (trade.plannedRR > 0) issues.push(`R/R planifié faible (1:${trade.plannedRR.toFixed(1)}) — minimum 1:${MIN_PLANNED_RR}`)
 
   if (trade.status === 'CLOSED' && trade.pnl != null) {
     if (trade.pnl >= 0) {

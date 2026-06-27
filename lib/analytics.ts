@@ -17,6 +17,40 @@ const NON_CRYPTO_ASSETS = new Set(['SPX', 'QQQ'])
 /** R/R minimum protocole (Version Finale Optimisée). */
 export const MIN_PLANNED_RR = 3
 
+/** Objectifs R/R étendus — grandes tendances (style Paul Tudor Jones). */
+export const RR_TARGET_OPTIONS = [
+  {
+    r: 3,
+    label: 'Standard 3R',
+    short: '3R',
+    desc: 'Protocole swing — TP 50% @ 3R + trailing EMA 20',
+    expectancyHint: `WR 31% → +${expectancyLabel(3)}R/trade`,
+  },
+  {
+    r: 4,
+    label: 'Grande tendance 4R',
+    short: '4R',
+    desc: 'MTF aligné W→D→4H, régime BULL/BEAR confirmé, 8/8',
+    expectancyHint: `WR 31% → +${expectancyLabel(4)}R/trade`,
+  },
+  {
+    r: 5,
+    label: 'PTJ 5R',
+    short: '5R',
+    desc: 'Trend maximal — liquidité claire, confluence parfaite',
+    expectancyHint: `WR 31% → +${expectancyLabel(5)}R/trade (×3.5 vs 3R)`,
+  },
+] as const
+
+function expectancyLabel(rr: number): string {
+  const e = 0.31 * rr - 0.69 * 1
+  return e.toFixed(2)
+}
+
+export function isPlannedRRValid(plannedRR: number): boolean {
+  return plannedRR >= MIN_PLANNED_RR - 0.05
+}
+
 /** Multiplicateur ATR pour le stop loss dynamique. */
 export const ATR_SL_MULTIPLIER = 1.5
 
@@ -254,7 +288,7 @@ export function getProtocolViolations(
     })
   }
 
-  if (trade.plannedRR > 0 && trade.plannedRR < MIN_PLANNED_RR) {
+  if (trade.plannedRR > 0 && !isPlannedRRValid(trade.plannedRR)) {
     violations.push({
       type: 'low_rr',
       label: `R/R planifié 1:${trade.plannedRR.toFixed(1)} < 1:${MIN_PLANNED_RR} minimum`,

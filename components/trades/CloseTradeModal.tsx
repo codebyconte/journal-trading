@@ -4,17 +4,18 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   AlertTriangle, TrendingUp, TrendingDown, CheckCircle2, XCircle,
-  BookOpen, ChevronDown, ChevronUp, Brain, Award, Target,
+  BookOpen, ChevronDown, ChevronUp, Brain, Target,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/catalyst/badge'
 import { Button } from '@/components/catalyst/button'
-import { Description, Field, Label } from '@/components/catalyst/fieldset'
+import { Field, Label } from '@/components/catalyst/fieldset'
 import { Input } from '@/components/catalyst/input'
-import { Textarea } from '@/components/catalyst/textarea'
-import { cn, calculatePnL, calculateRMultiple, formatCurrency, formatR } from '@/lib/utils'
+import { cn, calculatePnL, calculateRMultiple, calculateTakeProfitAtR, formatCurrency, formatR } from '@/lib/utils'
 import { formatConfluenceScore, getConfluenceTone } from '@/lib/analytics'
 import { closeTrade } from '@/app/actions/trades'
+import { formatPostTradeNotes, type PostTradeAnalysis } from '@/lib/post-trade'
+import { PostTradePTJForm, hasPostTradeContent } from '@/components/trades/PostTradePTJForm'
 import type { Trade } from '@/lib/types'
 
 interface Props {
@@ -26,24 +27,16 @@ interface Props {
 
 type CloseType = 'TP' | 'SL' | 'MANUAL' | ''
 
+const EMPTY_PTJ: PostTradeAnalysis = {}
+
 export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: Props) {
   const [exitPrice, setExitPrice] = useState('')
   const [mae, setMae] = useState('')
   const [mfe, setMfe] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Section post-trade (tout optionnel)
   const [showPostTrade, setShowPostTrade] = useState(false)
-  const [closeType, setCloseType] = useState<CloseType>('')
-  const [manualReason, setManualReason] = useState('')
-  const [protocolRespected, setProtocolRespected] = useState<boolean | null>(null)
-  const [ruleViolated, setRuleViolated] = useState('')
-  const [setupWasValid, setSetupWasValid] = useState<boolean | null>(null)
-  const [slWasMoved, setSlWasMoved] = useState<boolean | null>(null)
-  const [partialTpAt3R, setPartialTpAt3R] = useState<boolean | null>(null)
-  const [trailingExitUsed, setTrailingExitUsed] = useState<boolean | null>(null)
-  const [mainLesson, setMainLesson] = useState('')
+  const [ptj, setPtj] = useState<PostTradeAnalysis>(EMPTY_PTJ)
 
   useEffect(() => {
     if (trade) {
@@ -52,17 +45,17 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
       setMfe('')
       setError(null)
       setShowPostTrade(false)
-      setCloseType('')
-      setManualReason('')
-      setProtocolRespected(null)
-      setRuleViolated('')
-      setSetupWasValid(null)
-      setSlWasMoved(null)
-      setPartialTpAt3R(null)
-      setTrailingExitUsed(null)
-      setMainLesson('')
+      setPtj(EMPTY_PTJ)
     }
   }, [trade?.id])
+
+  useEffect(() => {
+    if (!trade) return
+    const ex = parseFloat(exitPrice)
+    if (isNaN(ex) || ex <= 0) return
+    const pnl = calculatePnL(trade.entryPrice, ex, trade.units, trade.direction)
+    if (pnl < 0) setShowPostTrade(true)
+  }, [trade, exitPrice])
 
   if (!trade) return null
 
@@ -80,32 +73,27 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
   const isBE = !isNaN(exit) && Math.abs(exit - trade.entryPrice) / trade.entryPrice < 0.002
 
   const riskDist = Math.abs(trade.entryPrice - trade.stopLoss)
-  const priceAt3R =
-    trade.direction === 'LONG'
-      ? trade.entryPrice + 3 * riskDist
-      : trade.entryPrice - 3 * riskDist
+  const tpR = Math.max(3, Math.round(trade.plannedRR))
+  const priceAtTargetR =
+    calculateTakeProfitAtR(trade.entryPrice, trade.stopLoss, trade.direction, tpR) ??
+    (trade.direction === 'LONG' ? trade.entryPrice + tpR * riskDist : trade.entryPrice - tpR * riskDist)
 
-  // Auto-detect close type
   const autoCloseType: CloseType = isTP ? 'TP' : isSL ? 'SL' : exit > 0 ? 'MANUAL' : ''
-  const effectiveCloseType = closeType || autoCloseType
+  const effectiveCloseType = ptj.closeType || autoCloseType
 
   const confLabel = formatConfluenceScore(trade)
   const confTone = getConfluenceTone(trade)
 
-  // Construire les notes post-trade
   const buildPostTradeNotes = (): string | null => {
-    const parts: string[] = []
-    if (effectiveCloseType) parts.push(`Clôture via : ${effectiveCloseType}${effectiveCloseType === 'MANUAL' && manualReason.trim() ? ` — ${manualReason.trim()}` : ''}`)
-    if (protocolRespected !== null) parts.push(`Protocole respecté : ${protocolRespected ? 'OUI' : 'NON'}${!protocolRespected && ruleViolated.trim() ? ` — Règle : ${ruleViolated.trim()}` : ''}`)
-    if (setupWasValid !== null) parts.push(`Setup valide à l'entrée : ${setupWasValid ? 'OUI' : 'NON'}`)
-    if (slWasMoved !== null) parts.push(`SL déplacé : ${slWasMoved ? 'OUI' : 'NON'}`)
-    if (partialTpAt3R !== null) parts.push(`50% fermé @ 3R : ${partialTpAt3R ? 'OUI' : 'NON'}`)
-    if (trailingExitUsed !== null) parts.push(`Sortie trailing EMA 20 (50% restants) : ${trailingExitUsed ? 'OUI' : 'NON'}`)
-    if (mainLesson.trim()) parts.push(`Leçon : ${mainLesson.trim()}`)
-    return parts.length > 0 ? parts.join('\n') : null
+    const payload: PostTradeAnalysis = {
+      ...ptj,
+      closeType: effectiveCloseType || undefined,
+    }
+    if (!hasPostTradeContent(payload)) return null
+    return formatPostTradeNotes(payload)
   }
 
-  const hasPostTradeData = effectiveCloseType || protocolRespected !== null || setupWasValid !== null || slWasMoved !== null || partialTpAt3R !== null || trailingExitUsed !== null || mainLesson.trim()
+  const hasPostTradeData = hasPostTradeContent({ ...ptj, closeType: effectiveCloseType || undefined })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,13 +102,7 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
     setError(null)
     try {
       const postNotes = buildPostTradeNotes()
-      const result = await closeTrade(
-        trade.id,
-        exit,
-        mae ? parseFloat(mae) : null,
-        mfe ? parseFloat(mfe) : null,
-        postNotes,
-      )
+      const result = await closeTrade(trade.id, exit, mae ? parseFloat(mae) : null, mfe ? parseFloat(mfe) : null, postNotes)
       if (!result.success) throw new Error(result.error)
       onSuccess()
       onClose()
@@ -131,20 +113,21 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
     }
   }
 
+  const updatePtj = (patch: Partial<PostTradeAnalysis>) => setPtj((prev) => ({ ...prev, ...patch }))
+
   return (
-    <Modal open={!!trade} onClose={onClose} title={`Clôturer — ${trade.asset} ${trade.direction}`} size="md">
-      {/* Recap protocole */}
+    <Modal open={!!trade} onClose={onClose} title={`Clôturer — ${trade.asset} ${trade.direction}`} size="lg">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Badge color={confTone === 'full' ? 'lime' : confTone === 'partial' ? 'amber' : 'pink'}>
           Confluence {confLabel}
         </Badge>
         <span className="text-xs text-zinc-500">R/R planifié 1:{trade.plannedRR.toFixed(1)}</span>
-        <span className="text-xs text-zinc-500">Risque {formatCurrency(trade.riskAmount)}</span>
+        <span className="text-xs text-zinc-500">Perte max {formatCurrency(trade.riskAmount)}</span>
       </div>
 
       <div className="mb-5 rounded-xl bg-zinc-900/80 p-4 text-sm shadow-xs ring-1 ring-white/10 space-y-2">
         <div className="flex justify-between">
-          <span className="text-zinc-500">Entrée (Limite)</span>
+          <span className="text-zinc-500">Entrée</span>
           <span className="font-mono font-semibold text-white">${trade.entryPrice.toFixed(4)}</span>
         </div>
         <div className="flex justify-between">
@@ -155,19 +138,14 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
           <span className="text-zinc-500">Take Profit</span>
           <span className="font-mono text-emerald-400">${trade.takeProfit.toFixed(4)}</span>
         </div>
-        <div className="flex justify-between border-t border-white/10 pt-2">
-          <span className="text-zinc-500">Unités · Setup</span>
-          <span className="text-zinc-400 text-right">{trade.units.toFixed(4)} · {trade.setup?.split('(')[0].trim() ?? '—'}</span>
-        </div>
       </div>
 
-      {/* Quick fill */}
       <div className="mb-4">
         <p className="text-xs font-bold uppercase tracking-wide text-zinc-500 mb-2">Remplissage rapide</p>
         <div className="flex flex-wrap gap-2">
           {[
             { label: 'Stop Loss', price: trade.stopLoss, color: 'red' as const },
-            { label: 'TP @ 3R', price: priceAt3R, color: 'emerald' as const },
+            { label: `TP @ ${tpR}R`, price: priceAtTargetR, color: 'emerald' as const },
             { label: 'Breakeven', price: trade.entryPrice, color: undefined },
           ].map(({ label, price, color }) => (
             <Button
@@ -184,119 +162,42 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Field>
-            <Label htmlFor="exit-price">Prix de sortie ($) *</Label>
-            <Input
-              id="exit-price"
-              name="exitPrice"
-              type="number"
-              inputMode="decimal"
-              autoComplete="off"
-              spellCheck={false}
-              step="any"
-              placeholder="0.00"
-              value={exitPrice}
-              onChange={(e) => setExitPrice(e.target.value)}
-              required
-              aria-describedby={(isSL || isTP || isBE) ? 'exit-hint' : undefined}
-            />
-          </Field>
-          {(isSL || isTP || isBE) && (
-            <p id="exit-hint" className={cn('mt-1.5 text-xs font-semibold', isTP ? 'text-emerald-400' : isSL ? 'text-red-400' : 'text-amber-400')}>
-              {isSL && 'Sortie au Stop Loss — perte maîtrisée si ≤ 1R'}
-              {isTP && 'Sortie au Take Profit — objectif protocole atteint'}
-              {isBE && 'Sortie au Breakeven — trade "free" selon plan de gestion'}
-            </p>
-          )}
-        </div>
+        <Field>
+          <Label htmlFor="exit-price">Prix de sortie ($) *</Label>
+          <Input
+            id="exit-price"
+            type="number"
+            step="any"
+            value={exitPrice}
+            onChange={(e) => setExitPrice(e.target.value)}
+            required
+          />
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field>
-            <Label htmlFor="mae">
-              MAE ($){' '}
-              <span className="font-normal normal-case text-zinc-500">max adverse</span>
-            </Label>
-            <Input
-              id="mae"
-              name="mae"
-              type="number"
-              step="any"
-              placeholder={`Ex: ${trade.riskAmount.toFixed(0)}`}
-              value={mae}
-              onChange={(e) => setMae(e.target.value)}
-            />
+            <Label htmlFor="mae">MAE ($)</Label>
+            <Input id="mae" type="number" step="any" value={mae} onChange={(e) => setMae(e.target.value)} />
           </Field>
           <Field>
-            <Label htmlFor="mfe">
-              MFE ($){' '}
-              <span className="font-normal normal-case text-zinc-500">max favorable</span>
-            </Label>
-            <Input
-              id="mfe"
-              name="mfe"
-              type="number"
-              step="any"
-              placeholder="Ex: 800"
-              value={mfe}
-              onChange={(e) => setMfe(e.target.value)}
-            />
+            <Label htmlFor="mfe">MFE ($)</Label>
+            <Input id="mfe" type="number" step="any" value={mfe} onChange={(e) => setMfe(e.target.value)} />
           </Field>
         </div>
 
         {previewPnl != null && (
-          <div className={cn(
-            'rounded-xl p-4 ring-1',
-            isWin ? 'ring-emerald-500/30 bg-emerald-500/10' : 'ring-red-500/30 bg-red-500/10',
-          )}>
-            <div className="flex items-center gap-2 mb-3">
+          <div className={cn('rounded-xl p-4 ring-1', isWin ? 'ring-emerald-500/30 bg-emerald-500/10' : 'ring-red-500/30 bg-red-500/10')}>
+            <div className="flex items-center gap-2 mb-2">
               {isWin ? <TrendingUp size={18} className="text-emerald-400" /> : <TrendingDown size={18} className="text-red-400" />}
               <span className={cn('text-sm font-bold', isWin ? 'text-emerald-400' : 'text-red-400')}>
-                {isWin ? 'Trade gagnant' : 'Trade perdant'}
+                {isWin ? 'Trade gagnant' : 'Trade perdant — analyse PTJ recommandée'}
                 {previewR != null && ` · ${formatR(previewR)}`}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-zinc-500">P&L</p>
-                <p className={cn('font-mono text-xl font-bold', isWin ? 'text-emerald-400' : 'text-red-400')}>
-                  {formatCurrency(previewPnl)}
-                </p>
-              </div>
-              <div>
-                <p className="text-zinc-500">Nouveau capital</p>
-                <p className="font-mono text-lg font-bold text-white">{formatCurrency(newCapital!)}</p>
-              </div>
-              <div>
-                <p className="text-zinc-500">% capital</p>
-                <p className={cn('font-mono font-semibold', isWin ? 'text-emerald-400' : 'text-red-400')}>
-                  {previewPct! >= 0 ? '+' : ''}{previewPct!.toFixed(2)}%
-                </p>
-              </div>
-              <div>
-                <p className="text-zinc-500">vs planifié</p>
-                <p className="font-mono font-semibold text-zinc-400">
-                  1:{trade.plannedRR.toFixed(1)} planifié
-                </p>
-              </div>
-            </div>
-
-            {previewR != null && previewR < -1.1 && (
-              <p className="mt-3 flex items-start gap-2 text-sm text-red-400">
-                <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-                Perte {'>'} 1R — SL élargi ou non respecté ? Documente dans la section ci-dessous.
-              </p>
-            )}
-            {previewR != null && previewR > 0 && previewR < trade.plannedRR * 0.7 && (
-              <p className="mt-3 flex items-start gap-2 text-sm text-amber-400">
-                <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-                Sortie prématurée — {formatR(previewR)} sur 1:{trade.plannedRR.toFixed(1)} planifié.
-              </p>
-            )}
+            <p className="font-mono text-lg font-bold">{formatCurrency(previewPnl)}</p>
           </div>
         )}
 
-        {/* ── Section post-trade (optionnelle) ── */}
         <div className="rounded-xl ring-1 ring-white/10 overflow-hidden">
           <Button
             type="button"
@@ -305,222 +206,36 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
             className="flex w-full items-center justify-between gap-3 rounded-none px-4 py-3 text-left"
           >
             <div className="flex items-center gap-2">
-              <Brain size={16} className="text-indigo-400" aria-hidden="true" />
+              <Brain size={16} className="text-indigo-400" />
               <div>
-                <p className="text-sm font-bold text-white">Analyse post-trade</p>
-                <p className="text-xs text-zinc-500">
-                  {hasPostTradeData ? 'Données saisies — ' : ''}Tout optionnel · Règle des 5 minutes
-                </p>
+                <p className="text-sm font-bold text-white">Analyse post-trade — 5 questions PTJ</p>
+                <p className="text-xs text-zinc-500">Paul Tudor Jones · Ray Dalio · 5 min max</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {hasPostTradeData && (
-                <Badge color="indigo">Rempli</Badge>
-              )}
-              {showPostTrade ? (
-                <ChevronUp size={16} className="text-zinc-500" />
-              ) : (
-                <ChevronDown size={16} className="text-zinc-500" />
-              )}
+              {hasPostTradeData && <Badge color="indigo">Rempli</Badge>}
+              {showPostTrade ? <ChevronUp size={16} className="text-zinc-500" /> : <ChevronDown size={16} className="text-zinc-500" />}
             </div>
           </Button>
 
           {showPostTrade && (
-            <div className="space-y-5 border-t border-white/10 bg-zinc-900/50 p-4">
-              {/* Type de clôture */}
-              <Field>
-                <Label>Type de clôture</Label>
-                <div className="flex flex-wrap gap-2">
-                  {([
-                    { value: 'TP', label: 'Take Profit atteint', color: 'emerald' as const },
-                    { value: 'SL', label: 'Stop Loss atteint', color: 'red' as const },
-                    { value: 'MANUAL', label: 'Clôture manuelle', color: 'amber' as const },
-                  ] as const).map((opt) => (
-                    <Button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setCloseType(effectiveCloseType === opt.value ? '' : opt.value)}
-                      {...(effectiveCloseType === opt.value ? { color: opt.color } : { outline: true as const })}
-                      className="text-xs"
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-                {effectiveCloseType === 'MANUAL' && (
-                  <Input
-                    type="text"
-                    placeholder="Pourquoi la clôture manuelle ? (ex : cassure structure 4H, signal adverse Arkham…)"
-                    value={manualReason}
-                    onChange={(e) => setManualReason(e.target.value)}
-                  />
-                )}
-              </Field>
-
-              {/* Protocole respecté */}
-              <Field>
-                <Label>Toutes les règles du protocole ont été respectées ?</Label>
-                <div className="flex gap-2">
-                  {[
-                    { val: true, label: 'OUI', color: 'emerald' as const },
-                    { val: false, label: 'NON', color: 'red' as const },
-                  ].map((opt) => (
-                    <Button
-                      key={String(opt.val)}
-                      type="button"
-                      onClick={() => setProtocolRespected(protocolRespected === opt.val ? null : opt.val)}
-                      {...(protocolRespected === opt.val ? { color: opt.color } : { outline: true as const })}
-                      className="flex-1"
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-                {protocolRespected === false && (
-                  <Input
-                    type="text"
-                    placeholder="Quelle règle a été violée ? (ex : entrée avant clôture 4H, SL élargi…)"
-                    value={ruleViolated}
-                    onChange={(e) => setRuleViolated(e.target.value)}
-                  />
-                )}
-              </Field>
-
-              {/* 2 questions rapides en grille */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field>
-                  <Label>Setup valide à l&apos;entrée ?</Label>
-                  <Description>Indépendamment du résultat final</Description>
-                  <div className="flex gap-2">
-                    {[
-                      { val: true, label: 'OUI', color: 'emerald' as const },
-                      { val: false, label: 'NON', color: 'red' as const },
-                    ].map((opt) => (
-                      <Button
-                        key={String(opt.val)}
-                        type="button"
-                        onClick={() => setSetupWasValid(setupWasValid === opt.val ? null : opt.val)}
-                        {...(setupWasValid === opt.val ? { color: opt.color } : { outline: true as const })}
-                        className="flex-1"
-                      >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                </Field>
-
-                <Field>
-                  <Label>SL déplacé dans la direction adverse ?</Label>
-                  <Description>Règle d&apos;acier — jamais reculer</Description>
-                  <div className="flex gap-2">
-                    {[
-                      { val: false, label: 'NON ✓', color: 'emerald' as const },
-                      { val: true, label: 'OUI ✗', color: 'red' as const },
-                    ].map((opt) => (
-                      <Button
-                        key={String(opt.val)}
-                        type="button"
-                        onClick={() => setSlWasMoved(slWasMoved === opt.val ? null : opt.val)}
-                        {...(slWasMoved === opt.val ? { color: opt.color } : { outline: true as const })}
-                        className="flex-1"
-                      >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                </Field>
-              </div>
-
-              {/* Plan de gestion §11 */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field>
-                  <Label>50% fermé @ 3R (Limit) ?</Label>
-                  <Description>Protocole R7 — TP partiel sur la moitié de la position</Description>
-                  <div className="flex gap-2">
-                    {[
-                      { val: true, label: 'OUI', color: 'emerald' as const },
-                      { val: false, label: 'NON', color: 'red' as const },
-                    ].map((opt) => (
-                      <Button
-                        key={String(opt.val)}
-                        type="button"
-                        onClick={() => setPartialTpAt3R(partialTpAt3R === opt.val ? null : opt.val)}
-                        {...(partialTpAt3R === opt.val ? { color: opt.color } : { outline: true as const })}
-                        className="flex-1"
-                      >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                </Field>
-
-                <Field>
-                  <Label>50% restants sortis sur trailing EMA 20 ?</Label>
-                  <Description>Bougie 4H clôture contre la position</Description>
-                  <div className="flex gap-2">
-                    {[
-                      { val: true, label: 'OUI', color: 'emerald' as const },
-                      { val: false, label: 'NON', color: 'red' as const },
-                    ].map((opt) => (
-                      <Button
-                        key={String(opt.val)}
-                        type="button"
-                        onClick={() => setTrailingExitUsed(trailingExitUsed === opt.val ? null : opt.val)}
-                        {...(trailingExitUsed === opt.val ? { color: opt.color } : { outline: true as const })}
-                        className="flex-1"
-                      >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                </Field>
-              </div>
-
-              {/* Leçon principale */}
-              <Field>
-                <Label className="flex items-center gap-2">
-                  <Award size={14} className="text-indigo-400" />
-                  Leçon principale (1 phrase)
-                </Label>
-                <Description>
-                  Une seule leçon concrète et actionnable — pas une liste. Quel comportement précis vas-tu changer ?
-                </Description>
-                <Textarea
-                  placeholder="Ex : Demain je ne trade pas si le RSI est > 62 même si l'EMA est validée — deux fois que ça me coûte…"
-                  value={mainLesson}
-                  onChange={(e) => setMainLesson(e.target.value)}
-                  rows={2}
-                  resizable={false}
-                />
-              </Field>
-
-              {/* Alerte contexte */}
-              {slWasMoved === true && (
-                <div className="flex items-start gap-2 rounded-lg ring-1 ring-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
-                  <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-                  SL déplacé → violation de la règle d&apos;acier. Documente dans ton journal et revois le protocole section Gestion du Trade.
-                </div>
-              )}
+            <div className="border-t border-white/10 bg-zinc-900/50 p-4">
+              <PostTradePTJForm
+                data={ptj}
+                onChange={updatePtj}
+                effectiveCloseType={effectiveCloseType}
+                isLoss={previewPnl != null ? previewPnl < 0 : false}
+              />
             </div>
           )}
         </div>
 
-        {/* Rappel protocole post-clôture */}
-        <div className="rounded-xl bg-zinc-900/80 px-4 py-3 shadow-xs ring-1 ring-white/10">
-          <p className="text-xs font-bold uppercase text-zinc-500 mb-2">Après clôture — protocole</p>
-          <ul className="space-y-1 text-sm text-zinc-400">
-            <li className="flex items-start gap-2">
-              <Target size={13} className="text-indigo-400 flex-shrink-0 mt-0.5" />
-              Complète l&apos;analyse post-trade ci-dessus dans les 5 min
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0 mt-0.5" />
-              Va sur /journal — remplis les 7 prompts post-session
-            </li>
-            <li className="flex items-start gap-2">
-              <XCircle size={13} className="text-red-400 flex-shrink-0 mt-0.5" />
-              Si 2 pertes consécutives ou {'>'} 3% drawdown → circuit-breaker
-            </li>
+        <div className="rounded-xl bg-zinc-900/80 px-4 py-3 ring-1 ring-white/10 text-sm text-zinc-400">
+          <p className="text-xs font-bold uppercase text-zinc-500 mb-2">Après clôture</p>
+          <ul className="space-y-1">
+            <li className="flex gap-2"><Target size={13} className="text-indigo-400 mt-0.5" /> Complète l&apos;analyse PTJ ci-dessus</li>
+            <li className="flex gap-2"><CheckCircle2 size={13} className="text-emerald-400 mt-0.5" /> Revue mensuelle des pertes sur /journal</li>
+            <li className="flex gap-2"><XCircle size={13} className="text-red-400 mt-0.5" /> 2 pertes consécutives → circuit-breaker 48h</li>
           </ul>
           <Link href="/journal" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-indigo-400 hover:underline">
             <BookOpen size={12} /> Ouvrir le journal

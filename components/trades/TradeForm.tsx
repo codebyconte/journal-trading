@@ -16,8 +16,11 @@ import {
   getProtocolViolations,
   MIN_PLANNED_RR,
   ATR_SL_MULTIPLIER,
+  RR_TARGET_OPTIONS,
+  isPlannedRRValid,
   normalizeMarketRegime,
 } from '@/lib/analytics'
+import { PTJ_EXPECTANCY } from '@/lib/post-trade'
 import { createTrade } from '@/app/actions/trades'
 import { CalloutBanner } from '@/components/ui/SystemState'
 import { Button } from '@/components/catalyst/button'
@@ -181,6 +184,8 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
   const [protocolOverride, setProtocolOverride] = useState(false)
   const [overrideReason, setOverrideReason] = useState('')
   const [customRiskPercent, setCustomRiskPercent] = useState('')
+  const [rrTarget, setRrTarget] = useState<number>(MIN_PLANNED_RR)
+  const [lossAccepted, setLossAccepted] = useState<boolean | null>(null)
 
   // Calculs automatiques
   const [autoCalc, setAutoCalc] = useState({
@@ -289,6 +294,11 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
     e.preventDefault()
     setError(null)
 
+    if (!protocolOverride && lossAccepted !== true) {
+      setError('Confirme que tu acceptes pleinement la perte max au SL avant d\'entrer (check PTJ).')
+      return
+    }
+
     if (!protocolOverride) {
       if (regimeBlock) {
         setError(regimeBlock)
@@ -363,11 +373,11 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
       return
     }
 
-    if (autoCalc.plannedRR > 0 && autoCalc.plannedRR < MIN_PLANNED_RR) {
+    if (autoCalc.plannedRR > 0 && !isPlannedRRValid(autoCalc.plannedRR)) {
       if (protocolOverride) {
-        if (!confirm(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:${MIN_PLANNED_RR}. Enregistrer quand même en mode journal honnête ?`)) return
+        if (!confirm(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum 1:${MIN_PLANNED_RR}. Enregistrer en mode journal honnête ?`)) return
       } else {
-        setError(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum protocole 1:${MIN_PLANNED_RR}. Ajuste ton Take Profit (bouton TP @ 3R).`)
+        setError(`R/R planifié = 1:${autoCalc.plannedRR.toFixed(1)} — minimum 1:${MIN_PLANNED_RR}. Choisis un objectif 3R, 4R ou 5R.`)
         return
       }
     }
@@ -434,7 +444,7 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
     if (isNaN(entry) || isNaN(atr) || entry <= 0 || atr <= 0) return
     const sl = calculateStopLossFromATR(entry, atr, form.direction, ATR_SL_MULTIPLIER)
     if (sl == null) return
-    const tp = calculateTakeProfitAtR(entry, sl, form.direction, MIN_PLANNED_RR)
+    const tp = calculateTakeProfitAtR(entry, sl, form.direction, rrTarget)
     skipAtrSync.current = true
     setSlFromAtr(true)
     setTpFromProtocol(true)
@@ -443,9 +453,9 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
       stopLoss: sl.toFixed(4),
       takeProfit: tp != null ? tp.toFixed(4) : prev.takeProfit,
     }))
-  }, [form.entryPrice, form.atr, form.direction])
+  }, [form.entryPrice, form.atr, form.direction, rrTarget])
 
-  // Recalcule SL (+ TP @ 3R) quand entrée ou ATR changent en mode ATR
+  // Recalcule SL (+ TP @ R cible) quand entrée ou ATR changent en mode ATR
   useEffect(() => {
     if (skipAtrSync.current) {
       skipAtrSync.current = false
@@ -458,21 +468,21 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
     const sl = calculateStopLossFromATR(entry, atr, form.direction, ATR_SL_MULTIPLIER)
     if (sl == null) return
     const tp = tpFromProtocol
-      ? calculateTakeProfitAtR(entry, sl, form.direction, MIN_PLANNED_RR)
+      ? calculateTakeProfitAtR(entry, sl, form.direction, rrTarget)
       : null
     setForm((prev) => ({
       ...prev,
       stopLoss: sl.toFixed(4),
       ...(tp != null ? { takeProfit: tp.toFixed(4) } : {}),
     }))
-  }, [form.entryPrice, form.atr, form.direction, slFromAtr, tpFromProtocol])
+  }, [form.entryPrice, form.atr, form.direction, slFromAtr, tpFromProtocol, rrTarget])
 
   const handleStopLossChange = (value: string) => {
     setSlFromAtr(false)
     const entry = parseFloat(form.entryPrice)
     const sl = parseFloat(value)
     if (tpFromProtocol && !isNaN(entry) && !isNaN(sl) && sl > 0) {
-      const tp = calculateTakeProfitAtR(entry, sl, form.direction, MIN_PLANNED_RR)
+      const tp = calculateTakeProfitAtR(entry, sl, form.direction, rrTarget)
       setForm((prev) => ({
         ...prev,
         stopLoss: value,
@@ -647,7 +657,7 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
               className="text-sm"
             >
               <Target data-slot="icon" className="size-4" aria-hidden="true" />
-              SL + TP @ {MIN_PLANNED_RR}R
+              SL + TP @ {rrTarget}R
             </Button>
           </div>
           {atrNum > 0 && entryNum > 0 && (
@@ -683,7 +693,29 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
           )}
         </Field>
         <Field>
-          <Label>Take Profit — Limit 50% @ 3R ($)</Label>
+          <Label>Objectif R/R — Take Profit (50% @ NR en Limit)</Label>
+          <Description>
+            Minimum 3R. 4R-5R pour grandes tendances (PTJ). WR 31% → +{PTJ_EXPECTANCY.at3R.toFixed(2)}R @ 3R vs +{PTJ_EXPECTANCY.at5R.toFixed(2)}R @ 5R.
+          </Description>
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {RR_TARGET_OPTIONS.map((opt) => (
+              <Button
+                key={opt.r}
+                type="button"
+                onClick={() => {
+                  setRrTarget(opt.r)
+                  setTpFromProtocol(true)
+                  applyTakeProfitR(opt.r)
+                }}
+                {...(rrTarget === opt.r ? { color: 'indigo' as const } : { outline: true as const })}
+                className="text-xs"
+                disabled={!form.entryPrice || !form.stopLoss}
+                title={opt.desc}
+              >
+                {opt.short} · {opt.expectancyHint}
+              </Button>
+            ))}
+          </div>
           <Input
             type="number"
             step="any"
@@ -692,22 +724,13 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
             onChange={(e) => handleTakeProfitChange(e.target.value)}
             required
           />
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <Button
-              type="button"
-              outline
-              onClick={() => applyTakeProfitR(MIN_PLANNED_RR)}
-              disabled={!form.entryPrice || !form.stopLoss}
-              className="text-xs"
-            >
-              TP @ {MIN_PLANNED_RR}R (protocole)
-            </Button>
-            {!tpFromProtocol && (
-              <Button type="button" plain className="text-xs text-indigo-400" onClick={() => { setTpFromProtocol(true); applyTakeProfitR(MIN_PLANNED_RR) }}>
-                Lier au protocole 3R
-              </Button>
-            )}
-          </div>
+          {autoCalc.plannedRR > 0 && (
+            <p className={cn('mt-1.5 text-xs font-mono', isPlannedRRValid(autoCalc.plannedRR) ? 'text-emerald-400' : 'text-red-400')}>
+              R/R planifié : 1:{autoCalc.plannedRR.toFixed(1)}
+              {autoCalc.plannedRR >= 5 && ' — objectif PTJ'}
+              {autoCalc.plannedRR >= 4 && autoCalc.plannedRR < 5 && ' — grande tendance'}
+            </p>
+          )}
         </Field>
       </div>
 
@@ -801,7 +824,7 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
               <p
                 className={cn(
                   'font-mono text-lg font-bold',
-                  autoCalc.plannedRR >= MIN_PLANNED_RR ? 'text-emerald-400' : 'text-red-400',
+                  autoCalc.plannedRR > 0 && isPlannedRRValid(autoCalc.plannedRR) ? 'text-emerald-400' : 'text-red-400',
                 )}
               >
                 {autoCalc.plannedRR > 0 ? `1:${autoCalc.plannedRR.toFixed(1)}` : '—'}
@@ -854,10 +877,10 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
               Marge {'>'} 25% du capital — augmente le levier ou réduis la distance SL si possible.
             </div>
           )}
-          {autoCalc.plannedRR > 0 && autoCalc.plannedRR < MIN_PLANNED_RR && (
+          {autoCalc.plannedRR > 0 && !isPlannedRRValid(autoCalc.plannedRR) && (
             <div className="flex items-center gap-2 text-sm text-red-400">
               <AlertCircle size={12} />
-              R/R insuffisant — minimum 1:{MIN_PLANNED_RR}. Utilise le bouton TP @ {MIN_PLANNED_RR}R (50% position @ 3R + 50% trailing EMA 20).
+              R/R insuffisant — minimum 1:{MIN_PLANNED_RR}. Choisis 3R, 4R ou 5R.
             </div>
           )}
         </div>
@@ -1182,6 +1205,41 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
           />
         </div>
       </Field>
+
+      {/* Check PTJ — acceptation de la perte max */}
+      {!protocolOverride && autoCalc.riskAmount > 0 && (
+        <div className="rounded-xl border border-indigo-500/25 bg-indigo-500/5 p-4 space-y-3">
+          <p className="text-sm font-semibold text-white">Check Paul Tudor Jones — avant d&apos;entrer</p>
+          <p className="text-sm text-zinc-400">
+            Si je perds ce trade, est-ce que j&apos;accepte pleinement{' '}
+            <strong className="text-red-400">{formatNumber(autoCalc.riskAmount, 2)}$</strong> ({displayRiskPercent}% du capital) ?
+            Mon capital survit-il confortablement ?
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              onClick={() => setLossAccepted(lossAccepted === true ? null : true)}
+              {...(lossAccepted === true ? { color: 'emerald' as const } : { outline: true as const })}
+              className="flex-1"
+            >
+              Oui — j&apos;accepte sans hésitation
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setLossAccepted(false)}
+              {...(lossAccepted === false ? { color: 'amber' as const } : { outline: true as const })}
+              className="flex-1"
+            >
+              Non / hésitant → réduire taille
+            </Button>
+          </div>
+          {lossAccepted === false && (
+            <p className="text-xs text-amber-400">
+              Réduis la taille (confluence partielle) ou ne trade pas. PTJ : pas d&apos;entrée tant que la perte n&apos;est pas acceptée à 100%.
+            </p>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">

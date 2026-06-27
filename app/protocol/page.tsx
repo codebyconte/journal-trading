@@ -1692,29 +1692,56 @@ function TabGestion() {
         ))}
       </div>
 
-      <SubHeading icon={<BarChart2 size={18} />}>Analyse Post-Trade — Les 5 Minutes Qui Font la Différence</SubHeading>
+      <SubHeading icon={<BarChart2 size={18} />}>Analyse Post-Trade — 5 Questions Paul Tudor Jones</SubHeading>
 
-      <Callout type="info" title="Études sur le feedback loop en trading">
-        <strong className="text-white">Brett Steenbarger "Enhancing Trader Performance" (2007)</strong> : Les traders qui analysent systématiquement chaque trade (WON ou LOST) progressent 3× plus vite que ceux qui ne le font pas. L'objectif n'est pas de critiquer — c'est d'identifier des patterns.
+      <Callout type="info" title="Pourquoi 95 % des traders ne progressent pas">
+        La majorité ferme l&apos;interface après une perte et répète les mêmes erreurs. Ray Dalio : traverser les mêmes douleurs sans apprendre la leçon. Le journal = système de débogage de toi-même, pas un registre comptable.
       </Callout>
 
-      <div className="rounded-xl border border-white/10 bg-zinc-900 p-5 space-y-3">
-        <p className="font-bold text-white">Pour chaque trade fermé — Réponds à ces questions dans le journal</p>
-        <div className="space-y-2">
-          {[
-            'Le setup respectait-il 100% le protocole (8/8 confluences + régime) ?',
-            'Mon état émotionnel était-il ≥ 3/5 au moment de l\'entrée ?',
-            'Ai-je respecté le plan de gestion (50% @ 3R + trailing EMA 20) ?',
-            'Si trade perdant : le SL était-il bien placé ou trop serré ?',
-            'Si trade gagnant fermé trop tôt : quelle émotion m\'a poussé à fermer prématurément ?',
-            'Y a-t-il une leçon concrète et unique à retenir pour le prochain trade ?',
-          ].map((q, i) => (
-            <div key={i} className="flex items-start gap-2 text-sm text-zinc-400">
-              <ChevronRight size={14} className="text-indigo-400 flex-shrink-0 mt-0.5" />
-              {q}
-            </div>
-          ))}
-        </div>
+      <div className="space-y-3">
+        {[
+          { n: 'Q1', q: 'Le setup était-il valide à l\'entrée ?', d: 'Perte avec protocole 100 % = normale (31 % WR). Perte sans protocole = erreur d\'exécution.' },
+          { n: 'Q2', q: 'Quelle règle ai-je violée ?', d: 'Checklist 8/8. Raison psychologique : FOMO, impatience, surconfiance…' },
+          { n: 'Q3', q: 'Qu\'est-ce que le marché m\'a appris ?', d: 'Signal manqué, contexte macro changé, Coinglass ignoré.' },
+          { n: 'Q4', q: 'Nouvelle règle candidate (précise et testable)', d: 'Style Dalio — pas "être plus attentif".' },
+          { n: 'Q5', q: 'Cette règle aurait-elle amélioré mes 10-20 trades similaires ?', d: 'Adopter / Tester / Rejeter — éviter l\'over-fitting.' },
+        ].map((item) => (
+          <div key={item.n} className="rounded-xl border border-white/10 bg-zinc-900 px-4 py-3">
+            <p className="font-bold text-indigo-400 text-sm">{item.n} · {item.q}</p>
+            <p className="text-sm text-zinc-400 mt-1">{item.d}</p>
+          </div>
+        ))}
+      </div>
+
+      <Callout type="tip" title="Où remplir l'analyse ?">
+        À la clôture de chaque trade → section <strong className="text-white">5 questions PTJ</strong> dans le modal de clôture. 1×/mois → analyse transversale des pertes sur la page Journal.
+      </Callout>
+
+      <SubHeading icon={<Target size={18} />}>Objectifs R/R — 3R, 4R, 5R (Paul Tudor Jones)</SubHeading>
+      <DataTable
+        headers={['Objectif', 'Usage', 'Espérance @ 31% WR']}
+        rows={[
+          [<span className="text-emerald-400 font-bold">1:3</span>, 'Standard swing — TP 50% @ 3R + trailing', <span className="text-emerald-400">+0.24R/trade</span>],
+          [<span className="text-indigo-400 font-bold">1:4</span>, 'Grande tendance — MTF aligné, régime BULL/BEAR', <span className="text-emerald-400">+0.55R/trade</span>],
+          [<span className="text-amber-400 font-bold">1:5</span>, 'PTJ — confluence parfaite, liquidité claire', <span className="text-emerald-400 font-bold">+0.86R/trade (×3.5 vs 3R)</span>],
+        ]}
+      />
+
+      <SubHeading icon={<BarChart2 size={18} />}>Analyse Post-Trade — Rappel rapide</SubHeading>
+      <div className="rounded-xl border border-white/10 bg-zinc-900 p-5 space-y-2">
+        {[
+          'Le setup respectait-il 100% le protocole (8/8 confluences + régime) ?',
+          'Mon état émotionnel était-il ≥ 3/5 au moment de l\'entrée ?',
+          'Ai-je respecté le plan de gestion (50% @ 3R + trailing EMA 20) ?',
+          'Si trade perdant : le SL était-il bien placé ou perte statistique normale ?',
+          'Si trade gagnant fermé trop tôt : quelle émotion m\'a poussé à fermer prématurément ?',
+          'Y a-t-il une leçon concrète et unique à retenir pour le prochain trade ?',
+        ].map((q, i) => (
+          <div key={i} className="flex items-start gap-2 text-sm text-zinc-400">
+            <ChevronRight size={14} className="text-indigo-400 flex-shrink-0 mt-0.5" />
+            {q}
+          </div>
+        ))}
       </div>
 
       <Callout type="success" title="Mathématique du plan de gestion — Pourquoi ça change tout">

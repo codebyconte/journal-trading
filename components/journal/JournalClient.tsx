@@ -17,6 +17,7 @@ import { DayTradeReview } from '@/components/journal/DayTradeReview'
 import { ReflectionPrompts } from '@/components/journal/ReflectionPrompts'
 import { QuickAudit } from '@/components/journal/QuickAudit'
 import { PatternInsights } from '@/components/journal/PatternInsights'
+import { MonthlyLossAnalysis } from '@/components/journal/MonthlyLossAnalysis'
 import type { JournalEntry, Trade } from '@/lib/types'
 import {
   parseJournalContent,
@@ -25,6 +26,7 @@ import {
   getTradesForDay,
   summarizeDay,
   detectPatterns,
+  analyzeMonthlyLosses,
   normalizeMood,
   WEEKLY_PROMPTS,
   type JournalStorage,
@@ -90,6 +92,18 @@ export function JournalClient({
     [trades, entries],
   )
 
+  const monthlyLossInsights = useMemo(
+    () => analyzeMonthlyLosses(trades.filter((t) => t.status === 'CLOSED'), 30),
+    [trades],
+  )
+
+  const monthlyLossCount = useMemo(() => {
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+    return trades.filter(
+      (t) => t.status === 'CLOSED' && (t.pnl ?? 0) < 0 && t.closedAt && new Date(t.closedAt).getTime() >= cutoff,
+    ).length
+  }, [trades])
+
   const monthEntries = useMemo(
     () => entries.filter((e) => {
       const d = new Date(e.date)
@@ -109,7 +123,8 @@ export function JournalClient({
     const hasPrompts = Object.values(journal.prompts).some((v) => v?.trim())
     const hasAudit = Object.values(journal.audit).some((v) => v === true)
     const hasWeekly = Object.values(journal.weeklyReview ?? {}).some((v) => v?.trim())
-    return hasNotes || hasPrompts || hasAudit || hasWeekly
+    const hasMonthly = Object.values(journal.monthlyCrossReview ?? {}).some((v) => v?.trim())
+    return hasNotes || hasPrompts || hasAudit || hasWeekly || hasMonthly
   }, [journal])
 
   const save = async () => {
@@ -148,6 +163,13 @@ export function JournalClient({
     setJournal((prev) => ({
       ...prev,
       weeklyReview: { ...prev.weeklyReview, [String(idx)]: value },
+    }))
+  }
+
+  const updateMonthlyCrossReview = (idx: number, value: string) => {
+    setJournal((prev) => ({
+      ...prev,
+      monthlyCrossReview: { ...prev.monthlyCrossReview, [String(idx)]: value },
     }))
   }
 
@@ -376,6 +398,13 @@ export function JournalClient({
       {/* Bas de page */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <PatternInsights patterns={patterns} />
+
+        <MonthlyLossAnalysis
+          insights={monthlyLossInsights}
+          lossCount={monthlyLossCount}
+          monthlyReview={journal.monthlyCrossReview ?? {}}
+          onUpdateReview={updateMonthlyCrossReview}
+        />
 
         {/* Revue hebdomadaire interactive */}
         <Card variant="accent">
