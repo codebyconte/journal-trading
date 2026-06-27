@@ -1,14 +1,22 @@
 import { JournalClient } from '@/components/journal/JournalClient'
 import { getJournalEntries } from '@/lib/data/journal'
 import { getTrades } from '@/lib/data/trades'
+import { getSettings } from '@/lib/data/settings'
 
 export const dynamic = 'force-dynamic'
 
 export default async function JournalPage() {
-  const [entries, { trades }] = await Promise.all([
+  const [entries, { trades }, settings] = await Promise.all([
     getJournalEntries(90),
     getTrades({ limit: 200 }),
+    getSettings(),
   ])
 
-  return <JournalClient initialEntries={entries} initialTrades={trades} />
+  return (
+    <JournalClient
+      initialEntries={entries}
+      initialTrades={trades}
+      riskPercent={settings.riskPercent}
+    />
+  )
 }

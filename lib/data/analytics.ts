@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { prisma } from '@/lib/db'
+import { getSettings } from '@/lib/data/settings'
 import { computeSummary, getConfluenceScore, normalizeEmotionScore, isTradeProtocolCompliant } from '@/lib/analytics'
 import type { TradeDirection } from '@/lib/types'
 import type { AnalyticsSummary } from '@/lib/analytics'
@@ -30,11 +31,15 @@ export interface AnalyticsData {
 }
 
 export const getAnalyticsData = cache(async (): Promise<AnalyticsData> => {
-  const trades = await prisma.trade.findMany({
-    where: { status: 'CLOSED' },
-    orderBy: { datetime: 'asc' },
-  })
+  const [trades, settings] = await Promise.all([
+    prisma.trade.findMany({
+      where: { status: 'CLOSED' },
+      orderBy: { datetime: 'asc' },
+    }),
+    getSettings(),
+  ])
 
+  const baseRiskPercent = settings.riskPercent
   const summary = computeSummary(trades)
   const riskViolations = trades.filter(
     (t) =>
@@ -50,7 +55,7 @@ export const getAnalyticsData = cache(async (): Promise<AnalyticsData> => {
           emotionScore: t.emotionScore,
           checkBBW: t.checkBBW,
         },
-        1,
+        baseRiskPercent,
       ),
   ).length
 

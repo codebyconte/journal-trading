@@ -177,7 +177,7 @@ export function protocolPageJsonLd() {
         url,
         name: 'Protocole Swing 4H — Guide Complet',
         description:
-          'Protocole de trading Swing 4H : MTF, market structure, Fibonacci, ATR, gestion post-trade, circuit-breaker et checklist 6 confluences.',
+          'Protocole de trading Swing 4H : MTF, market structure, Fibonacci, ATR, gestion post-trade, circuit-breaker et checklist 8 confluences.',
         inLanguage: siteConfig.language,
         isPartOf: { '@id': `${getSiteUrl()}/#website` },
         about: {
@@ -210,9 +210,9 @@ export function protocolPageJsonLd() {
         step: [
           { '@type': 'HowToStep', name: 'Règle Zéro', text: 'Vérifier état émotionnel ≥ 3/5 avant toute analyse.' },
           { '@type': 'HowToStep', name: 'MTF Alignment', text: 'Aligner Weekly, Daily et 4H dans la même direction.' },
-          { '@type': 'HowToStep', name: 'Setup & confluences', text: 'Valider 7/7 confluences (EMA, RSI, volume, CryptoQuant, Arkham, Macro, Coinglass).' },
-          { '@type': 'HowToStep', name: 'Ordre Limite', text: 'Placer entrée, SL et TP simultanément — R/R minimum 1:3.' },
-          { '@type': 'HowToStep', name: 'Gestion post-trade', text: 'Breakeven à +1R, partial à +2R, trailing selon plan.' },
+          { '@type': 'HowToStep', name: 'Setup & confluences', text: 'Valider 8/8 confluences (EMA, RSI, volume, BBW, CryptoQuant, Arkham, Macro, Coinglass). 7/8 = taille réduite 0.5%.' },
+          { '@type': 'HowToStep', name: 'Ordre Limite', text: 'Placer entrée, SL (ATR×1.5) et TP simultanément — R/R minimum 1:3 (objectifs 3R, 4R ou 5R).' },
+          { '@type': 'HowToStep', name: 'Gestion post-trade', text: 'Breakeven à +1R, partial 50% @ 3R, trailing EMA 20 sur les 50% restants.' },
           { '@type': 'HowToStep', name: 'Journal & review', text: 'Enregistrer le trade et analyser les patterns hebdomadaires.' },
         ],
       },

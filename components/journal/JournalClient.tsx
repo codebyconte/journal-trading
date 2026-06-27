@@ -53,9 +53,11 @@ const moodDotColor = (score: number) => {
 export function JournalClient({
   initialEntries,
   initialTrades,
+  riskPercent = 1,
 }: {
   initialEntries: JournalEntry[]
   initialTrades: Trade[]
+  riskPercent?: number
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -88,8 +90,8 @@ export function JournalClient({
   )
   const daySummary = useMemo(() => summarizeDay(dayTrades), [dayTrades])
   const patterns = useMemo(
-    () => detectPatterns(trades.filter((t) => t.status === 'CLOSED').slice(0, 50), entries),
-    [trades, entries],
+    () => detectPatterns(trades.filter((t) => t.status === 'CLOSED').slice(0, 50), entries, riskPercent),
+    [trades, entries, riskPercent],
   )
 
   const monthlyLossInsights = useMemo(
@@ -99,9 +101,10 @@ export function JournalClient({
 
   const monthlyLossCount = useMemo(() => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
-    return trades.filter(
-      (t) => t.status === 'CLOSED' && (t.pnl ?? 0) < 0 && t.closedAt && new Date(t.closedAt).getTime() >= cutoff,
-    ).length
+    return trades.filter((t) => {
+      if (t.status !== 'CLOSED' || (t.pnl ?? 0) >= 0) return false
+      return new Date(t.closedAt ?? t.datetime).getTime() >= cutoff
+    }).length
   }, [trades])
 
   const monthEntries = useMemo(
@@ -351,7 +354,7 @@ export function JournalClient({
             </div>
 
             {/* Trades du jour + analyse auto */}
-            <DayTradeReview trades={dayTrades} summary={daySummary} />
+            <DayTradeReview trades={dayTrades} summary={daySummary} riskPercent={riskPercent} />
           </Card>
 
           {/* Audit rapide */}

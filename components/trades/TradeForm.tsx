@@ -420,6 +420,7 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
       })
 
       if (!result.success) throw new Error(result.error)
+      setLossAccepted(null)
       onSuccess()
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la création du trade')
@@ -525,6 +526,7 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
   const canSubmit =
     (openTradeCount === 0 || protocolOverride) &&
     (protocolOverride || (canSubmitConfluence && effectiveRiskPercent !== null && parseInt(form.emotionScore) >= 3)) &&
+    (protocolOverride || lossAccepted === true) &&
     !priceValidationError &&
     slSaferThanLiq &&
     autoCalc.units > 0 &&
@@ -1277,7 +1279,9 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
             <AlertTriangle data-slot="icon" className="size-4" aria-hidden="true" />
             {protocolOverride && overrideReason.trim().length < 10
               ? 'Explique la violation du protocole (min. 10 caractères)'
-              : !protocolOverride && !canSubmitConfluence
+              : !protocolOverride && lossAccepted !== true
+                ? 'Confirme l\'acceptation de la perte max au SL (check PTJ)'
+                : !protocolOverride && !canSubmitConfluence
               ? `Protocole incomplet — min. ${confluenceMax - 1}/${confluenceMax} ou mode journal honnête`
               : !protocolOverride && parseInt(form.emotionScore) <= 2
                 ? 'État émotionnel ≤ 2/5 — mode journal honnête disponible'

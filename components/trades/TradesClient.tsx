@@ -142,6 +142,7 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
           onDelete={handleDelete}
           onOpen={handleOpen}
           onCancel={handleCancel}
+          riskPercent={settings.riskPercent}
         />
       )}
 

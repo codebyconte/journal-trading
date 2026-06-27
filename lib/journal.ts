@@ -4,9 +4,12 @@ import { formatCurrency, formatR } from '@/lib/utils'
 import {
   getConfluenceMax,
   getConfluenceScore,
+  getEffectiveRiskPercent,
+  getProtocolViolations,
   isFullConfluence,
   MIN_PLANNED_RR,
   isPlannedRRValid,
+  type ProtocolCheckInput,
 } from '@/lib/analytics'
 
 // ─── Stockage structuré (JSON dans `content`, rétrocompatible) ────────────────
@@ -113,7 +116,7 @@ export const POST_SESSION_PROMPTS: ReflectionPrompt[] = [
     category: 'Protocole',
     question: 'Où est-ce que j\'ai dévié du protocole ?',
     hint: 'Compare avec les 7 étapes : Règle Zéro → MTF → Structure → Indicateurs → On-Chain → Macro → Exécution. Une seule étape sautée = déviation à documenter.',
-    placeholder: 'Ex : J\'ai entré sans vérifier CryptoQuant (4/7). J\'ai analysé le 4H sans regarder le weekly d\'abord...',
+    placeholder: 'Ex : J\'ai entré sans vérifier CryptoQuant. J\'ai analysé le 4H sans regarder le weekly d\'abord…',
   },
   {
     id: 'emotionImpact',
@@ -194,13 +197,11 @@ export interface MonthlyLossInsight {
 /** Analyse transversale des pertes sur N jours (1×/mois). */
 export function analyzeMonthlyLosses(trades: Trade[], days = 30): MonthlyLossInsight[] {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
-  const losers = trades.filter(
-    (t) =>
-      t.status === 'CLOSED' &&
-      (t.pnl ?? 0) < 0 &&
-      t.closedAt &&
-      new Date(t.closedAt).getTime() >= cutoff,
-  )
+  const losers = trades.filter((t) => {
+    if (t.status !== 'CLOSED' || (t.pnl ?? 0) >= 0) return false
+    const closed = new Date(t.closedAt ?? t.datetime).getTime()
+    return closed >= cutoff
+  })
 
   if (losers.length === 0) {
     return [{
@@ -351,11 +352,32 @@ export interface TradeReview {
   issues: string[]
 }
 
-export function reviewTrade(trade: Trade): TradeReview {
+function protocolInputFromTrade(trade: Trade): ProtocolCheckInput {
+  return {
+    asset: trade.asset,
+    riskPercent: trade.riskPercent,
+    plannedRR: trade.plannedRR,
+    emotionScore: trade.emotionScore,
+    direction: trade.direction,
+    marketCondition: trade.marketCondition,
+    checkEMA: trade.checkEMA,
+    checkRSI: trade.checkRSI,
+    checkVolume: trade.checkVolume,
+    checkBBW: trade.checkBBW,
+    checkLiquid: trade.checkLiquid,
+    checkUnlocks: trade.checkUnlocks,
+    checkTVL: trade.checkTVL,
+    checkCoinglass: trade.checkCoinglass,
+    protocolOverride: trade.protocolOverride,
+  }
+}
+
+export function reviewTrade(trade: Trade, baseRiskPercent = 1): TradeReview {
   const confluenceScore = getConfluenceScore(trade)
   const max = getConfluenceMax(trade.asset)
   const strengths: string[] = []
   const issues: string[] = []
+  const protocolInput = protocolInputFromTrade(trade)
 
   if (trade.protocolOverride) {
     issues.push(`⚠️ Mode journal honnête — ${trade.overrideReason || 'violation assumée'}`)
@@ -365,20 +387,22 @@ export function reviewTrade(trade: Trade): TradeReview {
   else if (confluenceScore >= max - 1) strengths.push(`Confluence partielle (${confluenceScore}/${max})`)
   else issues.push(`Confluence insuffisante (${confluenceScore}/${max}) — protocole non respecté`)
 
-  if (isFullConfluence(trade)) {
-    if (trade.riskPercent <= 1.01) {
-      strengths.push(`Perte max au SL : ${trade.riskPercent.toFixed(2)}% (pleine taille 8/8)`)
+  const expectedRisk = getEffectiveRiskPercent(baseRiskPercent, protocolInput)
+  if (expectedRisk != null) {
+    if (trade.riskPercent <= expectedRisk + 0.05) {
+      const sizeLabel = isFullConfluence(trade)
+        ? `pleine taille ${max}/${max}`
+        : `taille réduite ${max - 1}/${max}`
+      strengths.push(
+        `Perte max au SL : ${trade.riskPercent.toFixed(2)}% (autorisé ${expectedRisk.toFixed(2)}% — ${sizeLabel})`,
+      )
     } else {
-      issues.push(`Perte max ${trade.riskPercent.toFixed(2)}% > 1% — taille excessive pour 8/8`)
+      issues.push(
+        `Perte max ${trade.riskPercent.toFixed(2)}% > ${expectedRisk.toFixed(2)}% autorisé pour ce setup`,
+      )
     }
-  } else if (confluenceScore >= max - 1) {
-    if (trade.riskPercent <= 0.55) {
-      strengths.push(`Perte max au SL : ${trade.riskPercent.toFixed(2)}% (taille réduite 7/8)`)
-    } else {
-      issues.push(`Perte max ${trade.riskPercent.toFixed(2)}% — attendu ≤ 0.5% pour confluence partielle`)
-    }
-  } else if (trade.riskPercent > 0.55) {
-    issues.push(`Perte max ${trade.riskPercent.toFixed(2)}% sur confluence insuffisante`)
+  } else if (trade.riskPercent > 0.05) {
+    issues.push(`Perte max ${trade.riskPercent.toFixed(2)}% — confluence ou régime insuffisant`)
   }
 
   if (trade.emotionScore != null) {
@@ -440,7 +464,11 @@ export interface BehaviorPattern {
   count?: number
 }
 
-export function detectPatterns(trades: Trade[], entries: { mood?: number | null; content: string }[]): BehaviorPattern[] {
+export function detectPatterns(
+  trades: Trade[],
+  entries: { mood?: number | null; content: string }[],
+  baseRiskPercent = 1,
+): BehaviorPattern[] {
   const patterns: BehaviorPattern[] = []
   const closed = trades.filter((t) => t.status === 'CLOSED')
 
@@ -479,13 +507,17 @@ export function detectPatterns(trades: Trade[], entries: { mood?: number | null;
     })
   }
 
-  const riskViolations = closed.filter((t) => t.riskPercent > 1.01).length
+  const riskViolations = closed.filter((t) =>
+    getProtocolViolations(protocolInputFromTrade(t), baseRiskPercent).some(
+      (v) => v.type === 'risk_exceeded',
+    ),
+  ).length
   if (riskViolations >= 1) {
     patterns.push({
       id: 'risk-violations',
       type: 'bad',
       title: 'Violations de gestion du risque',
-      detail: `${riskViolations} trade(s) avec risque > 1%. Van Tharp : 94% des survivants risquent ≤ 2%.`,
+      detail: `${riskViolations} trade(s) avec risque au-dessus du % autorisé (8/8 = ${baseRiskPercent}%, 7/8 = ${(baseRiskPercent / 2).toFixed(1)}%).`,
       count: riskViolations,
     })
   }

@@ -49,6 +49,7 @@ export interface CircuitBreakerState {
 export interface TradeStatsInput {
   initialCapital: number
   currentCapital: number
+  riskPercent?: number
 }
 
 function getClosedSorted(trades: TradeLike[]): TradeLike[] {
@@ -181,6 +182,7 @@ export function computeDashboardMetrics(
   settings: TradeStatsInput,
 ): ComputedDashboardMetrics {
   const initialCapital = settings.initialCapital
+  const baseRiskPercent = settings.riskPercent ?? 1
   const closedTrades = getClosedSorted(allTrades)
   const openTrades = allTrades.filter((t) => t.status === 'OPEN')
   const pendingTrades = allTrades.filter((t) => t.status === 'PENDING')
@@ -301,7 +303,7 @@ export function computeDashboardMetrics(
         protocolOverride: t.protocolOverride,
         checkBBW: t.checkBBW,
       },
-      1,
+      baseRiskPercent,
     ),
   ).length
   const protocolComplianceRate =

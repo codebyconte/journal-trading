@@ -21,6 +21,7 @@ interface Props {
   onDelete: (id: string) => void
   onOpen: (trade: Trade) => void
   onCancel: (trade: Trade) => void
+  riskPercent?: number
 }
 
 const STATUS_FILTERS: { value: TradeStatus | 'ALL'; label: string }[] = [
@@ -52,7 +53,7 @@ function marketLabel(value: string | null | undefined): string {
   return MARKET_CONDITIONS.find((m) => m.value === value)?.label ?? value
 }
 
-export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Props) {
+export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel, riskPercent = 1 }: Props) {
   const [statusFilter, setStatusFilter] = useState<TradeStatus | 'ALL'>('ALL')
   const [assetFilter, setAssetFilter] = useState<string>('ALL')
   const [directionFilter, setDirectionFilter] = useState<'ALL' | 'LONG' | 'SHORT'>('ALL')
@@ -194,7 +195,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel }: Prop
             {filtered.map((trade) => {
               const confTone = getConfluenceTone(trade)
               const confLabel = formatConfluenceScore(trade)
-              const review = reviewTrade(trade)
+              const review = reviewTrade(trade, riskPercent)
               const emotion = normalizeEmotion(trade.emotionScore)
               const isExpanded = expandedId === trade.id
               const violations = trade.protocolOverride

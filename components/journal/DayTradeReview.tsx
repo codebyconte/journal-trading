@@ -12,9 +12,10 @@ import type { Trade } from '@/lib/types'
 interface Props {
   trades: Trade[]
   summary: DaySummary
+  riskPercent?: number
 }
 
-export function DayTradeReview({ trades, summary }: Props) {
+export function DayTradeReview({ trades, summary, riskPercent = 1 }: Props) {
   if (trades.length === 0) {
     return (
       <Card variant="neutral">
@@ -56,7 +57,7 @@ export function DayTradeReview({ trades, summary }: Props) {
         </CardHeader>
         <div className="space-y-4">
           {trades.map((trade) => {
-            const review = reviewTrade(trade)
+            const review = reviewTrade(trade, riskPercent)
             const isWin = (trade.pnl ?? 0) > 0
             const isLoss = trade.status === 'CLOSED' && (trade.pnl ?? 0) < 0
 
