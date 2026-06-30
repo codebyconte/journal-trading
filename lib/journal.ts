@@ -431,6 +431,30 @@ export function reviewTrade(trade: Trade, baseRiskPercent = 1): TradeReview {
   return { trade, confluenceScore, strengths, issues }
 }
 
+export function getMonthlyCrossReviewForMonth(
+  entries: { date: string | Date; content: string | null }[],
+  date: Date,
+): Record<string, string> {
+  const month = date.getMonth()
+  const year = date.getFullYear()
+
+  const candidates = entries
+    .filter((e) => {
+      const d = new Date(e.date)
+      return d.getMonth() === month && d.getFullYear() === year
+    })
+    .map((e) => ({ date: new Date(e.date), parsed: parseJournalContent(e.content) }))
+    .filter(({ parsed }) =>
+      Object.values(parsed.monthlyCrossReview ?? {}).some((v) => v?.trim()),
+    )
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+
+  const raw = candidates[0]?.parsed.monthlyCrossReview ?? {}
+  return Object.fromEntries(
+    Object.entries(raw).filter((entry): entry is [string, string] => !!entry[1]?.trim()),
+  )
+}
+
 export function getTradesForDay(trades: Trade[], day: Date): Trade[] {
   return trades.filter((t) => {
     const d = new Date(t.closedAt ?? t.datetime)
@@ -453,7 +477,7 @@ export function summarizeDay(trades: Trade[]): DaySummary {
   const pnl = closed.reduce((s, t) => s + (t.pnl ?? 0), 0)
   const rValues = closed.map((t) => t.rMultiple ?? 0).filter((r) => isFinite(r))
   const avgR = rValues.length ? rValues.reduce((a, b) => a + b, 0) / rValues.length : 0
-  return { total: trades.length, wins, losses, pnl, avgR }
+  return { total: closed.length, wins, losses, pnl, avgR }
 }
 
 export interface BehaviorPattern {

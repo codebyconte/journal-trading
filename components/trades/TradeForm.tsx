@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Image from 'next/image'
 import { Calculator, X, CheckCircle2, AlertCircle, Camera, AlertTriangle, TrendingUp, TrendingDown, Shield, Target } from 'lucide-react'
-import { cn, calculateUnits, calculatePlannedRR, calculateStopLossFromATR, calculateTakeProfitAtR, getSlDistance, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices } from '@/lib/utils'
+import { cn, calculateUnits, calculatePlannedRR, calculateStopLossFromATR, calculateTakeProfitAtR, getSlDistance, estimateLiquidationPrice, formatNumber, isStopLossSaferThanLiquidation, validateTradePrices, toDatetimeLocalValue } from '@/lib/utils'
 import {
   isCoinglassApplicable,
   getConfluenceTone,
@@ -144,7 +144,7 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
-    datetime: new Date().toISOString().slice(0, 16),
+    datetime: toDatetimeLocalValue(),
     asset: '',
     direction: 'LONG' as TradeDirection,
     orderType: 'LIMITE',
@@ -389,8 +389,13 @@ export function TradeForm({ currentCapital, riskPercent, openTradeCount = 0, onS
         const fd = new FormData()
         fd.append('file', screenshot)
         const res = await fetch('/api/uploads', { method: 'POST', body: fd })
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.error || 'Échec de l\'upload du screenshot')
+        }
         const data = await res.json()
-        screenshotUrl = data.url
+        screenshotUrl = data.url ?? null
+        if (!screenshotUrl) throw new Error('URL du screenshot manquante')
       }
 
       const partialPrefix =

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { PageShell } from '@/components/ui/PageShell'
 import { useRouter } from 'next/navigation'
 import { Save, RefreshCw, AlertTriangle, CheckCircle2, Plus, Minus, RotateCcw, Calculator } from 'lucide-react'
@@ -44,6 +44,14 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
 
   const refresh = () => startTransition(() => router.refresh())
 
+  useEffect(() => {
+    setForm({
+      initialCapital: String(initialSettings.initialCapital),
+      currentCapital: String(initialSettings.currentCapital),
+      riskPercent: String(initialSettings.riskPercent),
+    })
+  }, [initialSettings])
+
   const showMessage = (msg: string) => {
     setActionMessage(msg)
     setTimeout(() => setActionMessage(null), 3000)
@@ -57,7 +65,10 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
         currentCapital: parseFloat(form.currentCapital),
         riskPercent: parseFloat(form.riskPercent),
       })
-      if (!result.success) return
+      if (!result.success) {
+        showMessage(result.error ?? 'Erreur lors de la sauvegarde')
+        return
+      }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       refresh()
@@ -366,7 +377,7 @@ export function SettingsClient({ settings: initialSettings, adjustments: initial
         </CardHeader>
         <div className="space-y-2 text-sm">
           {[
-            { rule: 'Risque max par trade', value: '1% du capital', color: 'text-emerald-400' },
+            { rule: 'Risque max par trade', value: `${initialSettings.riskPercent}% du capital`, color: 'text-emerald-400' },
             { rule: 'R/R minimum', value: '1:3 (TP 50% + trailing EMA 20)', color: 'text-amber-400' },
             { rule: 'Timeframe principal', value: 'Weekly → Daily → 4H', color: 'text-indigo-400' },
             { rule: "Pas d'ordre Market", value: 'Limite ou Stop uniquement', color: 'text-zinc-400' },

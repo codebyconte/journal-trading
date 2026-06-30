@@ -11,7 +11,7 @@ import { Badge } from '@/components/catalyst/badge'
 import { Button } from '@/components/catalyst/button'
 import { Field, Label } from '@/components/catalyst/fieldset'
 import { Input } from '@/components/catalyst/input'
-import { cn, calculatePnL, calculateRMultiple, calculateTakeProfitAtR, formatCurrency, formatR } from '@/lib/utils'
+import { cn, calculatePnL, calculateRMultiple, calculateTakeProfitAtR, formatCurrency, formatR, parseOptionalFloat } from '@/lib/utils'
 import { formatConfluenceScore, getConfluenceTone } from '@/lib/analytics'
 import { closeTrade } from '@/app/actions/trades'
 import { formatPostTradeNotes, type PostTradeAnalysis } from '@/lib/post-trade'
@@ -102,7 +102,13 @@ export function CloseTradeModal({ trade, currentCapital, onClose, onSuccess }: P
     setError(null)
     try {
       const postNotes = buildPostTradeNotes()
-      const result = await closeTrade(trade.id, exit, mae ? parseFloat(mae) : null, mfe ? parseFloat(mfe) : null, postNotes)
+      const result = await closeTrade(
+        trade.id,
+        exit,
+        parseOptionalFloat(mae),
+        parseOptionalFloat(mfe),
+        postNotes,
+      )
       if (!result.success) throw new Error(result.error)
       onSuccess()
       onClose()

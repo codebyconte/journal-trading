@@ -5,6 +5,34 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Valeur pour `<input type="datetime-local" />` en heure locale (pas UTC). */
+export function toDatetimeLocalValue(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+/** Date calendaire `YYYY-MM-DD` en heure locale. */
+export function toDateOnlyString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/** Parse `YYYY-MM-DD` → début de journée locale. */
+export function parseDateOnlyString(dateStr: string): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d, 0, 0, 0, 0)
+  }
+  const d = new Date(dateStr)
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
+}
+
+export function parseOptionalFloat(value: unknown): number | null {
+  if (value == null || value === '') return null
+  const n = parseFloat(String(value))
+  return isFinite(n) ? n : null
+}
+
 export function formatCurrency(value: number | null | undefined, currency = 'USD'): string {
   const n = value ?? 0
   if (!isFinite(n)) return '$—'

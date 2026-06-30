@@ -13,11 +13,17 @@ export async function POST(
     const { id } = await Promise.resolve(context.params)
     const body = await req.json()
     const exit = parseFloat(body.exitPrice)
+    const parseOptionalFloat = (v: unknown): number | null => {
+      if (v == null || v === '') return null
+      const n = parseFloat(String(v))
+      return isFinite(n) ? n : null
+    }
+
     const result = await closeTrade(
       id,
       exit,
-      body.mae ? parseFloat(body.mae) : null,
-      body.mfe ? parseFloat(body.mfe) : null,
+      parseOptionalFloat(body.mae),
+      parseOptionalFloat(body.mfe),
     )
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 })

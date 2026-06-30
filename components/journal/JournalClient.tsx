@@ -25,6 +25,7 @@ import {
   getJournalPreview,
   getTradesForDay,
   summarizeDay,
+  getMonthlyCrossReviewForMonth,
   detectPatterns,
   analyzeMonthlyLosses,
   normalizeMood,
@@ -33,7 +34,7 @@ import {
   type PromptId,
   type AuditKey,
 } from '@/lib/journal'
-import { cn } from '@/lib/utils'
+import { cn, toDateOnlyString } from '@/lib/utils'
 import { saveJournalEntry } from '@/app/actions/journal'
 
 const MOOD_LEVELS = [
@@ -69,6 +70,7 @@ export function JournalClient({
   const [mood, setMood] = useState(4)
   const [saving, setSaving] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     setEntries(initialEntries)
@@ -80,7 +82,14 @@ export function JournalClient({
   useEffect(() => {
     const entry = entries.find((e) => isSameDay(new Date(e.date), selectedDate))
     const parsed = parseJournalContent(entry?.content)
-    setJournal(parsed)
+    const monthlyFromMonth = getMonthlyCrossReviewForMonth(entries, selectedDate)
+    setJournal({
+      ...parsed,
+      monthlyCrossReview: {
+        ...monthlyFromMonth,
+        ...parsed.monthlyCrossReview,
+      },
+    })
     setMood(normalizeMood(entry?.mood))
   }, [selectedDate, entries])
 
@@ -89,10 +98,17 @@ export function JournalClient({
     [trades, selectedDate],
   )
   const daySummary = useMemo(() => summarizeDay(dayTrades), [dayTrades])
-  const patterns = useMemo(
-    () => detectPatterns(trades.filter((t) => t.status === 'CLOSED').slice(0, 50), entries, riskPercent),
-    [trades, entries, riskPercent],
-  )
+  const patterns = useMemo(() => {
+    const recentClosed = [...trades]
+      .filter((t) => t.status === 'CLOSED')
+      .sort(
+        (a, b) =>
+          new Date(b.closedAt ?? b.datetime).getTime() -
+          new Date(a.closedAt ?? a.datetime).getTime(),
+      )
+      .slice(0, 50)
+    return detectPatterns(recentClosed, entries, riskPercent)
+  }, [trades, entries, riskPercent])
 
   const monthlyLossInsights = useMemo(
     () => analyzeMonthlyLosses(trades.filter((t) => t.status === 'CLOSED'), 30),
@@ -133,13 +149,17 @@ export function JournalClient({
   const save = async () => {
     if (!hasContent && mood === 4) return
     setSaving(true)
+    setSaveError(null)
     try {
       const result = await saveJournalEntry({
-        date: selectedDate.toISOString(),
+        date: toDateOnlyString(selectedDate),
         content: serializeJournalContent(journal),
         mood,
       })
-      if (!result.success) return
+      if (!result.success) {
+        setSaveError(result.error ?? 'Erreur lors de la sauvegarde')
+        return
+      }
       refresh()
       setSavedFlash(true)
       setTimeout(() => setSavedFlash(false), 2500)
@@ -381,10 +401,15 @@ export function JournalClient({
               className="w-full rounded-xl border border-white/10 bg-zinc-900/80 px-4 py-3 text-sm text-white placeholder-text-muted resize-none focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-accent/30"
             />
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-zinc-500">
-                {Object.values(journal.prompts).filter((v) => v?.trim()).length}/7 prompts ·{' '}
-                {Object.values(journal.audit).filter(Boolean).length} alertes audit
-              </p>
+              <div className="space-y-1">
+                <p className="text-sm text-zinc-500">
+                  {Object.values(journal.prompts).filter((v) => v?.trim()).length}/7 prompts ·{' '}
+                  {Object.values(journal.audit).filter(Boolean).length} alertes audit
+                </p>
+                {saveError && (
+                  <p className="text-sm text-red-400">{saveError}</p>
+                )}
+              </div>
               <Button
                 onClick={save}
                 disabled={saving || (!hasContent && mood === 4)}

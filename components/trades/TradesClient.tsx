@@ -26,7 +26,9 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showForm, setShowForm] = useState(false)
+  const [formKey, setFormKey] = useState(0)
   const [tradeToClose, setTradeToClose] = useState<Trade | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const refresh = () => startTransition(() => router.refresh())
 
@@ -48,18 +50,33 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer ce trade définitivement ?')) return
-    await deleteTrade(id)
+    const result = await deleteTrade(id)
+    if (!result.success) {
+      setActionError(result.error ?? 'Suppression impossible')
+      return
+    }
+    setActionError(null)
     refresh()
   }
 
   const handleOpen = async (trade: Trade) => {
-    await openTrade(trade.id)
+    const result = await openTrade(trade.id)
+    if (!result.success) {
+      setActionError(result.error ?? 'Impossible d\'ouvrir le trade')
+      return
+    }
+    setActionError(null)
     refresh()
   }
 
   const handleCancel = async (trade: Trade) => {
     if (!confirm('Annuler cet ordre limite ? (Ordre non déclenché)')) return
-    await cancelTrade(trade.id)
+    const result = await cancelTrade(trade.id)
+    if (!result.success) {
+      setActionError(result.error ?? 'Annulation impossible')
+      return
+    }
+    setActionError(null)
     refresh()
   }
 
@@ -82,6 +99,12 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
           </>
         }
       />
+
+      {actionError && (
+        <CalloutBanner tone="red" title="Erreur">
+          {actionError}
+        </CalloutBanner>
+      )}
 
       <KpiGrid
         items={[
@@ -154,10 +177,11 @@ export function TradesClient({ trades, settings }: TradesClientProps) {
         showClose={false}
       >
         <TradeForm
+          key={formKey}
           currentCapital={settings.currentCapital}
           riskPercent={settings.riskPercent}
           openTradeCount={stats.pending + stats.open}
-          onSuccess={() => { setShowForm(false); refresh() }}
+          onSuccess={() => { setShowForm(false); setFormKey((k) => k + 1); refresh() }}
         />
       </Modal>
 

@@ -20,26 +20,12 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  req: Request,
-  context: { params: RouteParams | Promise<RouteParams> },
-) {
-  try {
-    const { id } = await Promise.resolve(context.params)
-    const body = await req.json()
-    const trade = await prisma.trade.update({
-      where: { id },
-      data: {
-        ...body,
-        datetime: body.datetime ? new Date(body.datetime) : undefined,
-        openedAt: body.openedAt ? new Date(body.openedAt) : undefined,
-        closedAt: body.closedAt ? new Date(body.closedAt) : undefined,
-      },
-    })
-    return NextResponse.json(trade)
-  } catch (e) {
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
-  }
+/** PUT désactivé — évite de clôturer/modifier PnL sans mettre à jour le capital. */
+export async function PUT() {
+  return NextResponse.json(
+    { error: 'Modification directe interdite. Utilisez les actions serveur (clôture, annulation, etc.).' },
+    { status: 405 },
+  )
 }
 
 export async function DELETE(

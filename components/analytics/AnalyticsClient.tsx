@@ -26,6 +26,7 @@ import {
 
 interface AnalyticsClientProps {
   data: AnalyticsData
+  riskPercent?: number
 }
 
 const CHART = {
@@ -127,7 +128,7 @@ function InsightCard({ insight }: { insight: AnalyticsInsight }) {
   )
 }
 
-export function AnalyticsClient({ data }: AnalyticsClientProps) {
+export function AnalyticsClient({ data, riskPercent = 1 }: AnalyticsClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -698,10 +699,11 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
           <AlertTriangle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-bold text-red-400">
-              {normalized.riskViolations} trade(s) avec perte max au SL {'>'} risque autorisé
+              {normalized.riskViolations} trade(s) hors protocole
             </p>
             <p className="text-sm text-zinc-300 mt-1">
-              Cible : 1% (8/8) ou 0.5% (7/8). La taille en unités varie avec l&apos;ATR — le % risqué, non.
+              Confluence, risque, R/R, émotion ou override journal honnête. Cible risque :{' '}
+              {riskPercent}% (8/8) ou {(riskPercent / 2).toFixed(1)}% (7/8).
             </p>
           </div>
         </div>

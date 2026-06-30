@@ -97,7 +97,7 @@ export const getAnalyticsData = cache(async (): Promise<AnalyticsData> => {
   const byDay: Record<string, { trades: number; wins: number; pnl: number }> = {}
   TRADING_DAYS.forEach((d) => { byDay[d] = { trades: 0, wins: 0, pnl: 0 } })
   for (const t of trades) {
-    const day = TRADING_DAYS[dayIndex(new Date(t.datetime))]
+    const day = TRADING_DAYS[dayIndex(new Date(t.closedAt ?? t.datetime))]
     byDay[day].trades++
     if ((t.pnl ?? 0) > 0) byDay[day].wins++
     byDay[day].pnl += t.pnl ?? 0

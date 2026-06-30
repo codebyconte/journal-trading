@@ -10,18 +10,29 @@ export async function updateSettings(input: {
   riskPercent: number
 }): Promise<ActionResult> {
   try {
+    const { initialCapital, currentCapital, riskPercent } = input
+    if (!isFinite(initialCapital) || initialCapital <= 0) {
+      return { success: false, error: 'Capital initial invalide' }
+    }
+    if (!isFinite(currentCapital) || currentCapital < 0) {
+      return { success: false, error: 'Capital actuel invalide' }
+    }
+    if (!isFinite(riskPercent) || riskPercent <= 0 || riskPercent > 5) {
+      return { success: false, error: 'Risque par trade invalide (0–5 %)' }
+    }
+
     await prisma.settings.upsert({
       where: { id: 'singleton' },
       update: {
-        initialCapital: input.initialCapital,
-        currentCapital: input.currentCapital,
-        riskPercent: input.riskPercent,
+        initialCapital,
+        currentCapital,
+        riskPercent,
       },
       create: {
         id: 'singleton',
-        initialCapital: input.initialCapital,
-        currentCapital: input.currentCapital,
-        riskPercent: input.riskPercent,
+        initialCapital,
+        currentCapital,
+        riskPercent,
       },
     })
     revalidateTradingPaths()

@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/db'
-import { calculatePlannedRR, calculatePnL, calculateRMultiple } from '@/lib/utils'
+import { calculatePlannedRR, calculatePnL, calculateRMultiple, validateTradePrices } from '@/lib/utils'
 import { revalidateTradingPaths } from '@/lib/revalidate'
 import type { TradeDirection, TradeOrderType } from '@/lib/types'
 
@@ -49,9 +49,34 @@ export async function createTrade(input: CreateTradeInput): Promise<ActionResult
       }
     }
 
+    if (!input.asset?.trim()) {
+      return { success: false, error: 'Actif requis' }
+    }
+
     const entryPrice = parseFloat(String(input.entryPrice))
     const stopLoss = parseFloat(String(input.stopLoss))
     const takeProfit = parseFloat(String(input.takeProfit))
+    const units = parseFloat(String(input.units))
+
+    if (!isFinite(entryPrice) || entryPrice <= 0) {
+      return { success: false, error: 'Prix d\'entrée invalide' }
+    }
+    if (!isFinite(stopLoss) || stopLoss <= 0) {
+      return { success: false, error: 'Stop loss invalide' }
+    }
+    if (!isFinite(units) || units <= 0) {
+      return { success: false, error: 'Taille (unités) invalide' }
+    }
+    if (!isFinite(input.riskAmount) || input.riskAmount <= 0) {
+      return { success: false, error: 'Montant de risque invalide' }
+    }
+    if (!isFinite(input.riskPercent) || input.riskPercent <= 0) {
+      return { success: false, error: 'Pourcentage de risque invalide' }
+    }
+
+    const priceError = validateTradePrices(entryPrice, stopLoss, takeProfit, input.direction)
+    if (priceError) return { success: false, error: priceError }
+
     const plannedRR = calculatePlannedRR(entryPrice, stopLoss, takeProfit, input.direction)
 
     await prisma.trade.create({
@@ -63,7 +88,7 @@ export async function createTrade(input: CreateTradeInput): Promise<ActionResult
         entryPrice,
         stopLoss,
         takeProfit,
-        units: parseFloat(String(input.units)),
+        units,
         riskAmount: input.riskAmount,
         riskPercent: input.riskPercent,
         atrAtEntry: input.atrAtEntry ? parseFloat(String(input.atrAtEntry)) : null,
@@ -127,6 +152,12 @@ export async function deleteTrade(id: string): Promise<ActionResult> {
 
 export async function openTrade(id: string): Promise<ActionResult> {
   try {
+    const trade = await prisma.trade.findUnique({ where: { id } })
+    if (!trade) return { success: false, error: 'Trade non trouvé' }
+    if (trade.status !== 'PENDING') {
+      return { success: false, error: 'Seul un ordre en attente peut être marqué comme exécuté' }
+    }
+
     await prisma.trade.update({
       where: { id },
       data: { status: 'OPEN', openedAt: new Date() },
@@ -140,6 +171,12 @@ export async function openTrade(id: string): Promise<ActionResult> {
 
 export async function cancelTrade(id: string): Promise<ActionResult> {
   try {
+    const trade = await prisma.trade.findUnique({ where: { id } })
+    if (!trade) return { success: false, error: 'Trade non trouvé' }
+    if (trade.status !== 'PENDING') {
+      return { success: false, error: 'Seul un ordre en attente peut être annulé' }
+    }
+
     await prisma.trade.update({
       where: { id },
       data: { status: 'CANCELLED' },
@@ -162,6 +199,12 @@ export async function closeTrade(
     const trade = await prisma.trade.findUnique({ where: { id } })
     if (!trade) return { success: false, error: 'Trade non trouvé' }
     if (trade.status === 'CLOSED') return { success: false, error: 'Trade déjà clôturé' }
+    if (trade.status !== 'OPEN') {
+      return {
+        success: false,
+        error: 'Seul un trade ouvert peut être clôturé. Marque l\'ordre comme exécuté d\'abord.',
+      }
+    }
     if (!exitPrice || exitPrice <= 0) return { success: false, error: 'Prix de sortie invalide' }
 
     const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } })

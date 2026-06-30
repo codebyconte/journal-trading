@@ -208,7 +208,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel, riskPe
                       plannedRR: trade.plannedRR,
                       emotionScore: trade.emotionScore,
                     },
-                    1,
+                    riskPercent,
                   )
               const hasViolation = trade.protocolOverride || violations.length > 0
 
@@ -304,7 +304,7 @@ export function TradeTable({ trades, onClose, onDelete, onOpen, onCancel, riskPe
                             </button>
                           </>
                         )}
-                        {(trade.status === 'OPEN' || trade.status === 'PENDING') && (
+                        {trade.status === 'OPEN' && (
                           <button
                             onClick={() => onClose(trade)}
                             title="Clôturer le trade"

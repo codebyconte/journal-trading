@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function JournalPage() {
   const [entries, { trades }, settings] = await Promise.all([
-    getJournalEntries(90),
+    getJournalEntries(365),
     getTrades({ limit: 200 }),
     getSettings(),
   ])

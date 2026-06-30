@@ -19,7 +19,7 @@ export const getDashboardStats = cache(async (): Promise<DashboardStats> => {
     riskPercent: settings?.riskPercent ?? 1,
   })
 
-  const referenceCapital = metrics.initialCapital + metrics.totalPnl || metrics.currentCapital
+  const referenceCapital = metrics.currentCapital
 
   return {
     currentCapital: metrics.currentCapital,
