@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 
 export const siteConfig = {
   name: 'TradingLog',
-  tagline: 'Journal de Trading Swing 4H',
+  tagline: 'Trading Research & Performance',
   description:
-    'Journal de trading professionnel avec protocole Swing 4H, circuit-breaker, analytics et gestion du risque à 1%. BTC, ETH, SOL, SPX, QQQ.',
+    'Espace privé de recherche, suivi de positions et mesure des performances.',
   locale: 'fr_FR',
   language: 'fr',
   twitterHandle: '@TradingLog',
@@ -22,7 +22,7 @@ export function canonicalPath(path = ''): string {
 }
 
 /** Pages indexables (contenu public / marketing) */
-export const indexablePaths = ['/', '/protocol'] as const
+export const indexablePaths: string[] = []
 
 /** Pages privées — données utilisateur, noindex */
 export const privatePaths = ['/trades', '/journal', '/analytics', '/settings'] as const
@@ -42,7 +42,7 @@ export const defaultMetadata: Metadata = {
     'protocole swing 4h',
     'gestion du risque trading',
     'journal crypto',
-    'BTC trading journal',
+    'journal multi-actifs',
     'circuit breaker trading',
     'analytics trading',
   ],
@@ -67,11 +67,11 @@ export const defaultMetadata: Metadata = {
     description: siteConfig.description,
   },
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
     googleBot: {
-      index: true,
-      follow: true,
+      index: false,
+      follow: false,
       'max-video-preview': -1,
       'max-image-preview': 'large',
       'max-snippet': -1,
@@ -89,7 +89,7 @@ export function pageMetadata(options: {
   index?: boolean
   keywords?: string[]
 }): Metadata {
-  const { title, description, path, index = true, keywords } = options
+  const { title, description, path, index = false, keywords } = options
   return {
     title,
     description,
@@ -111,7 +111,7 @@ export function pageMetadata(options: {
       description,
     },
     robots: index
-      ? { index: true, follow: true }
+      ? { index: false, follow: false }
       : { index: false, follow: false, nocache: true },
   }
 }
@@ -166,56 +166,4 @@ export function websiteJsonLd() {
   }
 }
 
-export function protocolPageJsonLd() {
-  const url = canonicalPath('/protocol')
-  return {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'WebPage',
-        '@id': `${url}/#webpage`,
-        url,
-        name: 'Protocole Swing 4H — Guide Complet',
-        description:
-          'Protocole de trading Swing 4H : MTF, market structure, Fibonacci, ATR, gestion post-trade, circuit-breaker et checklist 8 confluences.',
-        inLanguage: siteConfig.language,
-        isPartOf: { '@id': `${getSiteUrl()}/#website` },
-        about: {
-          '@type': 'Thing',
-          name: 'Swing Trading 4H',
-          description: 'Méthodologie de trading swing sur timeframe 4 heures',
-        },
-      },
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'Dashboard',
-            item: getSiteUrl(),
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: 'Protocole Swing 4H',
-            item: url,
-          },
-        ],
-      },
-      {
-        '@type': 'HowTo',
-        name: 'Exécuter un trade selon le protocole Swing 4H',
-        description: 'Processus en 6 étapes pour entrer un trade avec confluences complètes.',
-        step: [
-          { '@type': 'HowToStep', name: 'Règle Zéro', text: 'Vérifier état émotionnel ≥ 3/5 avant toute analyse.' },
-          { '@type': 'HowToStep', name: 'MTF Alignment', text: 'Aligner Weekly, Daily et 4H dans la même direction.' },
-          { '@type': 'HowToStep', name: 'Setup & confluences', text: 'Valider 8/8 confluences (EMA, RSI, volume, BBW, CryptoQuant, Arkham, Macro, Coinglass). 7/8 = taille réduite 0.5%.' },
-          { '@type': 'HowToStep', name: 'Ordre Limite', text: 'Placer entrée, SL (ATR×1.5) et TP simultanément — R/R minimum 1:3 (objectifs 3R, 4R ou 5R).' },
-          { '@type': 'HowToStep', name: 'Gestion post-trade', text: 'Breakeven à +1R, partial 50% @ 3R, trailing EMA 20 sur les 50% restants.' },
-          { '@type': 'HowToStep', name: 'Journal & review', text: 'Enregistrer le trade et analyser les patterns hebdomadaires.' },
-        ],
-      },
-    ],
-  }
-}
+export function protocolPageJsonLd(){return {"@context":"https://schema.org","@type":"WebPage",name:"Laboratoire de stratégies modifiables"};}

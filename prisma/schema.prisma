@@ -43,7 +43,7 @@ model Trade {
   mae        Float?   // Max Adverse Excursion ($) - combien la position est allée contre toi
   mfe        Float?   // Max Favorable Excursion ($) - combien la position est allée en ta faveur
 
-  // Checklist confluence (obligatoires)
+  // Champs du protocole historique conservés pour migration, non requis par le nouveau journal
   checkEMA        Boolean @default(false)
   checkRSI        Boolean @default(false)
   checkVolume     Boolean @default(false)
@@ -104,4 +104,85 @@ model CapitalAdjustment {
   balanceAfter Float
 
   @@index([createdAt])
+}
+
+// Research v1: additive models. Legacy tables are never rewritten.
+model ResearchPosition {
+  archivedAt DateTime?
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  asset     String
+  mode      String // REAL | PAPER | BACKTEST
+  status    String @default("OPEN")
+  plan      Json // validated, immutable schemaVersion 1
+  events    PositionEvent[]
+  @@index([mode, status])
+}
+
+model PositionEvent {
+  id         String @id @default(cuid())
+  positionId String
+  position   ResearchPosition @relation(fields: [positionId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now())
+  occurredAt DateTime
+  type       String // ENTRY | EXIT | COST | STOP | NOTE | REVIEW | MARK
+  payload    Json
+  requestId  String @unique
+  @@index([positionId, occurredAt])
+}
+
+model ResearchDocument {
+  archivedAt DateTime?
+  id        String @id @default(cuid())
+  kind      String // STRATEGY | MARKET | REVIEW | WATCH
+  createdAt DateTime @default(now())
+  revisions ResearchRevision[]
+  @@index([kind])
+}
+
+model ResearchRevision {
+  id         String @id @default(cuid())
+  documentId String
+  document   ResearchDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  version    Int
+  createdAt  DateTime @default(now())
+  content    Json
+  @@unique([documentId, version])
+}
+
+model ImportedFill {
+  id          String @id @default(cuid())
+  sourceKey   String @unique
+  importedAt  DateTime @default(now())
+  account     String
+  data        Json
+  matchedPositionId String?
+  matchedAt   DateTime?
+}
+
+// Immutable, evidence-linked process evaluations, independent of outcome.
+model DecisionAssessment {
+  id          String @id @default(cuid())
+  requestId   String @unique
+  createdAt   DateTime @default(now())
+  subjectType String
+  subjectId   String
+  revisionId  String?
+  supersedesId String? @unique
+  timing      String // BEFORE_RECORDED_OUTCOME | RETROSPECTIVE
+  snapshot    Json
+  data        Json
+  @@index([subjectType, subjectId, createdAt])
+}
+
+model AccountMovement {
+ id String @id @default(cuid())
+ accountId String
+ requestId String @unique
+ createdAt DateTime @default(now())
+ occurredAt DateTime
+ amount Float
+ note String
+ @@index([accountId, occurredAt])
 }

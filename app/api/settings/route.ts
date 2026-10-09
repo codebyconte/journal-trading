@@ -1,32 +1,3 @@
-import { NextResponse } from 'next/server'
-import { getSettings } from '@/lib/data/settings'
-import { updateSettings } from '@/app/actions/settings'
-
-export const dynamic = 'force-dynamic'
-
-export async function GET() {
-  try {
-    const settings = await getSettings()
-    return NextResponse.json(settings)
-  } catch (e) {
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
-  }
-}
-
-export async function PUT(req: Request) {
-  try {
-    const body = await req.json()
-    const result = await updateSettings({
-      initialCapital: body.initialCapital,
-      currentCapital: body.currentCapital,
-      riskPercent: body.riskPercent,
-    })
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
-    }
-    const settings = await getSettings()
-    return NextResponse.json(settings)
-  } catch (e) {
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
-  }
-}
+import { NextResponse } from "next/server";
+function retired(){return NextResponse.json({error:"API v0 archivée. Utilise /api/workspace ; historique conservé et exportable."},{status:410});}
+export { retired as GET, retired as POST, retired as PUT, retired as PATCH, retired as DELETE };

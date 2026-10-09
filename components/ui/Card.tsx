@@ -13,7 +13,7 @@ export function Card({ children, className, glow, variant = 'default' }: CardPro
     <div
       className={cn(
         'rounded-xl p-5 shadow-xs ring-1 ring-zinc-950/5 dark:ring-white/10',
-        variant === 'default' && 'bg-white dark:bg-zinc-900',
+        variant === 'default' && 'bg-white dark:bg-[#15191f]',
         variant === 'profit' && 'border-profit/30 bg-emerald-500/5 ring-emerald-500/20 dark:bg-emerald-500/10',
         variant === 'loss' && 'border-loss/30 bg-red-500/5 ring-red-500/20 dark:bg-red-500/10',
         variant === 'neutral' && 'border-neutral/30 bg-amber-500/5 ring-amber-500/20 dark:bg-amber-500/10',

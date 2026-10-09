@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -18,9 +22,33 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": [
+        "./*"
+      ]
+    },
+    "target": "ES2017",
+    "types": [
+      "node",
+      "react",
+      "react-dom"
+    ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "components/demo-typescript"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next-dev-3101/types/**/*.ts",
+    ".next-dev/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-dev-3131/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "components/demo-typescript",
+    "archive",
+    "**/* 2.ts",
+    "**/* 3.ts",
+    "**/* 2.tsx",
+    "**/* 3.tsx"
+  ]
 }

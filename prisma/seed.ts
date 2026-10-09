@@ -9,14 +9,14 @@ async function main() {
     update: {},
     create: {
       id: 'singleton',
-      initialCapital: 100000,
-      currentCapital: 100000,
+      initialCapital: 0,
+      currentCapital: 0,
       riskPercent: 1.0,
     },
   })
 
   console.log('✅ Base de données initialisée avec succès')
-  console.log('   Capital initial: $100,000')
+  console.log('   Vérifier le capital réel dans Paramètres avant utilisation.')
   console.log('   Risque par trade: 1%')
 }
 

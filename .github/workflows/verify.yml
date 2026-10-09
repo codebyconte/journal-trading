@@ -1,0 +1,22 @@
+name: Verify journal
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:integration
+        env:
+          JOURNAL_BROWSER_CHECK: "true"
+      - run: node scripts/auth-check.mjs
+      - run: npm audit --omit=dev

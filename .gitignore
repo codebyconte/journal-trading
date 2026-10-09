@@ -27,3 +27,16 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+work/
+.env.local
+playwright-report/
+test-results/
+
+.next-dev/
+
+# Données et caches privés
+public/uploads/
+*.tsbuildinfo
+
+.next-dev-*/

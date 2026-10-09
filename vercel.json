@@ -1,4 +1,9 @@
 {
   "framework": "nextjs",
-  "buildCommand": "next build"
+  "buildCommand": "next build",
+  "git": {
+    "deploymentEnabled": {
+      "codex/tradinglog-multi-actifs": false
+    }
+  }
 }
