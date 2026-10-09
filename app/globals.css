@@ -6,8 +6,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), 'Fira Code', monospace;
+  --font-sans: Arial, system-ui, sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, monospace;
   --font-sans--font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 
   --color-bg-base: #0a0b0f;
@@ -168,4 +168,11 @@
   .card-glow-profit { box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.15), 0 4px 20px rgba(34, 197, 94, 0.06); }
   .card-glow-loss { box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.15), 0 4px 20px rgba(239, 68, 68, 0.06); }
   .card-glow-accent { box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 4px 20px rgba(99, 102, 241, 0.08); }
+}
+
+@layer components {
+ .eyebrow { font-size: 10px; font-weight: 600; letter-spacing: .16em; color: #8b98a8; }
+ .capital-panel { background: radial-gradient(ellipse at 95% 5%, #174e423d, transparent 65%), #141c20; }
+ .work-input { width: 100%; border: 1px solid #ffffff18; border-radius: 10px; background: #0e1116; padding: 12px 14px; font-size: 14px; color: #e4e4e7; }
+ .work-input:focus { border-color: #6ee7b7; }
 }

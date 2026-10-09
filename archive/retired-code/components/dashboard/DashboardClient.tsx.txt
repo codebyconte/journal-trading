@@ -1,0 +1,48 @@
+'use client'
+
+import Link from 'next/link'
+import { ArrowUpRight, Plus, ShieldCheck, Target, ArrowRight, Activity, BookOpen } from 'lucide-react'
+import { EquityCurve } from './EquityCurve'
+import { PageShell } from '@/components/ui/PageShell'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/catalyst/button'
+import type { DashboardStats, Trade } from '@/lib/types'
+import { formatCurrency, formatR } from '@/lib/utils'
+import { formatProfitFactor } from '@/lib/stats'
+
+export function DashboardClient({ stats: s, recentTrades }: { stats: DashboardStats; recentTrades: Trade[] }) {
+  const hasData = s.closedTrades > 0
+  const cb = s.circuitBreaker
+  return <PageShell>
+    <header className="flex flex-wrap items-end justify-between gap-5">
+      <div><p className="eyebrow">TON ESPACE DE TRADING</p><h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Vue d’ensemble<span className="text-emerald-400">.</span></h1><p className="mt-2 text-sm text-zinc-400">Observe tes résultats. Travaille ton processus.</p></div>
+      <Button href="/trades" color="emerald"><Plus data-slot="icon" /> Enregistrer un trade</Button>
+    </header>
+    <div className="grid gap-4 xl:grid-cols-[1.7fr_1fr]">
+      <section className="capital-panel rounded-2xl border border-emerald-400/20 p-6 sm:p-8">
+        <div className="flex justify-between gap-3"><p className="eyebrow">CAPITAL ACTUEL</p><span className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300">Compte personnel</span></div>
+        <p className="mt-5 break-words font-mono text-4xl font-medium tracking-tight sm:text-5xl">{formatCurrency(s.currentCapital)}</p>
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm"><span className={s.totalPnl < 0 ? 'text-red-400' : 'text-emerald-400'}>{s.totalPnl > 0 ? '+' : ''}{formatCurrency(s.totalPnl)} réalisés</span><span className="text-zinc-500">•</span><span className="text-zinc-400">{s.closedTrades} trades clôturés</span></div>
+        <div className="mt-7 grid grid-cols-2 gap-4 border-t border-white/10 pt-5"><div><p className="text-xs text-zinc-400">Risque engagé · ouverts + ordres</p><p className="mt-1 font-mono text-lg">{formatCurrency(s.openRiskUsd ?? 0)}</p></div><div><p className="text-xs text-zinc-400">Positions ouvertes / en attente</p><p className="mt-1 font-mono text-lg">{s.openTrades} <span className="text-zinc-500">/ {s.pendingTrades}</span></p></div></div>
+      </section>
+      <Card className="flex flex-col justify-between !p-6">
+        <div><div className="flex items-center gap-2 text-emerald-300"><Target size={18}/><p className="eyebrow !text-emerald-300">LE PROCESSUS AVANT LE RÉSULTAT</p></div><h2 className="mt-5 text-2xl font-medium leading-snug">Un trade bien exécuté<br/>est une leçon utile.</h2><p className="mt-3 text-sm leading-6 text-zinc-400">Prépare ton scénario, documente ton invalidation et choisis une seule habitude à améliorer cette semaine.</p></div>
+        <Link href="/progress" className="mt-6 flex items-center justify-between border-t border-white/10 pt-4 text-sm font-medium text-emerald-300">Ouvrir mon espace de progression <ArrowUpRight size={18}/></Link>
+      </Card>
+    </div>
+    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      {[
+        ['Taux de réussite', hasData ? `${s.winRate.toFixed(1)} %` : '—', `${s.winCount} gains · ${s.lossCount} pertes`],
+        ['Profit factor', hasData ? formatProfitFactor(s.profitFactor) : '—', 'Gains bruts / pertes brutes'],
+        ['Espérance par trade', hasData ? formatCurrency(s.expectancy) : '—', 'Moyenne des résultats clôturés'],
+        ['Drawdown maximal', hasData ? `${s.maxDrawdownPercent.toFixed(1)} %` : '—', 'Courbe hors apports et retraits'],
+      ].map(([label, value, caption]) => <Card key={label}><p className="text-sm text-zinc-400">{label}</p><p className="mt-3 font-mono text-2xl tracking-tight">{value}</p><p className="mt-2 text-xs text-zinc-500">{caption}</p></Card>)}
+    </div>
+    <div className="grid items-start gap-5 xl:grid-cols-[1.7fr_1fr]">
+      <Card><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-base font-semibold">Évolution du capital</h2><p className="mt-1 text-xs text-zinc-400">Capital initial + résultats réalisés, hors mouvements de fonds</p></div><span className="text-xs text-zinc-400">Tout l’historique</span></div><div className="mt-6 h-64">{hasData ? <EquityCurve data={s.equityCurve} initialCapital={s.initialCapital}/> : <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-white/10 px-6 text-center"><Activity className="mb-3 text-emerald-400"/><p className="text-sm">Ton historique commence ici</p><p className="mt-2 text-xs text-zinc-400">La courbe apparaîtra après ton premier trade clôturé.</p><Link className="mt-4 text-sm text-emerald-300" href="/trades">Ajouter un trade →</Link></div>}</div></Card>
+      <Card><div className="flex items-center gap-2"><ShieldCheck size={18} className="text-emerald-400"/><h2 className="font-semibold">Discipline & exposition</h2></div><div className="my-5 rounded-xl bg-white/[.03] p-4"><p className={cb?.active ? 'text-red-300' : 'text-zinc-200'}>{cb?.active ? 'Seuil du protocole atteint' : cb?.warning ? 'Point de vigilance' : 'Aucun seuil d’alerte atteint'}</p><p className="mt-2 text-xs leading-5 text-zinc-400">Ces indicateurs décrivent ton historique. La validation d’un nouveau setup reste une étape distincte.</p></div>{[...(cb?.breaches ?? []), ...(cb?.warnings ?? [])].map(item => <p key={item} className="mb-3 text-sm text-amber-300">{item}</p>)}<div className="flex justify-between border-t border-white/10 py-4 text-sm"><span className="text-zinc-400">Respect du protocole</span><span>{hasData ? `${(s.protocolComplianceRate ?? 0).toFixed(0)} %` : '—'}</span></div><div className="flex justify-between text-sm"><span className="text-zinc-400">R moyen réalisé</span><span>{hasData ? formatR(s.avgRR) : '—'}</span></div><Link href="/protocol" className="mt-5 inline-flex items-center gap-2 text-sm text-emerald-300">Consulter mes règles <ArrowRight size={14}/></Link></Card>
+    </div>
+    <Card><div className="mb-5 flex items-center justify-between"><h2 className="font-semibold">Derniers trades clôturés</h2><Link href="/trades" className="text-sm text-emerald-300">Tout le journal →</Link></div><div className="overflow-x-auto"><table className="w-full whitespace-nowrap text-left text-sm"><thead className="border-b border-white/10 text-xs text-zinc-500"><tr>{['Actif / date', 'Direction', 'Setup', 'Résultat', 'R réalisé'].map(h => <th key={h} className="px-3 pb-3 font-medium">{h}</th>)}</tr></thead><tbody>{recentTrades.map(t => <tr key={t.id} className="border-b border-white/5"><td className="px-3 py-4 font-medium">{t.asset}<p className="mt-1 text-xs font-normal text-zinc-500">{new Date(t.closedAt ?? t.datetime).toLocaleDateString('fr-FR')}</p></td><td className="px-3 text-xs text-zinc-300">{t.direction}</td><td className="max-w-60 truncate px-3 text-zinc-400" title={t.setup ?? ''}>{t.setup ?? 'Non renseigné'}</td><td className={`px-3 font-mono ${(t.pnl ?? 0) < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{t.pnl == null ? '—' : formatCurrency(t.pnl)}</td><td className="px-3 font-mono">{t.rMultiple == null ? '—' : formatR(t.rMultiple)}</td></tr>)}</tbody></table>{!recentTrades.length && <p className="py-8 text-center text-sm text-zinc-400">Aucun trade clôturé pour le moment.</p>}</div></Card>
+    <div className="flex items-start gap-3 rounded-xl border border-white/10 px-5 py-4"><BookOpen size={18} className="shrink-0 text-zinc-400"/><p className="text-xs leading-5 text-zinc-400">{s.closedTrades} observations disponibles. Les statistiques décrivent cet échantillon ; elles ne suffisent pas à confirmer un avantage durable. Compare aussi la qualité de tes décisions.</p></div>
+  </PageShell>
+}

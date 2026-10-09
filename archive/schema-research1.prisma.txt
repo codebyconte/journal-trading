@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Trade {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Core fields
+  datetime  DateTime
+  asset     String
+  direction String   // LONG | SHORT
+  orderType String   // LIMITE | STOP
+
+  // Prices
+  entryPrice Float
+  stopLoss   Float
+  takeProfit Float
+  units      Float
+
+  // Risk management
+  riskAmount  Float // montant risqué ($) — perte max si SL touché
+  riskPercent Float // % du capital risqué (ex: 1.0 pleine taille, 0.5 réduit)
+  atrAtEntry  Float? // ATR(14) 4H au moment de l'entrée (référence volatilité)
+
+  // R-Ratio calculé à l'entrée
+  plannedRR Float // (TP - Entry) / (Entry - SL) pour LONG
+
+  // Status
+  status String @default("PENDING") // PENDING | OPEN | CLOSED | CANCELLED
+
+  // Résultat (rempli à la clôture)
+  exitPrice  Float?
+  pnl        Float?   // P&L en $
+  pnlPercent Float?   // P&L en %
+  rMultiple  Float?   // P&L / riskAmount (ex: 2.3R)
+  mae        Float?   // Max Adverse Excursion ($) - combien la position est allée contre toi
+  mfe        Float?   // Max Favorable Excursion ($) - combien la position est allée en ta faveur
+
+  // Checklist confluence (obligatoires)
+  checkEMA        Boolean @default(false)
+  checkRSI        Boolean @default(false)
+  checkVolume     Boolean @default(false)
+  checkBBW        Boolean @default(false) // Bollinger Band Width au-dessus de sa moyenne 20 bougies
+  checkLiquid     Boolean @default(false)
+  checkUnlocks    Boolean @default(false)
+  checkTVL        Boolean @default(false)
+  checkCoinglass  Boolean @default(false) // Coinglass : Funding Rate + Liquidation Heatmap + L/S Ratio + OI CME
+
+  // Contexte & tags
+  setup           String? // type de setup (EMA Bounce, FVG, etc.)
+  marketCondition String? // Trending Up/Down, Ranging, Volatile
+  emotionScore    Int?    // 1-10 état émotionnel avant le trade
+  sessionTime     String? // ASIA | LONDON | NY | OVERLAP
+
+  // Violation protocole (mode journal honnête)
+  protocolOverride Boolean @default(false)
+  overrideReason   String?
+
+  // Notes & media
+  notes      String?
+  screenshot String? // chemin fichier upload
+
+  // Timestamps opérationnels
+  openedAt  DateTime?
+  closedAt  DateTime?
+
+  @@index([asset])
+  @@index([status])
+  @@index([datetime])
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  date    DateTime @unique
+  content String
+  mood    Int?     // 1-10
+
+  @@index([date])
+}
+
+model Settings {
+  id             String @id @default("singleton")
+  initialCapital Float  @default(100000)
+  currentCapital Float  @default(100000)
+  riskPercent    Float  @default(1.0)
+  currency       String @default("USD")
+}
+
+model CapitalAdjustment {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  amount       Float    // positif = dépôt, négatif = retrait
+  note         String?
+  balanceAfter Float
+
+  @@index([createdAt])
+}
+
+// Research v1: additive models. Legacy tables are never rewritten.
+model ResearchPosition {
+  id        String @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  asset     String
+  mode      String // REAL | PAPER | BACKTEST
+  status    String @default("OPEN")
+  plan      Json // validated, immutable schemaVersion 1
+  events    PositionEvent[]
+  @@index([mode, status])
+}
+
+model PositionEvent {
+  id         String @id @default(cuid())
+  positionId String
+  position   ResearchPosition @relation(fields: [positionId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now())
+  occurredAt DateTime
+  type       String // ENTRY | EXIT | COST | STOP | NOTE | REVIEW | MARK
+  payload    Json
+  requestId  String @unique
+  @@index([positionId, occurredAt])
+}
+
+model ResearchDocument {
+  id        String @id @default(cuid())
+  kind      String // STRATEGY | MARKET | REVIEW | WATCH
+  createdAt DateTime @default(now())
+  revisions ResearchRevision[]
+  @@index([kind])
+}
+
+model ResearchRevision {
+  id         String @id @default(cuid())
+  documentId String
+  document   ResearchDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  version    Int
+  createdAt  DateTime @default(now())
+  content    Json
+  @@unique([documentId, version])
+}

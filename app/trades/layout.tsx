@@ -1,12 +1,3 @@
-import { privatePageMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
-
-export const metadata: Metadata = privatePageMetadata(
-  'Trades',
-  'Gestion des trades Swing 4H — espace privé du journal.',
-  '/trades',
-)
-
-export default function TradesLayout({ children }: { children: React.ReactNode }) {
-  return children
-}
+export const metadata: Metadata = {title:'Positions',robots:{index:false,follow:false}}
+export default function Layout({children}:{children:React.ReactNode}){return children}
